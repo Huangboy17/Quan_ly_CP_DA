@@ -14,6 +14,20 @@
   }
 }
 
+/* Custom Webkit Date Picker Calendar Icon Styling */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) sepia(100%) saturate(600%) hue-rotate(175deg) brightness(1.2);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  transform: scale(1.15);
+  filter: invert(0.9) sepia(100%) saturate(1000%) hue-rotate(175deg) brightness(1.5);
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
