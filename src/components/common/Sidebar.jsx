@@ -26,8 +26,8 @@ export default function Sidebar({ activeTab, setActiveTab, counts, onNewProject 
     },
     {
       id: 'projects',
-      label: 'Danh mục Dự án',
-      sublabel: 'Quản lý công trình',
+      label: 'Tổng quan dự án',
+      sublabel: 'Xem tổng quan theo từng dự án',
       icon: FolderKanban,
       badge: counts?.projectsCount || 0,
     },

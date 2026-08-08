@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, FileText, Calendar, Building2, Wallet, Plus, Trash2, Edit, CheckCircle2, ShieldCheck, Lock } from 'lucide-react';
+import { X, FileText, Calendar, Building2, Wallet, Plus, Trash2, Edit, CheckCircle2, ShieldCheck, Lock, Paperclip } from 'lucide-react';
 import { formatVND, formatDisplayDate } from '../../utils/formatters';
 
 export default function ContractDetailModal({ 
@@ -9,9 +9,18 @@ export default function ContractDetailModal({
   payments = [], 
   onAddPaymentForContract,
   onEditPayment,
-  onDeletePayment 
+  onDeletePayment,
+  onOpenAddAppendix,
+  onEditAppendix,
+  onDeleteAppendix
 }) {
   if (!isOpen || !contract) return null;
+
+  // Appendices list
+  const appendicesList = Array.isArray(contract.appendices) ? contract.appendices : [];
+  const initialContractValueAfterVat = Number(contract.initialContractValueAfterVAT || contract.contractValueAfterVAT || contract.contract_value || 0);
+  const totalAppendicesAfterVat = Number(contract.totalAppendicesAfterVAT || 0);
+  const currentContractValueAfterVat = Number(contract.contractValueAfterVAT || contract.contract_value || 0);
 
   // Filter payments belonging to this contract and sort by payment_phase / date
   const contractPayments = payments
@@ -29,8 +38,7 @@ export default function ContractDetailModal({
   });
 
   const totalPaidAfterVat = runningSum;
-  const contractValueAfterVat = Number(contract.contractValueAfterVAT || contract.contract_value || 0);
-  const remainingValue = Math.max(0, contractValueAfterVat - totalPaidAfterVat);
+  const remainingValue = Math.max(0, currentContractValueAfterVat - totalPaidAfterVat);
   const isSettled = contract.status === 'settled';
 
   return (
@@ -45,7 +53,7 @@ export default function ContractDetailModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white">Chi Tiết Tiến Độ Thanh Toán Hợp Đồng</h3>
+                <h3 className="text-base font-bold text-white">Chi Tiết Tiến Độ & Lịch Sử Hợp Đồng</h3>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
                   isSettled
                     ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
@@ -86,13 +94,116 @@ export default function ContractDetailModal({
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-700/60 flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Giá trị hợp đồng (Sau VAT):</span>
-              <span className="font-mono font-extrabold text-blue-400 text-base">{formatVND(contractValueAfterVat)}</span>
+            <div className="pt-3 border-t border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+              <div>
+                <span className="text-slate-400 font-medium">Giá trị ký ban đầu (Gốc): </span>
+                <span className="font-mono font-bold text-slate-200">{formatVND(initialContractValueAfterVat)}</span>
+                {totalAppendicesAfterVat !== 0 && (
+                  <span className={`font-mono text-xs font-semibold ml-2 ${totalAppendicesAfterVat >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    ({totalAppendicesAfterVat >= 0 ? `+${formatVND(totalAppendicesAfterVat)}` : formatVND(totalAppendicesAfterVat)} từ {appendicesList.length} phụ lục)
+                  </span>
+                )}
+              </div>
+              <div>
+                <span className="text-slate-400 font-semibold uppercase tracking-wider">Giá trị hợp đồng hiện tại: </span>
+                <span className="font-mono font-extrabold text-blue-400 text-base">{formatVND(currentContractValueAfterVat)}</span>
+              </div>
             </div>
           </div>
 
-          {/* SECTION 2: Payment History Table (Lịch sử thanh toán hợp đồng) */}
+          {/* SECTION 2: LỊCH SỬ PHỤ LỤC HỢP ĐỒNG (APPENDICES HISTORY) */}
+          <div className="space-y-3 p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Paperclip className="w-4 h-4 text-blue-400" />
+                Lịch Sử Phụ Lục Hợp Đồng ({appendicesList.length} phụ lục)
+              </h4>
+              <button
+                onClick={() => onOpenAddAppendix && onOpenAddAppendix(contract.id)}
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> + Thêm Phụ Lục
+              </button>
+            </div>
+
+            {/* Table of Appendices */}
+            <div className="overflow-x-auto border border-slate-800 rounded-xl shadow-inner">
+              <table className="w-full text-left text-xs text-slate-300">
+                <thead className="bg-slate-900 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-700">
+                  <tr>
+                    <th className="py-2.5 px-3">Số Phụ Lục</th>
+                    <th className="py-2.5 px-3">Ngày Ký</th>
+                    <th className="py-2.5 px-3">Nội Dung Điều Chỉnh Chi Tiết</th>
+                    <th className="py-2.5 px-3 text-right">Giá Trị Phụ Lục (Sau VAT)</th>
+                    <th className="py-2.5 px-3 text-center">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800 bg-slate-900/40">
+                  {appendicesList.map((app) => (
+                    <tr key={app.id} className="hover:bg-slate-800/60 transition">
+                      <td className="py-2.5 px-3 font-mono font-bold text-white">
+                        {app.appendix_number}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-slate-300">
+                        {formatDisplayDate(app.signed_date)}
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-300 max-w-xs leading-relaxed">
+                        <div className="font-medium text-slate-200">{app.content}</div>
+                        {app.note && <div className="text-[10px] text-slate-400 italic">Căn cứ: {app.note}</div>}
+                      </td>
+                      <td className={`py-2.5 px-3 text-right font-mono font-bold text-xs ${app.amount_after_vat >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {app.amount_after_vat >= 0 ? `+${formatVND(app.amount_after_vat)}` : formatVND(app.amount_after_vat)}
+                      </td>
+                      <td className="py-2.5 px-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => onEditAppendix && onEditAppendix(contract.id, app)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-slate-800 transition"
+                            title="Sửa Phụ Lục"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Bạn có chắc muốn xóa phụ lục ${app.appendix_number}?`)) {
+                                onDeleteAppendix && onDeleteAppendix(contract.id, app.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
+                            title="Xóa Phụ Lục"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {appendicesList.length === 0 && (
+                    <tr>
+                      <td colSpan="5" className="py-6 text-center text-slate-400">
+                        Hợp đồng này chưa phát sinh phụ lục điều chỉnh giá trị nào.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Appendix Section Summary Footer */}
+            <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+              <div className="text-slate-400">
+                Giá trị ban đầu: <span className="font-bold text-white">{formatVND(initialContractValueAfterVat)}</span>
+              </div>
+              <div className={totalAppendicesAfterVat >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                Tổng giá trị phụ lục: {totalAppendicesAfterVat >= 0 ? `+${formatVND(totalAppendicesAfterVat)}` : formatVND(totalAppendicesAfterVat)}
+              </div>
+              <div className="text-blue-300 font-bold text-sm">
+                Giá trị HĐ hiện tại: {formatVND(currentContractValueAfterVat)}
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: Payment History Table (Lịch sử thanh toán hợp đồng) */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-bold text-white flex items-center gap-2">
@@ -195,7 +306,7 @@ export default function ContractDetailModal({
             </div>
           </div>
 
-          {/* SECTION 3: Summary Footer Card (Tổng hợp cuối bảng) */}
+          {/* SECTION 4: Summary Footer Card (Tổng hợp cuối bảng) */}
           <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-3">
             <div className="text-xs font-bold text-slate-300 uppercase tracking-wider border-b border-slate-700/60 pb-2">
               Tổng Hợp Thanh Toán Hợp Đồng
@@ -203,8 +314,8 @@ export default function ContractDetailModal({
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-mono">
               <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">
-                <span className="text-slate-400 block text-[11px] font-sans font-medium mb-1">Giá trị hợp đồng:</span>
-                <span className="font-bold text-white text-sm">{formatVND(contractValueAfterVat)}</span>
+                <span className="text-slate-400 block text-[11px] font-sans font-medium mb-1">Giá trị hợp đồng hiện tại:</span>
+                <span className="font-bold text-white text-sm">{formatVND(currentContractValueAfterVat)}</span>
               </div>
 
               <div className="p-3 rounded-lg bg-slate-900 border border-slate-800">

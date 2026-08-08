@@ -6,6 +6,8 @@ import DashboardView from './components/dashboard/DashboardView';
 import ContractsView from './components/contracts/ContractsView';
 import ContractModal from './components/contracts/ContractModal';
 import ContractDetailModal from './components/contracts/ContractDetailModal';
+import ContractAppendixModal from './components/contracts/ContractAppendixModal';
+import ContractDossierView from './components/contracts/ContractDossierView';
 import PaymentsView from './components/payments/PaymentsView';
 import PaymentModal from './components/payments/PaymentModal';
 import ProjectsView from './components/projects/ProjectsView';
@@ -20,7 +22,12 @@ import {
   deleteProject,
   getSavedSettings,
   saveSettings,
-  settleContract
+  settleContract,
+  addTmdtAdjustmentPhase,
+  updateTmdtAdjustmentPhase,
+  deleteTmdtAdjustmentPhase,
+  saveContractAppendix,
+  deleteContractAppendix
 } from './services/storage';
 
 export default function App() {
@@ -36,6 +43,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [globalSearch, setGlobalSearch] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedContractId, setSelectedContractId] = useState('');
 
   // Global Time Filter State - Restored from LocalStorage if available
   const [timeFilter, setTimeFilter] = useState(() => {
@@ -67,6 +75,10 @@ export default function App() {
 
   const [isContractDetailModalOpen, setIsContractDetailModalOpen] = useState(false);
   const [viewingContract, setViewingContract] = useState(null);
+
+  const [isAppendixModalOpen, setIsAppendixModalOpen] = useState(false);
+  const [appendixInitialContractId, setAppendixInitialContractId] = useState('');
+  const [appendixToEdit, setAppendixToEdit] = useState(null);
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
@@ -121,6 +133,34 @@ export default function App() {
   const handleViewContractDetail = (contract) => {
     setViewingContract(contract);
     setIsContractDetailModalOpen(true);
+  };
+
+  const handleViewContractDossier = (contractId) => {
+    setSelectedContractId(contractId);
+    setActiveTab('contract-dossier');
+  };
+
+  // Handlers for Contract Appendices (Phụ Lục Hợp Đồng)
+  const handleOpenAppendixModal = (cId = '') => {
+    setAppendixToEdit(null);
+    setAppendixInitialContractId(typeof cId === 'string' ? cId : '');
+    setIsAppendixModalOpen(true);
+  };
+
+  const handleOpenEditAppendixModal = (cId, appObj) => {
+    setAppendixToEdit(appObj);
+    setAppendixInitialContractId(cId);
+    setIsAppendixModalOpen(true);
+  };
+
+  const handleSaveContractAppendix = (cId, appendixData) => {
+    saveContractAppendix(cId, appendixData);
+    refreshData();
+  };
+
+  const handleDeleteContractAppendix = (cId, appId) => {
+    deleteContractAppendix(cId, appId);
+    refreshData();
   };
 
   // Handlers for Payments (Autosaved to LocalStorage)
@@ -235,14 +275,37 @@ export default function App() {
               onEditContract={handleOpenEditContract}
               onDeleteContract={handleDeleteContract}
               onViewContractDetail={handleViewContractDetail}
+              onViewContractDossier={handleViewContractDossier}
               onAddPaymentForContract={handleAddPaymentForContract}
+              onOpenAppendixModal={handleOpenAppendixModal}
               globalSearch={globalSearch}
+            />
+          )}
+
+          {activeTab === 'contract-dossier' && (
+            <ContractDossierView
+              contractId={selectedContractId}
+              data={data}
+              onBackToContracts={() => setActiveTab('contracts')}
+              onBackToProjectOverview={(pId) => {
+                handleSetSelectedProjectId(pId);
+                setActiveTab('projects');
+              }}
+              onEditContract={handleOpenEditContract}
+              onOpenAddAppendix={handleOpenAppendixModal}
+              onEditAppendix={handleOpenEditAppendixModal}
+              onDeleteAppendix={handleDeleteContractAppendix}
+              onOpenAddPayment={handleOpenNewPayment}
+              onEditPayment={handleOpenEditPayment}
+              onDeletePayment={handleDeletePayment}
             />
           )}
 
           {activeTab === 'payments' && (
             <PaymentsView
               data={data}
+              selectedProjectId={selectedProjectId}
+              setSelectedProjectId={handleSetSelectedProjectId}
               onNewPayment={() => handleOpenNewPayment()}
               onEditPayment={handleOpenEditPayment}
               onDeletePayment={handleDeletePayment}
@@ -256,6 +319,18 @@ export default function App() {
               onNewProject={handleOpenNewProject}
               onEditProject={handleOpenEditProject}
               onDeleteProject={handleDeleteProject}
+              onAddTmdtPhase={(projectId, phaseData) => {
+                addTmdtAdjustmentPhase(projectId, phaseData);
+                refreshData();
+              }}
+              onUpdateTmdtPhase={(projectId, phaseId, phaseData) => {
+                updateTmdtAdjustmentPhase(projectId, phaseId, phaseData);
+                refreshData();
+              }}
+              onDeleteTmdtPhase={(projectId, phaseId) => {
+                deleteTmdtAdjustmentPhase(projectId, phaseId);
+                refreshData();
+              }}
               setSelectedProjectId={handleSetSelectedProjectId}
               setActiveTab={setActiveTab}
               globalSearch={globalSearch}
@@ -283,6 +358,19 @@ export default function App() {
         onAddPaymentForContract={handleAddPaymentForContract}
         onEditPayment={handleOpenEditPayment}
         onDeletePayment={handleDeletePayment}
+        onOpenAddAppendix={handleOpenAppendixModal}
+        onEditAppendix={handleOpenEditAppendixModal}
+        onDeleteAppendix={handleDeleteContractAppendix}
+      />
+
+      <ContractAppendixModal
+        isOpen={isAppendixModalOpen}
+        onClose={() => setIsAppendixModalOpen(false)}
+        contracts={data.contracts}
+        projects={data.projects}
+        initialContractId={appendixInitialContractId}
+        appendixToEdit={appendixToEdit}
+        onSave={handleSaveContractAppendix}
       />
 
       <PaymentModal

@@ -10,7 +10,8 @@ import {
   Wallet, 
   Building2, 
   Clock,
-  Calendar
+  Calendar,
+  FolderOpen
 } from 'lucide-react';
 import { formatVND, formatDisplayDate } from '../../utils/formatters';
 
@@ -22,7 +23,9 @@ export default function ContractsView({
   onEditContract, 
   onDeleteContract, 
   onViewContractDetail,
+  onViewContractDossier,
   onAddPaymentForContract,
+  onOpenAppendixModal,
   globalSearch
 }) {
   const { contracts = [], projects = [], periodLabel } = data;
@@ -61,14 +64,54 @@ export default function ContractsView({
           </p>
         </div>
 
-        <button
-          onClick={onNewContract}
-          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition cursor-pointer flex items-center gap-2 self-start md:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          + Tạo Hợp Đồng Mới
-        </button>
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <button
+            onClick={() => onOpenAppendixModal && onOpenAppendixModal()}
+            className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-300 hover:text-white text-xs font-semibold border border-slate-700 shadow-md transition cursor-pointer flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4 text-blue-400" />
+            + Thêm Phụ Lục
+          </button>
+          <button
+            onClick={onNewContract}
+            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition cursor-pointer flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            + Tạo Hợp Đồng Mới
+          </button>
+        </div>
       </div>
+
+      {/* PROMINENT ACTIVE PROJECT FILTER BADGE BAR */}
+      {selectedProjectId && (
+        <div className="p-3.5 rounded-xl bg-blue-950/40 border border-blue-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-md">
+          <div className="flex items-center gap-2.5 text-blue-300 font-medium">
+            <div className="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Đang lọc hợp đồng theo dự án:</span>
+              <span className="text-white font-bold text-sm">
+                {projects.find(p => p.id === selectedProjectId)?.name || 'Dự án đã chọn'}
+              </span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold border border-blue-500/30 font-mono ml-1">
+              📁 {filteredContracts.length} Hợp đồng
+            </span>
+          </div>
+
+          <button
+            onClick={() => {
+              if (setSelectedProjectId) setSelectedProjectId('');
+              setContractorFilter('');
+              setLocalSearch('');
+            }}
+            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700 transition cursor-pointer flex items-center gap-1 self-start sm:self-auto"
+          >
+            ✕ Xóa bộ lọc dự án
+          </button>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/80 shadow-md grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -153,7 +196,13 @@ export default function ContractsView({
                   <tr key={c.id} className="hover:bg-slate-700/40 transition">
                     <td className="py-3.5 px-3">
                       <div className="font-mono font-bold text-white text-xs flex items-center gap-1.5">
-                        {c.contract_number}
+                        <button
+                          onClick={() => onViewContractDossier ? onViewContractDossier(c.id) : onViewContractDetail(c)}
+                          className="font-mono font-bold text-blue-400 hover:text-blue-300 hover:underline text-xs flex items-center gap-1 cursor-pointer text-left"
+                          title="Mở Hồ Sơ Hợp Đồng"
+                        >
+                          {c.contract_number}
+                        </button>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-sans font-bold border ${
                           c.status === 'settled'
                             ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
@@ -185,7 +234,14 @@ export default function ContractsView({
                     </td>
 
                     <td className="py-3.5 px-3 text-right font-mono font-bold text-white bg-slate-900/40">
-                      {formatVND(c.contractValueAfterVAT || c.contract_value)}
+                      <div className="text-xs text-blue-300 font-bold">{formatVND(c.contractValueAfterVAT || c.contract_value)}</div>
+                      {c.totalAppendicesAfterVAT ? (
+                        <div className={`text-[10px] font-semibold mt-0.5 ${c.totalAppendicesAfterVAT >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          Gốc: {formatVND(c.initialContractValueAfterVAT)} ({c.totalAppendicesAfterVAT >= 0 ? `+${formatVND(c.totalAppendicesAfterVAT)}` : formatVND(c.totalAppendicesAfterVAT)})
+                        </div>
+                      ) : (
+                        <div className="text-[10px] text-slate-500 font-normal">Chưa có phụ lục</div>
+                      )}
                     </td>
 
                     {/* All Time Cumulative Paid (After VAT + Subtext Before VAT) */}
@@ -217,11 +273,11 @@ export default function ContractsView({
                     <td className="py-3.5 px-3 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <button
-                          onClick={() => onViewContractDetail(c)}
-                          className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 transition"
-                          title="Xem Chi Tiết & Lịch Sử TT"
+                          onClick={() => onViewContractDossier ? onViewContractDossier(c.id) : onViewContractDetail(c)}
+                          className="px-2.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white font-bold transition flex items-center gap-1 text-[11px] cursor-pointer"
+                          title="Mở Hồ Sơ Hợp Đồng"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <FolderOpen className="w-3.5 h-3.5" /> Hồ sơ HĐ
                         </button>
                         <button
                           onClick={() => {

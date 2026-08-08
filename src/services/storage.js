@@ -1,7 +1,7 @@
 /**
  * Storage Service / Repository Pattern Layer
  * Handles LocalStorage persistence, autosave, seed initialization, and JSON import/export.
- * Supports the 3-Value VAT Model: Before VAT - VAT Amount - After VAT.
+ * Supports the 3-Value VAT Model & Multi-Phase Sequential TMĐT Adjustment History.
  */
 import { getTimeRangeBounds, isDateInBounds } from '../utils/formatters';
 
@@ -19,24 +19,96 @@ const INITIAL_PROJECTS = [
     name: 'Khu Đô Thị Sông Hồng Riverside',
     description: 'Dự án khu đô thị sinh thái 15ha bao gồm biệt thự, chung cư cao cấp & hạ tầng đồng bộ tại Đông Anh, Hà Nội.',
     created_at: '2024-01-10',
+    initial_tmdt: 80000000000,
+    tmdt_history: [
+      { 
+        id: 'tmdt-101-1', 
+        phase_number: 1,
+        phase_label: 'Lần 1',
+        date: '2024-01-10', 
+        amount: 80000000000, 
+        content: 'Phê duyệt ban đầu',
+        decision_number: 'QĐ-101/QĐ-UBND',
+        reason: 'Phê duyệt chủ trương đầu tư ban đầu',
+        note: 'Dự toán thiết kế cơ sở 15ha',
+        file_name: 'QuyetDinh_PheDuyet_80Ty.pdf'
+      },
+      { 
+        id: 'tmdt-101-2', 
+        phase_number: 2,
+        phase_label: 'Lần 2',
+        date: '2024-11-15', 
+        amount: 85000000000, 
+        content: 'Điều chỉnh TMĐT',
+        decision_number: 'QĐ-452/QĐ-UBND',
+        reason: 'Điều chỉnh bổ sung hạng mục giao thông & hạ tầng mở rộng',
+        note: 'Bổ sung thêm 5 tỷ cho đường gom dân sinh',
+        file_name: 'QuyetDinh_DieuChinh_85Ty.pdf'
+      }
+    ]
   },
   {
     id: 'p-102',
     name: 'Tòa Nhà Văn Phòng TechHub Tower',
     description: 'Tòa tháp văn phòng Hạng A cao 25 tầng + 3 tầng hầm tại Q.1, TP. Hồ Chí Minh.',
     created_at: '2024-05-15',
+    initial_tmdt: 50000000000,
+    tmdt_history: [
+      { 
+        id: 'tmdt-102-1', 
+        phase_number: 1,
+        phase_label: 'Lần 1',
+        date: '2024-05-15', 
+        amount: 50000000000, 
+        content: 'Phê duyệt ban đầu',
+        decision_number: 'QĐ-204/QĐ-UBND',
+        reason: 'Phê duyệt dự án đầu tư xây dựng tòa tháp văn phòng',
+        note: 'Dự toán tổng thể 25 tầng',
+        file_name: 'QuyetDinh_TechHub_50Ty.pdf'
+      }
+    ]
   },
   {
     id: 'p-103',
     name: 'Nhà Máy Linh Kiện Điện Tử Bình Dương',
     description: 'Tổ hợp nhà xưởng sản xuất thiết bị bán dẫn 50.000m² tại KCN VSIP II.',
     created_at: '2025-01-10',
+    initial_tmdt: 40000000000,
+    tmdt_history: [
+      { 
+        id: 'tmdt-103-1', 
+        phase_number: 1,
+        phase_label: 'Lần 1',
+        date: '2025-01-10', 
+        amount: 40000000000, 
+        content: 'Phê duyệt ban đầu',
+        decision_number: 'QĐ-088/BQL-KCN',
+        reason: 'Phê duyệt đầu tư xưởng sản xuất thiết bị bán dẫn',
+        note: '',
+        file_name: ''
+      }
+    ]
   },
   {
     id: 'p-104',
     name: 'Trung Tâm Thương Mại Grand Plaza',
     description: 'Cải tạo mặt ngoài, hệ thống PCCC, MEP & nâng cấp toàn bộ TTM.',
     created_at: '2025-06-01',
+    initial_tmdt: 12000000000,
+    tmdt_history: [
+      { 
+        id: 'tmdt-104-1', 
+        phase_number: 1,
+        phase_label: 'Lần 1',
+        date: '2025-06-01', 
+        amount: 12000000000, 
+        content: 'Phê duyệt ban đầu',
+        decision_number: 'QĐ-512/QĐ-GP',
+        reason: 'Phê duyệt kế hoạch cải tạo nâng cấp TTM',
+        note: '',
+        file_name: ''
+      }
+    ]
   },
 ];
 
@@ -58,6 +130,21 @@ const INITIAL_CONTRACTS = [
     end_date: '2024-07-14',
     estimated_settlement_value: 19200000000,
     status: 'settled', // 🔵 Đã quyết toán
+    appendices: [
+      {
+        id: 'app-201-1',
+        contractId: 'c-201',
+        projectId: 'p-101',
+        appendix_number: 'PLHĐ-01',
+        content: 'Bổ sung khối lượng cọc khoan nhồi dầm móng gia cường bổ sung',
+        amount_before_vat: 1818181818,
+        vat_rate: 10,
+        vat_amount: 181818182,
+        amount_after_vat: 2000000000,
+        signed_date: '2024-04-10',
+        note: 'Biên bản nghiệm thu kỹ thuật ngày 05/04/2024'
+      }
+    ]
   },
   {
     id: 'c-202',
@@ -381,18 +468,158 @@ export function getProjects() {
 export function saveProject(project) {
   const projects = getProjects();
   let updated;
+
+  const initialTmdtVal = project.initial_tmdt !== undefined && project.initial_tmdt !== null && project.initial_tmdt !== ''
+    ? Number(project.initial_tmdt)
+    : 0;
+
   if (project.id) {
-    updated = projects.map(p => p.id === project.id ? { ...p, ...project } : p);
+    updated = projects.map(p => {
+      if (p.id === project.id) {
+        const history = Array.isArray(p.tmdt_history) && p.tmdt_history.length > 0
+          ? p.tmdt_history
+          : (initialTmdtVal > 0 ? [{ 
+              id: 'tmdt-' + Date.now(), 
+              phase_number: 1,
+              phase_label: 'Lần 1',
+              date: p.created_at || new Date().toISOString().split('T')[0], 
+              amount: initialTmdtVal, 
+              content: 'Phê duyệt ban đầu',
+              decision_number: '',
+              reason: 'Phê duyệt ban đầu',
+              note: '',
+              file_name: ''
+            }] : []);
+        return {
+          ...p,
+          ...project,
+          initial_tmdt: initialTmdtVal || p.initial_tmdt || 0,
+          tmdt_history: history,
+        };
+      }
+      return p;
+    });
   } else {
+    const createdDate = new Date().toISOString().split('T')[0];
+    const history = initialTmdtVal > 0 
+      ? [{ 
+          id: 'tmdt-' + Date.now(), 
+          phase_number: 1,
+          phase_label: 'Lần 1',
+          date: createdDate, 
+          amount: initialTmdtVal, 
+          content: 'Phê duyệt ban đầu',
+          decision_number: project.decision_number || '',
+          reason: 'TMĐT ban đầu được phê duyệt',
+          note: project.note || '',
+          file_name: project.file_name || ''
+        }]
+      : [];
+
     const newProj = {
       ...project,
       id: 'p-' + Date.now(),
-      created_at: new Date().toISOString().split('T')[0]
+      created_at: createdDate,
+      initial_tmdt: initialTmdtVal,
+      tmdt_history: history,
     };
     updated = [newProj, ...projects];
   }
   localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(updated));
   return updated;
+}
+
+export function addTmdtAdjustmentPhase(projectId, adjustmentData) {
+  const projects = getProjects();
+  const targetProj = projects.find(p => p.id === projectId);
+  if (!targetProj) return;
+
+  const currentHistory = Array.isArray(targetProj.tmdt_history) ? targetProj.tmdt_history : [];
+  const nextPhaseNumber = currentHistory.length + 1;
+
+  const initialAmt = targetProj.initial_tmdt !== undefined && targetProj.initial_tmdt > 0
+    ? Number(targetProj.initial_tmdt) 
+    : (currentHistory[0]?.amount || Number(adjustmentData.amount));
+
+  const newAdjustment = {
+    id: 'tmdt-' + Date.now(),
+    phase_number: nextPhaseNumber,
+    phase_label: `Lần ${nextPhaseNumber}`,
+    date: adjustmentData.date || new Date().toISOString().split('T')[0],
+    amount: Number(adjustmentData.amount),
+    content: adjustmentData.content || (nextPhaseNumber === 1 ? 'Phê duyệt ban đầu' : 'Điều chỉnh TMĐT'),
+    decision_number: adjustmentData.decision_number || '',
+    reason: adjustmentData.reason || 'Điều chỉnh Tổng mức đầu tư',
+    note: adjustmentData.note || '',
+    file_name: adjustmentData.file_name || '',
+  };
+
+  const updatedHistory = [...currentHistory, newAdjustment];
+
+  const updatedProjects = projects.map(p => {
+    if (p.id === projectId) {
+      return {
+        ...p,
+        initial_tmdt: initialAmt,
+        tmdt_history: updatedHistory,
+      };
+    }
+    return p;
+  });
+
+  localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(updatedProjects));
+  return updatedProjects;
+}
+
+export function updateTmdtAdjustmentPhase(projectId, phaseId, updatedData) {
+  const projects = getProjects();
+  const targetProj = projects.find(p => p.id === projectId);
+  if (!targetProj) return;
+
+  const currentHistory = Array.isArray(targetProj.tmdt_history) ? targetProj.tmdt_history : [];
+  const updatedHistory = currentHistory.map((item, idx) => {
+    if (item.id === phaseId) {
+      return {
+        ...item,
+        ...updatedData,
+        amount: Number(updatedData.amount !== undefined ? updatedData.amount : item.amount),
+        date: updatedData.date || item.date,
+        content: updatedData.content !== undefined ? updatedData.content : item.content,
+        decision_number: updatedData.decision_number !== undefined ? updatedData.decision_number : item.decision_number,
+        reason: updatedData.reason !== undefined ? updatedData.reason : item.reason,
+        note: updatedData.note !== undefined ? updatedData.note : item.note,
+        file_name: updatedData.file_name !== undefined ? updatedData.file_name : item.file_name,
+      };
+    }
+    return item;
+  });
+
+  const updatedProjects = projects.map(p => p.id === projectId ? { ...p, tmdt_history: updatedHistory } : p);
+  localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(updatedProjects));
+  return updatedProjects;
+}
+
+export function deleteTmdtAdjustmentPhase(projectId, phaseId) {
+  const projects = getProjects();
+  const targetProj = projects.find(p => p.id === projectId);
+  if (!targetProj) return;
+
+  const currentHistory = Array.isArray(targetProj.tmdt_history) ? targetProj.tmdt_history : [];
+  if (currentHistory.length <= 1) {
+    alert('Không thể xóa bản ghi phê duyệt duy nhất của dự án!');
+    return;
+  }
+
+  const filtered = currentHistory.filter(item => item.id !== phaseId);
+  const reIndexedHistory = filtered.map((item, idx) => ({
+    ...item,
+    phase_number: idx + 1,
+    phase_label: `Lần ${idx + 1}`
+  }));
+
+  const updatedProjects = projects.map(p => p.id === projectId ? { ...p, tmdt_history: reIndexedHistory } : p);
+  localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(updatedProjects));
+  return updatedProjects;
 }
 
 export function deleteProject(id) {
@@ -597,7 +824,7 @@ export function exportData() {
   const settings = getSavedSettings();
 
   return {
-    version: '3.0',
+    version: '4.0',
     exported_at: new Date().toISOString(),
     projects,
     contracts,
@@ -623,7 +850,86 @@ export function importData(jsonData) {
   return true;
 }
 
-// --- AGGREGATION & TIME-BASED ANALYTICS ENGINE (3-VALUE VAT MODEL) ---
+export function saveContractAppendix(contractId, appendixData) {
+  const contracts = getContracts();
+  const targetContract = contracts.find(c => c.id === contractId);
+  if (!targetContract) return contracts;
+
+  const currentAppendices = Array.isArray(targetContract.appendices) ? targetContract.appendices : [];
+
+  const vatRate = Number(appendixData.vat_rate !== undefined ? appendixData.vat_rate : (targetContract.vatRate || 10));
+  const amountBeforeVat = Number(appendixData.amount_before_vat || appendixData.amount || 0);
+  const vatAmount = Math.round(amountBeforeVat * (vatRate / 100));
+  const amountAfterVat = amountBeforeVat + vatAmount;
+
+  let updatedAppendices;
+  if (appendixData.id) {
+    updatedAppendices = currentAppendices.map(a => a.id === appendixData.id ? {
+      ...a,
+      ...appendixData,
+      vat_rate: vatRate,
+      amount_before_vat: amountBeforeVat,
+      vat_amount: vatAmount,
+      amount_after_vat: amountAfterVat,
+    } : a);
+  } else {
+    const nextNum = currentAppendices.length + 1;
+    const defaultAppendixNumber = `PLHĐ-${nextNum.toString().padStart(2, '0')}`;
+
+    const newAppendix = {
+      id: 'app-' + Date.now(),
+      contractId: contractId,
+      projectId: targetContract.project_id,
+      appendix_number: appendixData.appendix_number || defaultAppendixNumber,
+      content: appendixData.content || '',
+      amount_before_vat: amountBeforeVat,
+      vat_rate: vatRate,
+      vat_amount: vatAmount,
+      amount_after_vat: amountAfterVat,
+      signed_date: appendixData.signed_date || new Date().toISOString().split('T')[0],
+      note: appendixData.note || '',
+      created_at: new Date().toISOString(),
+    };
+    updatedAppendices = [...currentAppendices, newAppendix];
+  }
+
+  const updatedContracts = contracts.map(c => {
+    if (c.id === contractId) {
+      return {
+        ...c,
+        appendices: updatedAppendices
+      };
+    }
+    return c;
+  });
+
+  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
+  return updatedContracts;
+}
+
+export function deleteContractAppendix(contractId, appendixId) {
+  const contracts = getContracts();
+  const targetContract = contracts.find(c => c.id === contractId);
+  if (!targetContract) return contracts;
+
+  const currentAppendices = Array.isArray(targetContract.appendices) ? targetContract.appendices : [];
+  const updatedAppendices = currentAppendices.filter(a => a.id !== appendixId);
+
+  const updatedContracts = contracts.map(c => {
+    if (c.id === contractId) {
+      return {
+        ...c,
+        appendices: updatedAppendices
+      };
+    }
+    return c;
+  });
+
+  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
+  return updatedContracts;
+}
+
+// --- AGGREGATION & TIME-BASED ANALYTICS ENGINE (3-VALUE VAT & MULTI-PHASE TMĐT MODEL) ---
 export function getAggregatedData(timeFilter = {}) {
   const projects = getProjects();
   const contracts = getContracts();
@@ -684,17 +990,27 @@ export function getAggregatedData(timeFilter = {}) {
   const enrichedContracts = contracts.map(c => {
     const project = projects.find(p => p.id === c.project_id);
 
-    // Compute contract 3-tier values
+    // Compute contract initial 3-tier values (Gốc)
     const vatRate = c.vatRate !== undefined ? Number(c.vatRate) : 10;
-    let contractValueBeforeVAT = c.contractValueBeforeVAT;
-    let contractValueAfterVAT = c.contractValueAfterVAT || c.contract_value;
+    let initialContractValueBeforeVAT = c.contractValueBeforeVAT;
+    let initialContractValueAfterVAT = c.contractValueAfterVAT || c.contract_value;
     
-    if (contractValueBeforeVAT === undefined || contractValueBeforeVAT === null) {
-      // Fallback calculation for older records
-      contractValueAfterVAT = Number(c.contract_value || 0);
-      contractValueBeforeVAT = Math.round(contractValueAfterVAT / (1 + vatRate / 100));
+    if (initialContractValueBeforeVAT === undefined || initialContractValueBeforeVAT === null) {
+      initialContractValueAfterVAT = Number(c.contract_value || 0);
+      initialContractValueBeforeVAT = Math.round(initialContractValueAfterVAT / (1 + vatRate / 100));
     }
-    const vatAmount = Math.round(contractValueBeforeVAT * (vatRate / 100));
+    const initialVatAmount = Math.round(initialContractValueBeforeVAT * (vatRate / 100));
+
+    // Process Appendices (Phụ lục hợp đồng)
+    const appendices = Array.isArray(c.appendices) ? c.appendices : [];
+    const totalAppendicesBeforeVAT = appendices.reduce((sum, a) => sum + Number(a.amount_before_vat || 0), 0);
+    const totalAppendicesVAT = appendices.reduce((sum, a) => sum + Number(a.vat_amount || 0), 0);
+    const totalAppendicesAfterVAT = appendices.reduce((sum, a) => sum + Number(a.amount_after_vat || 0), 0);
+
+    // Current Effective Contract Values (Ban đầu + Tổng Phụ lục)
+    const currentContractValueBeforeVAT = initialContractValueBeforeVAT + totalAppendicesBeforeVAT;
+    const currentContractValueVAT = initialVatAmount + totalAppendicesVAT;
+    const currentContractValueAfterVAT = initialContractValueAfterVAT + totalAppendicesAfterVAT;
 
     // Paid sums
     const paidBeforeVAT = allTimeContractPaidBeforeVAT[c.id] || 0;
@@ -705,39 +1021,50 @@ export function getAggregatedData(timeFilter = {}) {
     const inPeriodPaidVAT = inPeriodContractPaidVAT[c.id] || 0;
     const inPeriodPaidAfterVAT = inPeriodContractPaidAfterVAT[c.id] || 0;
 
-    // Remaining (Dư nợ còn phải thanh toán)
-    const remainingBeforeVAT = Math.max(0, contractValueBeforeVAT - paidBeforeVAT);
-    const remainingVAT = Math.max(0, vatAmount - paidVAT);
-    const remainingAfterVAT = Math.max(0, contractValueAfterVAT - paidAfterVAT);
+    // Remaining (Dư nợ còn phải thanh toán dựa trên Giá trị hợp đồng HỆN TẠI)
+    const remainingBeforeVAT = Math.max(0, currentContractValueBeforeVAT - paidBeforeVAT);
+    const remainingVAT = Math.max(0, currentContractValueVAT - paidVAT);
+    const remainingAfterVAT = Math.max(0, currentContractValueAfterVAT - paidAfterVAT);
 
-    const paidPercentage = contractValueAfterVAT > 0 ? (paidAfterVAT / contractValueAfterVAT) * 100 : 0;
+    const paidPercentage = currentContractValueAfterVAT > 0 ? (paidAfterVAT / currentContractValueAfterVAT) * 100 : 0;
     const latestPaymentDate = latestPaymentDateMap[c.id] || null;
     const paymentsCount = contractPaymentsCount[c.id] || 0;
     const status = c.status || 'in_progress';
+    const estimatedSettlement = Number(c.estimated_settlement_value !== undefined && c.estimated_settlement_value !== null ? c.estimated_settlement_value : currentContractValueAfterVAT);
 
     return {
       ...c,
       status,
       vatRate,
-      contractValueBeforeVAT,
-      vatAmount,
-      contractValueAfterVAT,
-      contract_value: contractValueAfterVAT,
+      appendices,
+      initialContractValueBeforeVAT,
+      initialVatAmount,
+      initialContractValueAfterVAT,
+
+      totalAppendicesBeforeVAT,
+      totalAppendicesVAT,
+      totalAppendicesAfterVAT,
+
+      contractValueBeforeVAT: currentContractValueBeforeVAT,
+      vatAmount: currentContractValueVAT,
+      contractValueAfterVAT: currentContractValueAfterVAT,
+      contract_value: currentContractValueAfterVAT,
+      estimated_settlement_value: estimatedSettlement,
 
       totalPaidBeforeVAT: paidBeforeVAT,
       totalPaidVAT: paidVAT,
       totalPaidAfterVAT: paidAfterVAT,
-      totalPaid: paidAfterVAT, // legacy alias
+      totalPaid: paidAfterVAT,
 
       inPeriodPaidBeforeVAT,
       inPeriodPaidVAT,
       inPeriodPaidAfterVAT,
-      totalPaidInPeriod: inPeriodPaidAfterVAT, // legacy alias
+      totalPaidInPeriod: inPeriodPaidAfterVAT,
 
       remainingBeforeVAT,
       remainingVAT,
       remainingAfterVAT,
-      remainingValue: remainingAfterVAT, // legacy alias
+      remainingValue: remainingAfterVAT,
 
       paidPercentage: Math.min(100, Math.round(paidPercentage * 10) / 10),
       projectName: project ? project.name : 'Chưa phân loại',
@@ -787,30 +1114,157 @@ export function getAggregatedData(timeFilter = {}) {
     const projPaidVAT = projContracts.reduce((sum, c) => sum + Number(c.totalPaidVAT || 0), 0);
     const projPaidAfterVAT = projContracts.reduce((sum, c) => sum + Number(c.totalPaidAfterVAT || 0), 0);
 
+    const projEstimatedSettlement = projContracts.reduce((sum, c) => sum + Number(c.estimated_settlement_value || c.contractValueAfterVAT || 0), 0);
+
     const projRemainingBeforeVAT = projContractValueBeforeVAT - projPaidBeforeVAT;
     const projRemainingVAT = projContractVAT - projPaidVAT;
     const projRemainingAfterVAT = projContractValueAfterVAT - projPaidAfterVAT;
 
     const projPaidPct = projContractValueAfterVAT > 0 ? (projPaidAfterVAT / projContractValueAfterVAT) * 100 : 0;
 
+    // --- SEQUENTIAL MULTI-PHASE TMĐT HISTORY MIGRATION & CALCULATION ---
+    let rawHistory = Array.isArray(p.tmdt_history) && p.tmdt_history.length > 0
+      ? p.tmdt_history
+      : (p.initial_tmdt > 0 ? [{
+          id: 'tmdt-init-' + p.id,
+          phase_number: 1,
+          phase_label: 'Lần 1',
+          date: p.created_at || '2024-01-01',
+          amount: Number(p.initial_tmdt),
+          content: 'Phê duyệt ban đầu',
+          decision_number: '',
+          reason: 'TMĐT ban đầu được phê duyệt',
+          note: '',
+          file_name: ''
+        }] : []);
+
+    if (rawHistory.length === 0 && projContractValueAfterVAT > 0) {
+      rawHistory = [{
+        id: 'tmdt-auto-' + p.id,
+        phase_number: 1,
+        phase_label: 'Lần 1',
+        date: p.created_at || '2024-01-01',
+        amount: projContractValueAfterVAT,
+        content: 'Phê duyệt ban đầu',
+        decision_number: '',
+        reason: 'Khởi tạo theo giá trị hợp đồng ban đầu',
+        note: '',
+        file_name: ''
+      }];
+    }
+
+    // Process history items line-by-line: add phase numbers, labels, diff_amount, is_current
+    const processedHistory = rawHistory.map((item, idx) => {
+      const phaseNum = idx + 1;
+      const prevAmt = idx > 0 ? Number(rawHistory[idx - 1].amount) : null;
+      const diffAmt = prevAmt !== null ? Number(item.amount) - prevAmt : 0;
+      return {
+        ...item,
+        phase_number: phaseNum,
+        phase_label: `Lần ${phaseNum}`,
+        date: item.date || p.created_at || '2024-01-01',
+        amount: Number(item.amount || 0),
+        content: item.content || (idx === 0 ? 'Phê duyệt ban đầu' : 'Điều chỉnh TMĐT'),
+        decision_number: item.decision_number || '',
+        reason: item.reason || '',
+        note: item.note || '',
+        file_name: item.file_name || '',
+        diff_amount: diffAmt,
+        is_current: idx === rawHistory.length - 1,
+      };
+    });
+
+    const latestPhase = processedHistory.length > 0 ? processedHistory[processedHistory.length - 1] : null;
+    const initialTmdt = processedHistory.length > 0 ? processedHistory[0].amount : (p.initial_tmdt || projContractValueAfterVAT);
+    const currentTmdt = latestPhase ? latestPhase.amount : initialTmdt;
+    const tmdtDelta = currentTmdt - initialTmdt;
+
+    const latestApprovalDate = latestPhase ? latestPhase.date : (p.created_at || 'N/A');
+    const latestPhaseLabel = latestPhase ? latestPhase.phase_label : 'Lần 1';
+
+    // Financial Indicators & Ratios
+    const signedContractsRatio = currentTmdt > 0 ? Math.round((projContractValueAfterVAT / currentTmdt) * 1000) / 10 : 0;
+    const paymentProgressRatio = projEstimatedSettlement > 0 ? Math.round((projPaidAfterVAT / projEstimatedSettlement) * 1000) / 10 : 0;
+    const paidContractsCount = projContracts.filter(c => c.totalPaidAfterVAT > 0).length;
+    const settlementTmdtRatio = currentTmdt > 0 ? Math.round((projEstimatedSettlement / currentTmdt) * 1000) / 10 : 0;
+
+    const unallocatedTmdt = Math.max(0, currentTmdt - projContractValueAfterVAT);
+    const remainingToPay = projEstimatedSettlement - projPaidAfterVAT;
+    const remainingProjectBudget = currentTmdt - projEstimatedSettlement;
+
+    // Financial Warnings
+    const financialWarnings = [];
+    if (currentTmdt > 0 && projEstimatedSettlement > currentTmdt) {
+      financialWarnings.push({
+        type: 'SETTLEMENT_EXCEEDS_TMDT',
+        level: 'danger',
+        message: `Dự kiến quyết toán (${(projEstimatedSettlement / 1_000_000_000).toFixed(2)} Tỷ) vượt Tổng mức đầu tư hiện tại (${(currentTmdt / 1_000_000_000).toFixed(2)} Tỷ)!`,
+        excess: projEstimatedSettlement - currentTmdt
+      });
+    }
+    if (currentTmdt > 0 && projContractValueAfterVAT > currentTmdt) {
+      financialWarnings.push({
+        type: 'CONTRACTS_EXCEED_TMDT',
+        level: 'warning',
+        message: `Tổng giá trị HĐ đã ký (${(projContractValueAfterVAT / 1_000_000_000).toFixed(2)} Tỷ) vượt TMĐT (${(currentTmdt / 1_000_000_000).toFixed(2)} Tỷ)!`,
+        excess: projContractValueAfterVAT - currentTmdt
+      });
+    }
+    if (projPaidAfterVAT > projEstimatedSettlement && projEstimatedSettlement > 0) {
+      financialWarnings.push({
+        type: 'PAID_EXCEEDS_SETTLEMENT',
+        level: 'warning',
+        message: `Đã thanh toán thực tế vượt giá trị dự kiến quyết toán hợp đồng!`,
+        excess: projPaidAfterVAT - projEstimatedSettlement
+      });
+    }
+    if (remainingToPay < 0) {
+      financialWarnings.push({
+        type: 'NEGATIVE_REMAINING_TO_PAY',
+        level: 'danger',
+        message: `Cảnh báo dữ liệu: Số tiền còn phải thanh toán bị âm!`,
+        excess: Math.abs(remainingToPay)
+      });
+    }
+
     return {
       ...p,
       contractsCount: projContracts.length,
+      paidContractsCount,
+      initial_tmdt: initialTmdt,
+      currentTmdt,
+      tmdtDelta,
+      tmdt_history: processedHistory,
+      latestApprovalDate,
+      latestPhaseLabel,
+      unallocatedTmdt,
 
+      // 6 Financial Groups
       totalContractValueBeforeVAT: projContractValueBeforeVAT,
       totalContractVAT: projContractVAT,
       totalContractValueAfterVAT: projContractValueAfterVAT,
-      totalContractValue: projContractValueAfterVAT, // legacy alias
+      totalContractValue: projContractValueAfterVAT,
 
       totalPaidBeforeVAT: projPaidBeforeVAT,
       totalPaidVAT: projPaidVAT,
       totalPaidAfterVAT: projPaidAfterVAT,
-      totalPaid: projPaidAfterVAT, // legacy alias
+      totalPaid: projPaidAfterVAT,
+
+      projEstimatedSettlement,
+
+      remainingToPay,
+      remainingProjectBudget,
+
+      signedContractsRatio,
+      paymentProgressRatio,
+      settlementTmdtRatio,
+
+      financialWarnings,
 
       totalRemainingBeforeVAT: projRemainingBeforeVAT,
       totalRemainingVAT: projRemainingVAT,
       totalRemainingAfterVAT: projRemainingAfterVAT,
-      totalRemaining: projRemainingAfterVAT, // legacy alias
+      totalRemaining: projRemainingAfterVAT,
 
       paidPercentage: Math.min(100, Math.round(projPaidPct * 10) / 10),
     };
@@ -831,22 +1285,22 @@ export function getAggregatedData(timeFilter = {}) {
       totalContractValueBeforeVAT,
       totalContractVAT,
       totalContractValueAfterVAT,
-      totalContractValue: totalContractValueAfterVAT, // legacy alias
+      totalContractValue: totalContractValueAfterVAT,
 
       totalPaidBeforeVAT,
       totalPaidVAT,
       totalPaidAfterVAT,
-      totalPaidValueAllTime: totalPaidAfterVAT, // legacy alias
+      totalPaidValueAllTime: totalPaidAfterVAT,
 
       totalRemainingBeforeVAT,
       totalRemainingVAT,
       totalRemainingAfterVAT,
-      totalRemainingValue: totalRemainingAfterVAT, // legacy alias
+      totalRemainingValue: totalRemainingAfterVAT,
 
       totalPaidInPeriodBeforeVAT,
       totalPaidInPeriodVAT,
       totalPaidInPeriodAfterVAT,
-      totalPaidInPeriod: totalPaidInPeriodAfterVAT, // legacy alias
+      totalPaidInPeriod: totalPaidInPeriodAfterVAT,
 
       inPeriodTransactionsCount: inPeriodPaymentsFiltered.length,
     }
