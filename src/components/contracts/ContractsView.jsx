@@ -137,23 +137,32 @@ export default function ContractsView({
               <tr>
                 <th className="py-3 px-3">Số HĐ / Dự Án</th>
                 <th className="py-3 px-3">Nhà Thầu & Nội Dung</th>
-                <th className="py-3 px-3 text-right">Giá Trị HĐ</th>
-                <th className="py-3 px-3 text-right text-emerald-400">Chi Trong Kỳ ({periodLabel})</th>
-                <th className="py-3 px-3 text-right">Lũy Kế Đã Chi</th>
-                <th className="py-3 px-3 text-right">Còn Lại</th>
+                <th className="py-3 px-3 text-right">Trước VAT</th>
+                <th className="py-3 px-3 text-center">VAT</th>
+                <th className="py-3 px-3 text-right font-bold text-white">Sau VAT</th>
+                <th className="py-3 px-3 text-right text-emerald-400">Lũy Kế Đã Chi</th>
+                <th className="py-3 px-3 text-right text-amber-400">Còn Lại (Dư Nợ)</th>
                 <th className="py-3 px-3 text-right">Dự Kiến Quyết Toán</th>
-                <th className="py-3 px-3 w-32">Thời Gian</th>
                 <th className="py-3 px-3 text-center">Thao Tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/60">
               {filteredContracts.map((c) => {
-                const variance = (c.estimated_settlement_value || c.contract_value) - c.contract_value;
+                const variance = (c.estimated_settlement_value || c.contractValueAfterVAT || c.contract_value) - (c.contractValueAfterVAT || c.contract_value);
                 return (
                   <tr key={c.id} className="hover:bg-slate-700/40 transition">
                     <td className="py-3.5 px-3">
-                      <div className="font-mono font-bold text-white text-xs">{c.contract_number}</div>
-                      <div className="text-[11px] text-blue-400 font-medium mt-0.5 flex items-center gap-1">
+                      <div className="font-mono font-bold text-white text-xs flex items-center gap-1.5">
+                        {c.contract_number}
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-sans font-bold border ${
+                          c.status === 'settled'
+                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        }`}>
+                          {c.status === 'settled' ? '🔵 Đã quyết toán' : '🟢 Đang thực hiện'}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-blue-400 font-medium mt-1 flex items-center gap-1">
                         <Building2 className="w-3 h-3" />
                         {c.projectName}
                       </div>
@@ -164,26 +173,35 @@ export default function ContractsView({
                       <div className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{c.content || 'N/A'}</div>
                     </td>
 
-                    <td className="py-3.5 px-3 text-right font-mono font-bold text-white">
-                      {formatVND(c.contract_value)}
+                    {/* 3-VALUE VAT MODEL COLUMNS */}
+                    <td className="py-3.5 px-3 text-right font-mono text-slate-300">
+                      {formatVND(c.contractValueBeforeVAT)}
                     </td>
 
-                    {/* In Period Paid */}
-                    <td className="py-3.5 px-3 text-right font-mono font-bold text-emerald-400 bg-emerald-500/5">
-                      {formatVND(c.totalPaidInPeriod)}
+                    <td className="py-3.5 px-3 text-center font-mono">
+                      <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-300 font-bold border border-blue-500/30 text-[11px]">
+                        {c.vatRate !== undefined ? c.vatRate : 10}%
+                      </span>
                     </td>
 
-                    {/* All Time Cumulative Paid */}
-                    <td className="py-3.5 px-3 text-right font-mono font-semibold text-blue-300">
-                      {formatVND(c.totalPaid)}
+                    <td className="py-3.5 px-3 text-right font-mono font-bold text-white bg-slate-900/40">
+                      {formatVND(c.contractValueAfterVAT || c.contract_value)}
                     </td>
 
-                    <td className="py-3.5 px-3 text-right font-mono font-medium text-amber-400">
-                      {formatVND(c.remainingValue)}
+                    {/* All Time Cumulative Paid (After VAT + Subtext Before VAT) */}
+                    <td className="py-3.5 px-3 text-right font-mono text-emerald-400">
+                      <div className="font-bold">{formatVND(c.totalPaidAfterVAT || c.totalPaid)}</div>
+                      <div className="text-[10px] text-slate-400 font-normal">Trước VAT: {formatVND(c.totalPaidBeforeVAT)}</div>
+                    </td>
+
+                    {/* Remaining Balance (After VAT + Subtext Before VAT) */}
+                    <td className="py-3.5 px-3 text-right font-mono text-amber-400">
+                      <div className="font-bold">{formatVND(c.remainingAfterVAT || c.remainingValue)}</div>
+                      <div className="text-[10px] text-slate-400 font-normal">Trước VAT: {formatVND(c.remainingBeforeVAT)}</div>
                     </td>
 
                     <td className="py-3.5 px-3 text-right font-mono font-semibold">
-                      <span className="text-purple-300">{formatVND(c.estimated_settlement_value || c.contract_value)}</span>
+                      <span className="text-purple-300">{formatVND(c.estimated_settlement_value || c.contractValueAfterVAT)}</span>
                       {variance !== 0 && (
                         <div className={`text-[10px] ${variance > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                           {variance > 0 ? `+${formatVND(variance)}` : formatVND(variance)}
@@ -206,9 +224,19 @@ export default function ContractsView({
                           <Eye className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => onAddPaymentForContract(c)}
-                          className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white transition"
-                          title="Thêm Đợt Thanh Toán"
+                          onClick={() => {
+                            if (c.status === 'settled') {
+                              alert('Hợp đồng này đã được quyết toán, không thể tạo thêm đợt thanh toán.');
+                            } else {
+                              onAddPaymentForContract(c);
+                            }
+                          }}
+                          className={`p-1.5 rounded-lg transition ${
+                            c.status === 'settled'
+                              ? 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                              : 'bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white'
+                          }`}
+                          title={c.status === 'settled' ? 'Hợp đồng đã quyết toán, không thể tạo thêm đợt thanh toán' : 'Thêm Đợt Thanh Toán'}
                         >
                           <Wallet className="w-3.5 h-3.5" />
                         </button>

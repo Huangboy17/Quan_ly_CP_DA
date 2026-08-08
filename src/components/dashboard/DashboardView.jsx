@@ -151,14 +151,14 @@ export default function DashboardView({
         </div>
       </div>
 
-      {/* KPI Cards Grid - Time-Based Metrics */}
+      {/* KPI Cards Grid - 3-Value VAT Model & Time-Based Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         
-        {/* Card 1: In-Period Total Payment */}
+        {/* Card 1: In-Period Total Payment (3-Tier) */}
         <StatCard
           title={`Chi Trả Trong Kỳ`}
-          value={formatVNDCompact(totals.totalPaidInPeriod)}
-          subtext={formatVND(totals.totalPaidInPeriod)}
+          value={formatVNDCompact(totals.totalPaidInPeriodAfterVAT || totals.totalPaidInPeriod)}
+          subtext={`Trước VAT: ${formatVNDCompact(totals.totalPaidInPeriodBeforeVAT)} | VAT: ${formatVNDCompact(totals.totalPaidInPeriodVAT)}`}
           icon={Calendar}
           color="emerald"
           badge={
@@ -186,30 +186,30 @@ export default function DashboardView({
           color={totals.periodGrowthPct >= 0 ? 'purple' : 'amber'}
         />
 
-        {/* Card 4: All-Time Contract Value */}
+        {/* Card 4: All-Time Contract Value (3-Tier) */}
         <StatCard
-          title="Tổng Giá Trị Ký"
-          value={formatVNDCompact(totals.totalContractValue)}
-          subtext={formatVND(totals.totalContractValue)}
+          title="Tổng Giá Trị HĐ (Sau VAT)"
+          value={formatVNDCompact(totals.totalContractValueAfterVAT || totals.totalContractValue)}
+          subtext={`Trước VAT: ${formatVNDCompact(totals.totalContractValueBeforeVAT)} | VAT: ${formatVNDCompact(totals.totalContractVAT)}`}
           icon={FileText}
           color="blue"
         />
 
-        {/* Card 5: All-Time Cumulative Paid */}
+        {/* Card 5: All-Time Cumulative Paid (3-Tier) */}
         <StatCard
-          title="Lũy Kế Đã Chi"
-          value={formatVNDCompact(totals.totalPaidValueAllTime)}
-          subtext={`Toàn bộ thời gian`}
+          title="Lũy Kế Đã Chi (Sau VAT)"
+          value={formatVNDCompact(totals.totalPaidAfterVAT || totals.totalPaidValueAllTime)}
+          subtext={`Trước VAT: ${formatVNDCompact(totals.totalPaidBeforeVAT)} | VAT: ${formatVNDCompact(totals.totalPaidVAT)}`}
           icon={CheckCircle2}
           color="emerald"
-          progress={totals.totalContractValue > 0 ? Math.round((totals.totalPaidValueAllTime / totals.totalContractValue) * 100) : 0}
+          progress={totals.totalContractValueAfterVAT > 0 ? Math.round((totals.totalPaidAfterVAT / totals.totalContractValueAfterVAT) * 100) : 0}
         />
 
-        {/* Card 6: Total Remaining */}
+        {/* Card 6: Total Remaining (3-Tier) */}
         <StatCard
-          title="Còn Lại Chưa Chi"
-          value={formatVNDCompact(totals.totalRemainingValue)}
-          subtext={`Dư nợ hợp đồng còn lại`}
+          title="Còn Lại Chưa Chi (Sau VAT)"
+          value={formatVNDCompact(totals.totalRemainingAfterVAT || totals.totalRemainingValue)}
+          subtext={`Trước VAT: ${formatVNDCompact(totals.totalRemainingBeforeVAT)} | VAT: ${formatVNDCompact(totals.totalRemainingVAT)}`}
           icon={Clock}
           color="amber"
         />

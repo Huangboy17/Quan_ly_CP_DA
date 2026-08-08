@@ -98,19 +98,21 @@ export default function ProjectsView({
                 </p>
               )}
 
-              {/* Project Stats Summary */}
+              {/* Project Stats Summary (3-Value VAT Model) */}
               <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-700/60 text-xs">
                 <div className="p-2.5 rounded-lg bg-slate-900/60">
                   <span className="text-[10px] text-slate-400 block">Số Hợp đồng</span>
                   <span className="font-bold text-white font-mono">{p.contractsCount} HĐ</span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-900/60">
-                  <span className="text-[10px] text-slate-400 block">Tổng giá trị HĐ</span>
-                  <span className="font-bold text-blue-400 font-mono">{formatVND(p.totalContractValue)}</span>
+                  <span className="text-[10px] text-slate-400 block">Tổng HĐ (Sau VAT)</span>
+                  <span className="font-bold text-blue-400 font-mono text-xs">{formatVND(p.totalContractValueAfterVAT || p.totalContractValue)}</span>
+                  <span className="text-[10px] text-slate-400 font-mono block">Trước VAT: {formatVND(p.totalContractValueBeforeVAT)}</span>
                 </div>
                 <div className="p-2.5 rounded-lg bg-slate-900/60">
-                  <span className="text-[10px] text-slate-400 block">Đã thanh toán</span>
-                  <span className="font-bold text-emerald-400 font-mono">{formatVND(p.totalPaid)}</span>
+                  <span className="text-[10px] text-slate-400 block">Đã chi (Sau VAT)</span>
+                  <span className="font-bold text-emerald-400 font-mono text-xs">{formatVND(p.totalPaidAfterVAT || p.totalPaid)}</span>
+                  <span className="text-[10px] text-slate-400 font-mono block">Trước VAT: {formatVND(p.totalPaidBeforeVAT)}</span>
                 </div>
               </div>
 

@@ -17,7 +17,10 @@ import {
   savePayment, 
   deletePayment, 
   saveProject, 
-  deleteProject 
+  deleteProject,
+  getSavedSettings,
+  saveSettings,
+  settleContract
 } from './services/storage';
 
 export default function App() {
@@ -34,15 +37,23 @@ export default function App() {
   const [globalSearch, setGlobalSearch] = useState('');
   const [selectedProjectId, setSelectedProjectId] = useState('');
 
-  // Global Time Filter State
-  const [timeFilter, setTimeFilter] = useState({
-    year: 'all',
-    quarter: 'all',
-    month: 'all',
-    customStartDate: '',
-    customEndDate: '',
-    project_id: '',
+  // Global Time Filter State - Restored from LocalStorage if available
+  const [timeFilter, setTimeFilter] = useState(() => {
+    const saved = getSavedSettings();
+    return saved?.timeFilter || {
+      year: 'all',
+      quarter: 'all',
+      month: 'all',
+      customStartDate: '',
+      customEndDate: '',
+      project_id: '',
+    };
   });
+
+  // Autosave timeFilter settings to LocalStorage whenever modified
+  useEffect(() => {
+    saveSettings({ timeFilter });
+  }, [timeFilter]);
 
   // Sync selectedProjectId with timeFilter if set
   const handleSetSelectedProjectId = (pId) => {
@@ -64,7 +75,7 @@ export default function App() {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
 
-  // Load and refresh state with timeFilter
+  // Load and refresh state directly from LocalStorage Repository
   const refreshData = useCallback(() => {
     const agg = getAggregatedData(timeFilter);
     setData(agg);
@@ -82,7 +93,7 @@ export default function App() {
     }
   }, [data, viewingContract]);
 
-  // --- Handlers: Contracts ---
+  // Handlers for Contracts (Autosaved to LocalStorage)
   const handleOpenNewContract = () => {
     setEditingContract(null);
     setIsContractModalOpen(true);
@@ -112,7 +123,7 @@ export default function App() {
     setIsContractDetailModalOpen(true);
   };
 
-  // --- Handlers: Payments ---
+  // Handlers for Payments (Autosaved to LocalStorage)
   const handleOpenNewPayment = (initialContractId = '') => {
     setEditingPayment(null);
     setPaymentInitialContractId(typeof initialContractId === 'string' ? initialContractId : '');
@@ -141,7 +152,7 @@ export default function App() {
     refreshData();
   };
 
-  // --- Handlers: Projects ---
+  // Handlers for Projects (Autosaved to LocalStorage)
   const handleOpenNewProject = () => {
     setEditingProject(null);
     setIsProjectModalOpen(true);
@@ -159,6 +170,11 @@ export default function App() {
 
   const handleDeleteProject = (projectId) => {
     deleteProject(projectId);
+    refreshData();
+  };
+
+  const handleSettleContract = (contractId, settlementData) => {
+    settleContract(contractId, settlementData);
     refreshData();
   };
 
@@ -273,6 +289,7 @@ export default function App() {
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
         onSavePayment={handleSavePayment}
+        onSettleContract={handleSettleContract}
         contracts={data.contracts}
         payments={data.payments}
         editingPayment={editingPayment}

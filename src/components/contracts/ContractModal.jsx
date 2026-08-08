@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, DollarSign, Building2, Plus, Sparkles } from 'lucide-react';
+import { X, Calendar, Clock, DollarSign, Building2, Plus, Sparkles, Percent } from 'lucide-react';
 import { 
   formatVND, 
   numberToWordsVN, 
   calcEndDate, 
   calcDaysBetween, 
   formatInputNumber, 
-  parseRawNumber 
+  parseRawNumber,
+  calculateVATValues
 } from '../../utils/formatters';
 
 export default function ContractModal({ 
@@ -22,7 +23,10 @@ export default function ContractModal({
     contract_number: '',
     content: '',
     contractor: '',
-    contract_value: '',
+    contractValueBeforeVAT: '',
+    vatRate: 10,
+    isCustomVat: false,
+    customVatRate: '',
     signing_date: new Date().toISOString().split('T')[0],
     duration_type: 'days', // 'days' | 'end_date'
     execution_days: 90,
@@ -34,9 +38,16 @@ export default function ContractModal({
 
   useEffect(() => {
     if (editingContract) {
+      const vRate = editingContract.vatRate !== undefined ? Number(editingContract.vatRate) : 10;
+      const isCustom = ![5, 8, 10].includes(vRate);
+      const beforeVAT = editingContract.contractValueBeforeVAT || editingContract.contract_value || '';
+
       setFormData({
         ...editingContract,
-        contract_value: editingContract.contract_value || '',
+        contractValueBeforeVAT: beforeVAT,
+        vatRate: vRate,
+        isCustomVat: isCustom,
+        customVatRate: isCustom ? vRate.toString() : '',
         estimated_settlement_value: editingContract.estimated_settlement_value || '',
         execution_days: editingContract.execution_days || 30,
         duration_type: editingContract.duration_type || 'days',
@@ -50,7 +61,10 @@ export default function ContractModal({
         contract_number: `HĐ-${new Date().getFullYear()}/` + Math.floor(100 + Math.random() * 900),
         content: '',
         contractor: '',
-        contract_value: '',
+        contractValueBeforeVAT: '',
+        vatRate: 10,
+        isCustomVat: false,
+        customVatRate: '',
         signing_date: defaultSigning,
         duration_type: 'days',
         execution_days: defaultDays,
@@ -121,26 +135,51 @@ export default function ContractModal({
     });
   };
 
-  const handleContractValueChange = (valStr) => {
+  const handleBeforeVATChange = (valStr) => {
     const rawVal = parseRawNumber(valStr);
     setFormData(prev => {
+      const currentRate = prev.isCustomVat ? (Number(prev.customVatRate) || 0) : prev.vatRate;
+      const calculated = calculateVATValues(rawVal, currentRate);
       const shouldUpdateSettlement = !settlementTouched || !prev.estimated_settlement_value;
       return {
         ...prev,
-        contract_value: rawVal,
-        estimated_settlement_value: shouldUpdateSettlement ? rawVal : prev.estimated_settlement_value
+        contractValueBeforeVAT: rawVal,
+        estimated_settlement_value: shouldUpdateSettlement ? calculated.amountAfterVAT : prev.estimated_settlement_value
       };
     });
   };
 
-  const handleSettlementValueChange = (valStr) => {
-    const rawVal = parseRawNumber(valStr);
-    setSettlementTouched(true);
-    setFormData(prev => ({
-      ...prev,
-      estimated_settlement_value: rawVal
-    }));
+  const handleVatRateSelect = (rate, isCustom = false) => {
+    setFormData(prev => {
+      const activeRate = isCustom ? (Number(prev.customVatRate) || 0) : rate;
+      const calculated = calculateVATValues(prev.contractValueBeforeVAT, activeRate);
+      const shouldUpdateSettlement = !settlementTouched || !prev.estimated_settlement_value;
+      return {
+        ...prev,
+        vatRate: activeRate,
+        isCustomVat: isCustom,
+        estimated_settlement_value: shouldUpdateSettlement ? calculated.amountAfterVAT : prev.estimated_settlement_value
+      };
+    });
   };
+
+  const handleCustomVatInputChange = (valStr) => {
+    const rateNum = Math.max(0, Math.min(100, Number(valStr) || 0));
+    setFormData(prev => {
+      const calculated = calculateVATValues(prev.contractValueBeforeVAT, rateNum);
+      const shouldUpdateSettlement = !settlementTouched || !prev.estimated_settlement_value;
+      return {
+        ...prev,
+        customVatRate: valStr,
+        vatRate: rateNum,
+        estimated_settlement_value: shouldUpdateSettlement ? calculated.amountAfterVAT : prev.estimated_settlement_value
+      };
+    });
+  };
+
+  // Real-time calculation of VAT & Total After VAT
+  const activeVatRate = formData.isCustomVat ? (Number(formData.customVatRate) || 0) : formData.vatRate;
+  const { amountBeforeVAT, vatAmount, amountAfterVAT } = calculateVATValues(formData.contractValueBeforeVAT, activeVatRate);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -152,17 +191,21 @@ export default function ContractModal({
       alert('Vui lòng nhập Số Hợp đồng!');
       return;
     }
-    if (!formData.contract_value || formData.contract_value <= 0) {
-      alert('Vui lòng nhập Giá trị Hợp đồng hợp lệ!');
+    if (!formData.contractValueBeforeVAT || Number(formData.contractValueBeforeVAT) <= 0) {
+      alert('Vui lòng nhập Giá trị Hợp đồng trước VAT hợp lệ!');
       return;
     }
 
     onSaveContract({
       ...formData,
-      contract_value: Number(formData.contract_value),
+      contractValueBeforeVAT: amountBeforeVAT,
+      vatRate: activeVatRate,
+      vatAmount: vatAmount,
+      contractValueAfterVAT: amountAfterVAT,
+      contract_value: amountAfterVAT,
       estimated_settlement_value: formData.estimated_settlement_value 
         ? Number(formData.estimated_settlement_value) 
-        : Number(formData.contract_value),
+        : amountAfterVAT,
       execution_days: Number(formData.execution_days || 0),
     });
 
@@ -185,7 +228,7 @@ export default function ContractModal({
               <h3 className="text-base font-bold text-white">
                 {editingContract ? 'Cập Nhật Hợp Đồng' : 'Thêm Hợp Đồng Mới'}
               </h3>
-              <p className="text-xs text-slate-400">Nhập đầy đủ thông tin hợp đồng thi công & thời gian thực hiện</p>
+              <p className="text-xs text-slate-400">Mô hình 3 Giá Trị: Trước VAT ➔ Tỷ lệ VAT ➔ Tiền VAT & Giá trị sau VAT</p>
             </div>
           </div>
           <button 
@@ -272,75 +315,133 @@ export default function ContractModal({
             />
           </div>
 
-          {/* Row 4: Contract Value & Words Preview */}
-          <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Giá Trị Hợp Đồng (Trước VAT hoặc đã VAT) <span className="text-rose-400">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="1.500.000.000"
-                    value={formatInputNumber(formData.contract_value)}
-                    onChange={(e) => handleContractValueChange(e.target.value)}
-                    className="w-full pl-3.5 pr-12 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono font-bold text-white focus:outline-none focus:border-blue-500 transition"
-                    required
-                  />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
-                    VNĐ
-                  </span>
-                </div>
-              </div>
+          {/* Row 4: 3-VALUE VAT MODEL INPUT PANEL */}
+          <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
+              <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-emerald-400" />
+                Mô Hình 3 Giá Trị Hợp Đồng (Trước VAT ➔ VAT ➔ Sau VAT)
+              </span>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Dự Kiến Giá Trị Quyết Toán Cuối Cùng
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Chỉnh sửa nếu khác giá trị HĐ..."
-                    value={formatInputNumber(formData.estimated_settlement_value)}
-                    onChange={(e) => handleSettlementValueChange(e.target.value)}
-                    className="w-full pl-3.5 pr-12 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono font-bold text-purple-300 focus:outline-none focus:border-purple-500 transition"
-                  />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
-                    VNĐ
-                  </span>
-                </div>
+            {/* Input 1: Contract Value Before VAT */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Giá Trị Hợp Đồng Trước VAT <span className="text-rose-400">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="25.000.000.000"
+                  value={formatInputNumber(formData.contractValueBeforeVAT)}
+                  onChange={(e) => handleBeforeVATChange(e.target.value)}
+                  className="w-full pl-3.5 pr-12 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono font-bold text-white focus:outline-none focus:border-emerald-500 transition"
+                  required
+                />
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+                  VNĐ
+                </span>
               </div>
             </div>
 
             {/* Quick Money Chips */}
-            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[11px] text-slate-400 mr-1">Cộng nhanh:</span>
               {[500_000_000, 1_000_000_000, 5_000_000_000, 10_000_000_000].map((amt) => (
                 <button
                   key={amt}
                   type="button"
-                  onClick={() => handleContractValueChange((Number(formData.contract_value || 0) + amt).toString())}
-                  className="px-2 py-0.5 rounded bg-slate-700/80 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-mono transition"
+                  onClick={() => handleBeforeVATChange((Number(formData.contractValueBeforeVAT || 0) + amt).toString())}
+                  className="px-2 py-0.5 rounded bg-slate-700/80 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-mono transition cursor-pointer"
                 >
                   +{amt >= 1_000_000_000 ? `${amt / 1_000_000_000} Tỷ` : `${amt / 1_000_000} Tr`}
                 </button>
               ))}
             </div>
 
-            {/* Text Reader */}
-            {formData.contract_value > 0 && (
-              <div className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-start gap-2">
-                <Sparkles className="w-4 h-4 shrink-0 text-blue-400 mt-0.5" />
+            {/* Input 2: VAT Rate Selection Chips (5%, 8%, 10%, Khác) */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Tỷ Lệ Thuế VAT (%) <span className="text-rose-400">*</span>
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                {[5, 8, 10].map((rate) => (
+                  <button
+                    key={rate}
+                    type="button"
+                    onClick={() => handleVatRateSelect(rate, false)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold font-mono transition cursor-pointer border ${
+                      !formData.isCustomVat && formData.vatRate === rate
+                        ? 'bg-blue-600 text-white border-blue-500 shadow-md'
+                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800'
+                    }`}
+                  >
+                    VAT {rate}%
+                  </button>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={() => handleVatRateSelect(12, true)}
+                  className={`flex-1 py-2 rounded-xl text-xs font-bold font-mono transition cursor-pointer border ${
+                    formData.isCustomVat
+                      ? 'bg-purple-600 text-white border-purple-500 shadow-md'
+                      : 'bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800'
+                  }`}
+                >
+                  ☐ Khác
+                </button>
+              </div>
+
+              {/* Custom VAT Percentage Input */}
+              {formData.isCustomVat && (
+                <div className="mt-2.5 flex items-center gap-2 animate-in fade-in duration-150">
+                  <span className="text-xs font-medium text-purple-300">Nhập tỷ lệ VAT tùy chỉnh:</span>
+                  <div className="relative w-32">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="12"
+                      value={formData.customVatRate}
+                      onChange={(e) => handleCustomVatInputChange(e.target.value)}
+                      className="w-full pl-3 pr-7 py-1.5 bg-slate-900 border border-purple-500/50 rounded-lg text-xs font-mono font-bold text-purple-300 focus:outline-none focus:border-purple-400"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-purple-400">%</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Read-Only Auto-Calculated VAT & After-VAT Panel */}
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
+              <div className="flex justify-between text-slate-400">
+                <span>Giá trị trước VAT:</span>
+                <span className="font-mono text-slate-200 font-bold">{formatVND(amountBeforeVAT)}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>+ Tiền VAT ({activeVatRate}%):</span>
+                <span className="font-mono text-blue-300 font-bold">+{formatVND(vatAmount)}</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-slate-800 text-sm font-extrabold">
+                <span className="text-white">Giá Trị Hợp Đồng Sau VAT:</span>
+                <span className="font-mono text-emerald-400 text-base">{formatVND(amountAfterVAT)}</span>
+              </div>
+            </div>
+
+            {/* Text Words Preview for After VAT */}
+            {amountAfterVAT > 0 && (
+              <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-start gap-2">
+                <Sparkles className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-white">Bằng chữ: </span>
-                  <span className="italic">{numberToWordsVN(formData.contract_value)}</span>
+                  <span className="font-semibold text-white">Bằng chữ (Sau VAT): </span>
+                  <span className="italic">{numberToWordsVN(amountAfterVAT)}</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Row 5: Signing Date & Progress Duration Logic */}
+          {/* Row 5: Signing Date & Duration */}
           <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
               <span className="text-xs font-semibold text-slate-200 flex items-center gap-2">
@@ -353,7 +454,7 @@ export default function ContractModal({
                 <button
                   type="button"
                   onClick={() => handleDurationTypeToggle('days')}
-                  className={`px-3 py-1 rounded-md font-medium transition ${
+                  className={`px-3 py-1 rounded-md font-medium transition cursor-pointer ${
                     formData.duration_type === 'days'
                       ? 'bg-blue-600 text-white shadow'
                       : 'text-slate-400 hover:text-slate-200'
@@ -364,7 +465,7 @@ export default function ContractModal({
                 <button
                   type="button"
                   onClick={() => handleDurationTypeToggle('end_date')}
-                  className={`px-3 py-1 rounded-md font-medium transition ${
+                  className={`px-3 py-1 rounded-md font-medium transition cursor-pointer ${
                     formData.duration_type === 'end_date'
                       ? 'bg-blue-600 text-white shadow'
                       : 'text-slate-400 hover:text-slate-200'

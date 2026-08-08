@@ -7,9 +7,10 @@ import {
   Upload, 
   Search, 
   Wallet, 
-  FileText 
+  FileText,
+  HardDrive
 } from 'lucide-react';
-import { resetStorage, getAggregatedData } from '../../services/storage';
+import { resetStorage, getAggregatedData, exportData, importData } from '../../services/storage';
 
 export default function Header({ 
   activeTab, 
@@ -18,7 +19,7 @@ export default function Header({
   onNewPayment, 
   onDataChange, 
   globalSearch, 
-  setGlobalSearch 
+  setGlobalSearch,
 }) {
 
   const handleReset = () => {
@@ -29,13 +30,13 @@ export default function Header({
   };
 
   const handleExport = () => {
-    const data = getAggregatedData();
-    const jsonStr = JSON.stringify(data, null, 2);
+    const backupObj = exportData();
+    const jsonStr = JSON.stringify(backupObj, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `QuanLyChiPhi_BaoCao_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `BuildCost_Backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -47,17 +48,11 @@ export default function Header({
     reader.onload = (event) => {
       try {
         const imported = JSON.parse(event.target.result);
-        if (imported.projects && imported.contracts && imported.payments) {
-          localStorage.setItem('ql_cp_projects_v1', JSON.stringify(imported.projects));
-          localStorage.setItem('ql_cp_contracts_v1', JSON.stringify(imported.contracts));
-          localStorage.setItem('ql_cp_payments_v1', JSON.stringify(imported.payments));
-          onDataChange();
-          alert('Nhập dữ liệu thành công!');
-        } else {
-          alert('File JSON không hợp lệ! Thiếu cấu trúc dự án/hợp đồng/thanh toán.');
-        }
+        importData(imported);
+        onDataChange();
+        alert('Khôi phục dữ liệu từ file JSON thành công!');
       } catch (err) {
-        alert('Lỗi đọc file JSON: ' + err.message);
+        alert('Lỗi khôi phục file JSON: ' + err.message);
       }
     };
     reader.readAsText(file);
@@ -77,7 +72,7 @@ export default function Header({
               <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
                 BUILD<span className="text-blue-400 font-extrabold">COST</span>
                 <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  v2.5 Enterprise
+                  v2.5 Offline Local
                 </span>
               </h1>
               <p className="text-xs text-slate-400">Quản lý Chi phí & Hợp đồng Xây dựng</p>
@@ -148,14 +143,14 @@ export default function Header({
           <div className="flex items-center gap-1 bg-slate-800/60 p-1 rounded-lg border border-slate-700/50">
             <button
               onClick={handleExport}
-              title="Xuất dữ liệu JSON báo cáo"
-              className="p-1.5 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition"
+              title="Xuất file JSON sao lưu (Backup)"
+              className="p-1.5 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition flex items-center gap-1 text-xs"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-4 h-4 text-cyan-400" />
             </button>
 
-            <label title="Nhập file JSON sao lưu" className="p-1.5 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition cursor-pointer">
-              <Upload className="w-4 h-4" />
+            <label title="Phục hồi dữ liệu từ file JSON (Restore)" className="p-1.5 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition cursor-pointer flex items-center gap-1 text-xs">
+              <Upload className="w-4 h-4 text-emerald-400" />
               <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
 
@@ -166,6 +161,19 @@ export default function Header({
             >
               <RotateCcw className="w-4 h-4" />
             </button>
+          </div>
+
+          <div className="h-6 w-px bg-slate-800 my-auto mx-1" />
+
+          {/* LocalStorage Status Badge */}
+          <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg" title="Mọi dữ liệu được tự động lưu vào LocalStorage trình duyệt">
+            <HardDrive className="w-4 h-4 text-blue-400" />
+            <div className="text-left">
+              <p className="text-xs font-semibold text-slate-200">LocalStorage</p>
+              <p className="text-[10px] text-emerald-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Tự động lưu
+              </p>
+            </div>
           </div>
 
         </div>
