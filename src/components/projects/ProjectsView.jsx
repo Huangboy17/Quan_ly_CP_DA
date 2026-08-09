@@ -39,6 +39,7 @@ import { formatVND, formatVNDCompact, formatDisplayDate } from '../../utils/form
 import TmdtHistoryModal from './TmdtHistoryModal';
 import TmdtFormModal from './TmdtFormModal';
 import TmdtPhaseDetailModal from './TmdtPhaseDetailModal';
+import DeleteProjectModal from './DeleteProjectModal';
 
 export default function ProjectsView({ 
   data, 
@@ -48,6 +49,7 @@ export default function ProjectsView({
   onAddTmdtPhase,
   onUpdateTmdtPhase,
   onDeleteTmdtPhase,
+  onOpenExcelImport,
   setSelectedProjectId, 
   setActiveTab,
   globalSearch 
@@ -73,6 +75,15 @@ export default function ProjectsView({
   const [isPhaseDetailModalOpen, setIsPhaseDetailModalOpen] = useState(false);
   const [viewingPhaseProject, setViewingPhaseProject] = useState(null);
   const [viewingPhase, setViewingPhase] = useState(null);
+
+  // Delete Project Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(null);
+
+  const handleOpenDeleteModal = (proj) => {
+    setDeletingProject(proj);
+    setIsDeleteModalOpen(true);
+  };
 
   // Handlers
   const handleSelectProject = (pId) => {
@@ -272,12 +283,29 @@ export default function ProjectsView({
         {/* Action Buttons Toolbar */}
         <div className="flex items-center gap-2 self-start md:self-auto">
           <button
+            onClick={() => onOpenExcelImport && onOpenExcelImport('projects')}
+            className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 text-xs font-semibold border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
+            title="Import danh sách Dự án từ Excel"
+          >
+            📥 Import Excel
+          </button>
+
+          <button
             onClick={() => onEditProject(activeProj)}
             className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
             title="Chỉnh sửa thông tin dự án"
           >
             <Edit className="w-3.5 h-3.5 text-blue-400" />
             Thông Tin Dự Án
+          </button>
+
+          <button
+            onClick={() => handleOpenDeleteModal(activeProj)}
+            className="px-3.5 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold border border-rose-500/40 transition cursor-pointer flex items-center gap-1.5"
+            title="Xóa vĩnh viễn dự án này"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+            Xóa Dự Án
           </button>
 
           <button
@@ -855,6 +883,33 @@ export default function ProjectsView({
         phase={viewingPhase}
         onEditPhase={(phase) => handleOpenEditPhase(viewingPhaseProject, phase)}
       />
+
+      {deletingProject && (
+        <DeleteProjectModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setDeletingProject(null);
+          }}
+          project={deletingProject}
+          contractsCount={contracts.filter(c => c.project_id === deletingProject.id).length}
+          paymentsCount={payments.filter(pm => {
+            const delContractIds = contracts.filter(c => c.project_id === deletingProject.id).map(c => c.id);
+            return delContractIds.includes(pm.contract_id);
+          }).length}
+          onConfirmDelete={(projId) => {
+            const result = onDeleteProject(projId);
+            // Switch selection if active project was deleted
+            const remaining = projects.filter(p => p.id !== projId);
+            if (remaining.length > 0) {
+              handleSelectProject(remaining[0].id);
+            } else {
+              handleSelectProject('');
+            }
+            return result;
+          }}
+        />
+      )}
 
     </div>
   );

@@ -26,6 +26,7 @@ export default function ContractsView({
   onViewContractDossier,
   onAddPaymentForContract,
   onOpenAppendixModal,
+  onOpenExcelImport,
   globalSearch
 }) {
   const { contracts = [], projects = [], periodLabel } = data;
@@ -65,6 +66,13 @@ export default function ContractsView({
         </div>
 
         <div className="flex items-center gap-2 self-start md:self-auto">
+          <button
+            onClick={() => onOpenExcelImport && onOpenExcelImport('contracts')}
+            className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 text-xs font-semibold border border-slate-700 shadow-md transition cursor-pointer flex items-center gap-1.5"
+            title="Import danh sách Hợp đồng từ Excel"
+          >
+            📥 Import Excel
+          </button>
           <button
             onClick={() => onOpenAppendixModal && onOpenAppendixModal()}
             className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-300 hover:text-white text-xs font-semibold border border-slate-700 shadow-md transition cursor-pointer flex items-center gap-1.5"

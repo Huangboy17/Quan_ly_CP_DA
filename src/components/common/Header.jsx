@@ -8,7 +8,8 @@ import {
   Search, 
   Wallet, 
   FileText,
-  HardDrive
+  HardDrive,
+  FileSpreadsheet
 } from 'lucide-react';
 import { resetStorage, getAggregatedData, exportData, importData } from '../../services/storage';
 
@@ -17,6 +18,7 @@ export default function Header({
   setActiveTab, 
   onNewContract, 
   onNewPayment, 
+  onOpenExcelImport,
   onDataChange, 
   globalSearch, 
   setGlobalSearch,
@@ -120,6 +122,16 @@ export default function Header({
 
         {/* Desktop Controls & Quick Actions */}
         <div className="hidden md:flex items-center gap-2.5">
+          {/* Quick Excel Import Button */}
+          <button
+            onClick={() => onOpenExcelImport && onOpenExcelImport('projects')}
+            className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition cursor-pointer"
+            title="Import dữ liệu hàng loạt từ tệp Excel (Dự án, Hợp đồng, Thanh toán)"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            📥 Import Excel
+          </button>
+
           {/* Quick Add Buttons */}
           <button
             onClick={onNewContract}

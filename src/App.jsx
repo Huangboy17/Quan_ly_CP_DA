@@ -12,6 +12,7 @@ import PaymentsView from './components/payments/PaymentsView';
 import PaymentModal from './components/payments/PaymentModal';
 import ProjectsView from './components/projects/ProjectsView';
 import ProjectModal from './components/projects/ProjectModal';
+import ExcelImportModal from './components/common/ExcelImportModal';
 import { 
   getAggregatedData, 
   saveContract, 
@@ -86,6 +87,14 @@ export default function App() {
 
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
+
+  const [isExcelImportModalOpen, setIsExcelImportModalOpen] = useState(false);
+  const [excelImportInitialType, setExcelImportInitialType] = useState('projects');
+
+  const handleOpenExcelImport = (type = 'projects') => {
+    setExcelImportInitialType(type);
+    setIsExcelImportModalOpen(true);
+  };
 
   // Load and refresh state directly from LocalStorage Repository
   const refreshData = useCallback(() => {
@@ -209,8 +218,12 @@ export default function App() {
   };
 
   const handleDeleteProject = (projectId) => {
-    deleteProject(projectId);
+    const result = deleteProject(projectId);
+    if (selectedProjectId === projectId) {
+      handleSetSelectedProjectId('');
+    }
     refreshData();
+    return result;
   };
 
   const handleSettleContract = (contractId, settlementData) => {
@@ -227,6 +240,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         onNewContract={handleOpenNewContract}
         onNewPayment={() => handleOpenNewPayment()}
+        onOpenExcelImport={handleOpenExcelImport}
         onDataChange={refreshData}
         globalSearch={globalSearch}
         setGlobalSearch={setGlobalSearch}
@@ -278,6 +292,7 @@ export default function App() {
               onViewContractDossier={handleViewContractDossier}
               onAddPaymentForContract={handleAddPaymentForContract}
               onOpenAppendixModal={handleOpenAppendixModal}
+              onOpenExcelImport={handleOpenExcelImport}
               globalSearch={globalSearch}
             />
           )}
@@ -309,6 +324,7 @@ export default function App() {
               onNewPayment={() => handleOpenNewPayment()}
               onEditPayment={handleOpenEditPayment}
               onDeletePayment={handleDeletePayment}
+              onOpenExcelImport={handleOpenExcelImport}
               globalSearch={globalSearch}
             />
           )}
@@ -331,6 +347,7 @@ export default function App() {
                 deleteTmdtAdjustmentPhase(projectId, phaseId);
                 refreshData();
               }}
+              onOpenExcelImport={handleOpenExcelImport}
               setSelectedProjectId={handleSetSelectedProjectId}
               setActiveTab={setActiveTab}
               globalSearch={globalSearch}
@@ -389,6 +406,13 @@ export default function App() {
         onClose={() => setIsProjectModalOpen(false)}
         onSaveProject={handleSaveProject}
         editingProject={editingProject}
+      />
+
+      <ExcelImportModal
+        isOpen={isExcelImportModalOpen}
+        onClose={() => setIsExcelImportModalOpen(false)}
+        initialType={excelImportInitialType}
+        onSuccess={refreshData}
       />
 
     </div>

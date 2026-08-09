@@ -9,6 +9,7 @@ export default function PaymentsView({
   onNewPayment, 
   onEditPayment, 
   onDeletePayment,
+  onOpenExcelImport,
   globalSearch 
 }) {
   const { payments = [], contracts = [], projects = [], periodLabel, timeFilter } = data;
@@ -132,13 +133,22 @@ export default function PaymentsView({
           </p>
         </div>
 
-        <button
-          onClick={onNewPayment}
-          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/30 transition cursor-pointer flex items-center gap-2 self-start md:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          + Nhập Thanh Toán Mới
-        </button>
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <button
+            onClick={() => onOpenExcelImport && onOpenExcelImport('payments')}
+            className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 text-xs font-semibold border border-slate-700 shadow-md transition cursor-pointer flex items-center gap-1.5"
+            title="Import danh sách Đợt thanh toán từ Excel"
+          >
+            📥 Import Excel
+          </button>
+          <button
+            onClick={onNewPayment}
+            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/30 transition cursor-pointer flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            + Nhập Thanh Toán Mới
+          </button>
+        </div>
       </div>
 
       {/* PROMINENT ACTIVE PROJECT FILTER BADGE BAR */}

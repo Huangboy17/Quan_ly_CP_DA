@@ -623,17 +623,29 @@ export function deleteTmdtAdjustmentPhase(projectId, phaseId) {
 }
 
 export function deleteProject(id) {
-  const projects = getProjects().filter(p => p.id !== id);
-  localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projects));
-  
-  const contracts = getContracts();
-  const deletedContractIds = contracts.filter(c => c.project_id === id).map(c => c.id);
-  const remainingContracts = contracts.filter(c => c.project_id !== id);
-  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(remainingContracts));
+  const projects = getProjects();
+  const targetProj = projects.find(p => p.id === id);
 
-  const payments = getPayments().filter(pm => !deletedContractIds.includes(pm.contract_id));
-  localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
-  return projects;
+  const contracts = getContracts();
+  const deletedContracts = contracts.filter(c => c.project_id === id);
+  const deletedContractIds = deletedContracts.map(c => c.id);
+  const remainingContracts = contracts.filter(c => c.project_id !== id);
+
+  const payments = getPayments();
+  const deletedPayments = payments.filter(pm => deletedContractIds.includes(pm.contract_id));
+  const remainingPayments = payments.filter(pm => !deletedContractIds.includes(pm.contract_id));
+
+  const remainingProjects = projects.filter(p => p.id !== id);
+  localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(remainingProjects));
+  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(remainingContracts));
+  localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(remainingPayments));
+
+  return {
+    deletedProject: targetProj,
+    deletedContractsCount: deletedContracts.length,
+    deletedPaymentsCount: deletedPayments.length,
+    remainingProjects: remainingProjects,
+  };
 }
 
 // --- CONTRACTS REPOSITORY ---
