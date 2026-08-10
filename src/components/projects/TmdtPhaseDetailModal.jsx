@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar, FileText, DollarSign, Edit, CheckCircle2, Paperclip, Sparkles } from 'lucide-react';
 import { formatVND, formatDisplayDate, numberToWordsVN } from '../../utils/formatters';
 
@@ -20,12 +21,28 @@ export default function TmdtPhaseDetailModal({
   const diffAmount = prevPhase ? currentAmount - prevAmount : 0;
   const isLatest = phaseIdx === history.length - 1;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden">
-        
+  return createPortal(
+    <div className="fixed inset-0 z-[9999]">
+      {/* Overlay Backdrop */}
+      <div 
+        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md cursor-pointer"
+        style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+        onClick={onClose}
+      />
+
+      {/* Main Centered Modal Window */}
+      <div 
+        className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-[92vw] max-h-[88vh] shadow-2xl flex flex-col overflow-hidden"
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 9999
+        }}
+      >
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-800/80 border-b border-slate-700/80 flex items-center justify-between">
+        <div className="px-6 py-4 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold font-mono text-sm">
               Lần {phase.phase_number || (phaseIdx + 1)}
@@ -45,14 +62,14 @@ export default function TmdtPhaseDetailModal({
 
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
+        <div className="p-6 space-y-4 flex-1 overflow-y-auto min-h-0 text-xs">
           
           {/* Main Money Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -129,7 +146,7 @@ export default function TmdtPhaseDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-800/80 border-t border-slate-700/80 flex items-center justify-between">
+        <div className="px-6 py-3.5 bg-slate-800/90 border-t border-slate-700/80 flex items-center justify-between shrink-0">
           <button
             onClick={() => {
               onClose();
@@ -149,6 +166,7 @@ export default function TmdtPhaseDetailModal({
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

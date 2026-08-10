@@ -71,8 +71,8 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
     timeFilter.project_id;
 
   return (
-    <div className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3 sticky top-16 z-20 shadow-xl">
-      <div className="max-w-7xl mx-auto flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-xs">
+    <div className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 lg:px-6 py-3 sticky top-16 z-20 shadow-xl w-full">
+      <div className="w-full max-w-full flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-xs">
         
         {/* Filter Label */}
         <div className="flex items-center gap-2 text-slate-200 font-bold shrink-0">

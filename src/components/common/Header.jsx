@@ -61,8 +61,8 @@ export default function Header({
   };
 
   return (
-    <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-4 lg:px-8 py-3.5 shadow-lg">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+    <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-4 lg:px-6 py-3.5 shadow-lg w-full">
+      <div className="w-full max-w-full flex flex-col md:flex-row items-center justify-between gap-4">
         
         {/* Logo & Brand */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-between">

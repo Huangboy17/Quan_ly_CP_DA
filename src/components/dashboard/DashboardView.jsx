@@ -338,8 +338,8 @@ export default function DashboardView({
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left text-xs text-slate-300 min-w-[800px]">
             <thead className="bg-slate-900/90 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-700">
               <tr>
                 <th className="py-3 px-4">Tên Dự Án</th>

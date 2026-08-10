@@ -182,8 +182,8 @@ export default function ContractsView({
 
       {/* Contracts Data Table */}
       <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/70 shadow-lg space-y-4">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left text-xs text-slate-300 min-w-[1050px]">
             <thead className="bg-slate-900 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-700">
               <tr>
                 <th className="py-3 px-3">Số HĐ / Dự Án</th>

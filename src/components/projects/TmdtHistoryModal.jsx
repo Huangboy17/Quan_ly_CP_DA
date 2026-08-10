@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Clock, Calendar, FileText, Plus, Edit, Trash2, ShieldCheck, Eye, TrendingUp } from 'lucide-react';
 import { formatVND, formatDisplayDate } from '../../utils/formatters';
 
@@ -21,12 +22,28 @@ export default function TmdtHistoryModal({
   const currentAmount = project.currentTmdt || (history.length > 0 ? Number(history[history.length - 1].amount) : 0);
   const totalDelta = currentAmount - initialAmount;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden my-6">
-        
+  return createPortal(
+    <div className="fixed inset-0 z-[9999]">
+      {/* Overlay Backdrop */}
+      <div 
+        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md cursor-pointer"
+        style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+        onClick={onClose}
+      />
+
+      {/* Main Centered Modal Window */}
+      <div 
+        className="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-[92vw] max-h-[88vh] shadow-2xl flex flex-col overflow-hidden"
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 9999
+        }}
+      >
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-800/80 border-b border-slate-700/80 flex items-center justify-between">
+        <div className="px-6 py-4 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold">
               <Clock className="w-5 h-5" />
@@ -46,15 +63,15 @@ export default function TmdtHistoryModal({
             </button>
             <button 
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition ml-1"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition ml-1 cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Top Summary Cards */}
-        <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        {/* Scrollable Body Content */}
+        <div className="p-6 space-y-5 flex-1 overflow-y-auto min-h-0">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
               <span className="text-[11px] font-semibold text-slate-400 uppercase block mb-1">TMĐT Phê Duyệt Ban Đầu (Lần 1)</span>
@@ -153,7 +170,7 @@ export default function TmdtHistoryModal({
                           <div className="flex items-center justify-center gap-1">
                             <button
                               onClick={() => onOpenViewPhaseDetail(item)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-300 hover:bg-slate-800 transition"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-blue-300 hover:bg-slate-800 transition cursor-pointer"
                               title="Xem chi tiết"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -161,7 +178,7 @@ export default function TmdtHistoryModal({
 
                             <button
                               onClick={() => onOpenEditPhase(item)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-300 hover:bg-slate-800 transition"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-300 hover:bg-slate-800 transition cursor-pointer"
                               title="Chỉnh sửa"
                             >
                               <Edit className="w-3.5 h-3.5" />
@@ -174,7 +191,7 @@ export default function TmdtHistoryModal({
                                     onDeletePhase(project.id, item.id);
                                   }
                                 }}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
+                                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition cursor-pointer"
                                 title="Xóa đợt điều chỉnh"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -200,7 +217,7 @@ export default function TmdtHistoryModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-slate-800/80 border-t border-slate-700/80 flex items-center justify-end">
+        <div className="px-6 py-3.5 bg-slate-800/90 border-t border-slate-700/80 flex items-center justify-end shrink-0">
           <button
             onClick={onClose}
             className="px-5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition cursor-pointer"
@@ -210,6 +227,7 @@ export default function TmdtHistoryModal({
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

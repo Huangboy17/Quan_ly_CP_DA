@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   AlertTriangle, 
   Trash2, 
@@ -56,12 +57,28 @@ export default function DeleteProjectModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
-        
+  return createPortal(
+    <div className="fixed inset-0 z-[9999]">
+      {/* Overlay Backdrop */}
+      <div 
+        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md cursor-pointer"
+        style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+        onClick={onClose}
+      />
+
+      {/* Main Centered Modal Window */}
+      <div 
+        className="bg-slate-900 border border-slate-800 rounded-3xl w-[92vw] max-w-lg max-h-[88vh] shadow-2xl overflow-hidden flex flex-col"
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 9999
+        }}
+      >
         {/* Modal Header */}
-        <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90">
+        <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 shrink-0">
           <div className="flex items-center gap-3">
             <div className={`p-2.5 rounded-2xl border ${
               step === 3 
@@ -90,7 +107,7 @@ export default function DeleteProjectModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5 flex-1">
+        <div className="p-6 space-y-5 flex-1 overflow-y-auto min-h-0">
           
           {/* STEP 1: WARNING STEP */}
           {step === 1 && (
@@ -184,7 +201,7 @@ export default function DeleteProjectModal({
         </div>
 
         {/* Modal Footer Actions */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between">
+        <div className="p-4 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between shrink-0">
           {step === 1 && (
             <>
               <button
@@ -244,6 +261,7 @@ export default function DeleteProjectModal({
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -34,7 +34,7 @@ export default function Sidebar({ activeTab, setActiveTab, counts, onNewProject 
   ];
 
   return (
-    <aside className="w-full lg:w-64 bg-slate-900 border-r border-slate-800 p-4 shrink-0 flex flex-col justify-between">
+    <aside className="w-full lg:w-60 lg:min-w-[240px] bg-slate-900 border-r border-slate-800 p-4 shrink-0 flex flex-col justify-between">
       <div className="space-y-6">
         <div>
           <p className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">

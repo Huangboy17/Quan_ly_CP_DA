@@ -254,7 +254,7 @@ export default function App() {
       />
 
       {/* Main Content Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row max-w-7xl w-full mx-auto">
+      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-full px-2 sm:px-4 lg:px-6">
         
         {/* Left Navigation Sidebar */}
         <Sidebar
@@ -269,7 +269,7 @@ export default function App() {
         />
 
         {/* Right Main Screen View */}
-        <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 overflow-y-auto min-w-0 w-full">
           {activeTab === 'dashboard' && (
             <DashboardView
               data={data}
