@@ -18,6 +18,9 @@ const INITIAL_PROJECTS = [
     id: 'p-101',
     name: 'Khu Đô Thị Sông Hồng Riverside',
     description: 'Dự án khu đô thị sinh thái 15ha bao gồm biệt thự, chung cư cao cấp & hạ tầng đồng bộ tại Đông Anh, Hà Nội.',
+    location: 'Đông Anh, Hà Nội',
+    address: 'Đông Anh, Hà Nội',
+    investor: 'Công ty CP Đầu tư Sông Hồng',
     created_at: '2024-01-10',
     initial_tmdt: 80000000000,
     tmdt_history: [
@@ -51,6 +54,9 @@ const INITIAL_PROJECTS = [
     id: 'p-102',
     name: 'Tòa Nhà Văn Phòng TechHub Tower',
     description: 'Tòa tháp văn phòng Hạng A cao 25 tầng + 3 tầng hầm tại Q.1, TP. Hồ Chí Minh.',
+    location: 'Q.1, TP. Hồ Chí Minh',
+    address: 'Q.1, TP. Hồ Chí Minh',
+    investor: 'Tập đoàn TechHub Vietnam',
     created_at: '2024-05-15',
     initial_tmdt: 50000000000,
     tmdt_history: [
@@ -72,6 +78,9 @@ const INITIAL_PROJECTS = [
     id: 'p-103',
     name: 'Nhà Máy Linh Kiện Điện Tử Bình Dương',
     description: 'Tổ hợp nhà xưởng sản xuất thiết bị bán dẫn 50.000m² tại KCN VSIP II.',
+    location: 'KCN VSIP II, Bình Dương',
+    address: 'KCN VSIP II, Bình Dương',
+    investor: 'Công ty TNHH Linh Kiện Bình Dương',
     created_at: '2025-01-10',
     initial_tmdt: 40000000000,
     tmdt_history: [
@@ -93,6 +102,9 @@ const INITIAL_PROJECTS = [
     id: 'p-104',
     name: 'Trung Tâm Thương Mại Grand Plaza',
     description: 'Cải tạo mặt ngoài, hệ thống PCCC, MEP & nâng cấp toàn bộ TTM.',
+    location: 'Cầu Giấy, Hà Nội',
+    address: 'Cầu Giấy, Hà Nội',
+    investor: 'Công ty CP Thương Mại Grand Plaza',
     created_at: '2025-06-01',
     initial_tmdt: 12000000000,
     tmdt_history: [
@@ -473,6 +485,10 @@ export function saveProject(project) {
     ? Number(project.initial_tmdt)
     : 0;
 
+  const projLocation = project.location || project.address || '';
+  const projAddress = project.address || project.location || '';
+  const projInvestor = project.investor || project.manager || '';
+
   if (project.id) {
     updated = projects.map(p => {
       if (p.id === project.id) {
@@ -493,6 +509,9 @@ export function saveProject(project) {
         return {
           ...p,
           ...project,
+          location: projLocation || p.location || p.address || '',
+          address: projAddress || p.address || p.location || '',
+          investor: projInvestor || p.investor || '',
           initial_tmdt: initialTmdtVal || p.initial_tmdt || 0,
           tmdt_history: history,
         };
@@ -520,6 +539,9 @@ export function saveProject(project) {
       ...project,
       id: 'p-' + Date.now(),
       created_at: createdDate,
+      location: projLocation,
+      address: projAddress,
+      investor: projInvestor,
       initial_tmdt: initialTmdtVal,
       tmdt_history: history,
     };
@@ -947,7 +969,8 @@ export function getAggregatedData(timeFilter = {}) {
   const contracts = getContracts();
   const payments = getPayments();
 
-  const { startDate, endDate, periodLabel, prevPeriod } = getTimeRangeBounds(timeFilter);
+  const bounds = getTimeRangeBounds(timeFilter);
+  const { startDate, endDate, periodLabel, prevPeriod } = bounds;
   const selectedProjectId = timeFilter.project_id || '';
 
   const allTimeContractPaidBeforeVAT = {};
@@ -1114,6 +1137,32 @@ export function getAggregatedData(timeFilter = {}) {
   const totalPaidInPeriodBeforeVAT = inPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.amount_before_vat || 0), 0);
   const totalPaidInPeriodVAT = inPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.vat_amount || 0), 0);
   const totalPaidInPeriodAfterVAT = inPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.amount_after_vat || 0), 0);
+
+  // Previous Period Payments calculation (3-tier)
+  const prevPeriodPaymentsFiltered = prevPeriodPayments.filter(pm => {
+    if (!selectedProjectId) return true;
+    const c = contracts.find(ct => ct.id === pm.contract_id);
+    return c && c.project_id === selectedProjectId;
+  });
+
+  const prevPeriodPaidBeforeVAT = prevPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.amount_before_vat || 0), 0);
+  const prevPeriodPaidVAT = prevPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.vat_amount || 0), 0);
+  const prevPeriodPaidAfterVAT = prevPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.amount_after_vat || 0), 0);
+
+  const hasPrevPeriod = Boolean(bounds.hasPrevPeriod && bounds.prevPeriod && bounds.prevPeriod.label);
+  const prevPeriodLabel = hasPrevPeriod ? bounds.prevPeriod.label : null;
+
+  let periodGrowthPct = null;
+  if (hasPrevPeriod) {
+    if (prevPeriodPaidAfterVAT > 0) {
+      const growth = ((totalPaidInPeriodAfterVAT - prevPeriodPaidAfterVAT) / prevPeriodPaidAfterVAT) * 100;
+      periodGrowthPct = Math.round(growth * 10) / 10;
+    } else if (totalPaidInPeriodAfterVAT > 0) {
+      periodGrowthPct = 100;
+    } else {
+      periodGrowthPct = 0;
+    }
+  }
 
   const enrichedProjects = projects.map(p => {
     const projContracts = enrichedContracts.filter(c => c.project_id === p.id);
@@ -1315,6 +1364,15 @@ export function getAggregatedData(timeFilter = {}) {
       totalPaidInPeriod: totalPaidInPeriodAfterVAT,
 
       inPeriodTransactionsCount: inPeriodPaymentsFiltered.length,
+
+      // Previous Period Comparisons
+      hasPrevPeriod,
+      prevPeriodLabel,
+      prevPeriodPaidBeforeVAT,
+      prevPeriodPaidVAT,
+      prevPeriodPaidAfterVAT,
+      prevPeriodPaid: prevPeriodPaidAfterVAT,
+      periodGrowthPct,
     }
   };
 }

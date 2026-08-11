@@ -5,6 +5,7 @@ import { formatVND, numberToWordsVN } from '../../utils/formatters';
 export default function ProjectModal({ isOpen, onClose, onSaveProject, editingProject = null }) {
   const [formData, setFormData] = useState({
     name: '',
+    location: '',
     description: '',
     initial_tmdt: '',
   });
@@ -13,12 +14,14 @@ export default function ProjectModal({ isOpen, onClose, onSaveProject, editingPr
     if (editingProject) {
       setFormData({
         name: editingProject.name || '',
+        location: editingProject.location || editingProject.address || '',
         description: editingProject.description || '',
         initial_tmdt: editingProject.initial_tmdt !== undefined && editingProject.initial_tmdt !== null ? editingProject.initial_tmdt : '',
       });
     } else {
       setFormData({
         name: '',
+        location: '',
         description: '',
         initial_tmdt: '',
       });
@@ -32,9 +35,12 @@ export default function ProjectModal({ isOpen, onClose, onSaveProject, editingPr
       return;
     }
 
+    const locVal = formData.location.trim();
     onSaveProject({
       ...editingProject,
       name: formData.name.trim(),
+      location: locVal,
+      address: locVal,
       description: formData.description.trim(),
       initial_tmdt: formData.initial_tmdt ? Number(formData.initial_tmdt) : 0,
     });
@@ -84,6 +90,19 @@ export default function ProjectModal({ isOpen, onClose, onSaveProject, editingPr
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition"
               required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              Địa Điểm / Hạng Mục Dự Án
+            </label>
+            <input
+              type="text"
+              placeholder="Ví dụ: Đông Anh, Hà Nội..."
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition"
             />
           </div>
 

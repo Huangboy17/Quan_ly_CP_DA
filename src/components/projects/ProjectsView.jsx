@@ -376,8 +376,8 @@ export default function ProjectsView({
             <span className="text-slate-400 block text-[11px] font-semibold uppercase flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-rose-400" /> Địa Điểm / Hạng Mục
             </span>
-            <span className="font-medium text-slate-200 mt-0.5 block truncate">
-              {activeProj.location || 'Việt Nam'}
+            <span className="font-medium text-slate-200 mt-0.5 block truncate" title={activeProj.location || activeProj.address || 'Chưa cập nhật'}>
+              {activeProj.location || activeProj.address || 'Chưa cập nhật'}
             </span>
           </div>
 

@@ -133,7 +133,7 @@ export function validateAndPrepareProjectImport(rawRows, existingProjects = []) 
         code = val ? val.toString().trim() : '';
       } else if (normKey.includes('tên dự án') || normKey.includes('ten du an') || normKey === 'name') {
         name = val ? val.toString().trim() : '';
-      } else if (normKey.includes('địa chỉ') || normKey.includes('dia chi') || normKey === 'address') {
+      } else if (normKey.includes('địa chỉ') || normKey.includes('dia chi') || normKey.includes('địa điểm') || normKey.includes('dia diem') || normKey === 'address' || normKey === 'location') {
         address = val ? val.toString().trim() : '';
       } else if (normKey.includes('chủ đầu tư') || normKey.includes('chu dau tu') || normKey === 'investor') {
         investor = val ? val.toString().trim() : '';
@@ -174,6 +174,7 @@ export function validateAndPrepareProjectImport(rawRows, existingProjects = []) 
       name: name,
       description: address ? `Địa chỉ: ${address}${investor ? ` | Investor: ${investor}` : ''}` : (name + (investor ? ` - ${investor}` : '')),
       address: address,
+      location: address,
       investor: investor,
       initial_tmdt: tmdtVal,
       duration_days: days,
@@ -213,6 +214,9 @@ export function commitProjectImport(validRows) {
         ...existing,
         name: item.name,
         description: item.description || existing.description,
+        address: item.address || item.location || existing.address || existing.location || '',
+        location: item.location || item.address || existing.location || existing.address || '',
+        investor: item.investor || existing.investor || '',
         initial_tmdt: updatedTmdt,
       };
       projectsMap.set(upperId, updatedProj);
@@ -220,8 +224,12 @@ export function commitProjectImport(validRows) {
       const createdDate = new Date().toISOString().split('T')[0];
       const newProj = {
         id: item.id,
+        code: item.code || item.id,
         name: item.name,
         description: item.description,
+        address: item.address || item.location || '',
+        location: item.location || item.address || '',
+        investor: item.investor || '',
         created_at: createdDate,
         initial_tmdt: item.initial_tmdt || 0,
         tmdt_history: item.initial_tmdt > 0 ? [{

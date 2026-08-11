@@ -111,18 +111,25 @@ export default function DashboardView({
       {/* Time Analytics Scope Banner */}
       <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950/80 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold font-mono">
-              📅 KỲ PHÂN TÍCH: {periodLabel.toUpperCase()}
+              📅 KỲ PHÂN TÍCH: {(periodLabel || 'TẤT CẢ THỜI GIAN').toUpperCase()}
             </span>
-            {totals.periodGrowthPct !== 0 && (
+
+            {totals.hasPrevPeriod && totals.prevPeriodLabel && totals.periodGrowthPct !== null && !isNaN(totals.periodGrowthPct) && (
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 border ${
-                totals.periodGrowthPct > 0 
+                totals.periodGrowthPct >= 0 
                   ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
                   : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
               }`}>
-                {totals.periodGrowthPct > 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
-                {totals.periodGrowthPct > 0 ? `+${totals.periodGrowthPct}%` : `${totals.periodGrowthPct}%`} so với {totals.prevPeriodLabel}
+                {totals.periodGrowthPct >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+                {totals.periodGrowthPct >= 0 ? `+${totals.periodGrowthPct}%` : `${totals.periodGrowthPct}%`} so với {totals.prevPeriodLabel}
+              </span>
+            )}
+
+            {!totals.hasPrevPeriod && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold text-slate-300 bg-slate-800 border border-slate-700">
+                ♾️ Lũy kế toàn thời gian
               </span>
             )}
           </div>
@@ -131,7 +138,7 @@ export default function DashboardView({
             📊 Phân Tích Dòng Tiền & Tiến Độ Giải Ngân
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Số liệu tài chính được lọc chính xác theo khoảng thời gian <span className="text-blue-300 font-semibold">{periodLabel}</span>.
+            Số liệu tài chính được lọc chính xác theo khoảng thời gian <span className="text-blue-300 font-semibold">{periodLabel || 'Tất cả thời gian'}</span>.
           </p>
         </div>
 
@@ -157,13 +164,13 @@ export default function DashboardView({
         {/* Card 1: In-Period Total Payment (3-Tier) */}
         <StatCard
           title={`Chi Trả Trong Kỳ`}
-          value={formatVNDCompact(totals.totalPaidInPeriodAfterVAT || totals.totalPaidInPeriod)}
-          subtext={`Trước VAT: ${formatVNDCompact(totals.totalPaidInPeriodBeforeVAT)} | VAT: ${formatVNDCompact(totals.totalPaidInPeriodVAT)}`}
+          value={formatVNDCompact(totals.totalPaidInPeriodAfterVAT || totals.totalPaidInPeriod || 0)}
+          subtext={`Trước VAT: ${formatVNDCompact(totals.totalPaidInPeriodBeforeVAT || 0)} | VAT: ${formatVNDCompact(totals.totalPaidInPeriodVAT || 0)}`}
           icon={Calendar}
           color="emerald"
           badge={
             <div className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-              {periodLabel}
+              {periodLabel || 'Tất cả thời gian'}
             </div>
           }
         />
@@ -171,20 +178,48 @@ export default function DashboardView({
         {/* Card 2: In-Period Transaction Count */}
         <StatCard
           title="Lượt Chi Trong Kỳ"
-          value={`${totals.inPeriodTransactionsCount} Đợt`}
+          value={`${totals.inPeriodTransactionsCount || 0} Đợt`}
           subtext={`Số đợt giải ngân phát sinh`}
           icon={Layers}
           color="cyan"
         />
 
-        {/* Card 3: Period over Period Growth */}
-        <StatCard
-          title={`So Với ${totals.prevPeriodLabel}`}
-          value={`${totals.periodGrowthPct >= 0 ? '+' : ''}${totals.periodGrowthPct}%`}
-          subtext={`Kỳ trước: ${formatVNDCompact(totals.prevPeriodPaid)}`}
-          icon={totals.periodGrowthPct >= 0 ? TrendingUp : TrendingDown}
-          color={totals.periodGrowthPct >= 0 ? 'purple' : 'amber'}
-        />
+        {/* Card 3: Period over Period Growth or All Time Scope */}
+        {totals.hasPrevPeriod && totals.prevPeriodLabel ? (
+          <StatCard
+            title={`So Với ${totals.prevPeriodLabel}`}
+            value={
+              totals.prevPeriodPaid > 0 && totals.periodGrowthPct !== null && !isNaN(totals.periodGrowthPct)
+                ? `${totals.periodGrowthPct >= 0 ? '+' : ''}${totals.periodGrowthPct}%`
+                : totals.totalPaidInPeriod > 0
+                ? '+100%'
+                : '—'
+            }
+            subtext={
+              totals.prevPeriodPaid > 0
+                ? `Kỳ trước: ${formatVNDCompact(totals.prevPeriodPaid)}`
+                : `Kỳ trước: 0 VNĐ (Không có dữ liệu so sánh)`
+            }
+            icon={
+              totals.periodGrowthPct !== null && totals.periodGrowthPct < 0
+                ? TrendingDown
+                : TrendingUp
+            }
+            color={
+              totals.periodGrowthPct !== null && totals.periodGrowthPct < 0
+                ? 'amber'
+                : 'purple'
+            }
+          />
+        ) : (
+          <StatCard
+            title="Phạm Vi Phân Tích"
+            value="Tất Cả Thời Gian"
+            subtext="Tổng lũy kế từ trước đến nay"
+            icon={Calendar}
+            color="purple"
+          />
+        )}
 
         {/* Card 4: All-Time Contract Value (3-Tier) */}
         <StatCard

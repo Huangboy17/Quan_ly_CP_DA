@@ -162,42 +162,84 @@ export function formatInputNumber(val) {
 export function getTimeRangeBounds(filter) {
   const { year, quarter, month, customStartDate, customEndDate } = filter || {};
 
-  if (!year && !quarter && !month && !customStartDate && !customEndDate) {
-    return { startDate: null, endDate: null, periodLabel: 'Tất cả thời gian' };
-  }
+  // Scenario 1: All Time (year is 'all' or empty, and no quarter/month/custom dates)
+  const isAllTime = (!year || year === 'all') && 
+                    (!quarter || quarter === 'all') && 
+                    (!month || month === 'all') && 
+                    !customStartDate && 
+                    !customEndDate;
 
-  // Custom date range
-  if (customStartDate || customEndDate) {
-    return {
-      startDate: customStartDate || '1970-01-01',
-      endDate: customEndDate || '2099-12-31',
-      periodLabel: `Từ ${formatDisplayDate(customStartDate)} đến ${formatDisplayDate(customEndDate)}`
+  if (isAllTime) {
+    return { 
+      startDate: null, 
+      endDate: null, 
+      periodLabel: 'Tất cả thời gian', 
+      hasPrevPeriod: false, 
+      prevPeriod: null 
     };
   }
 
-  const selectedYear = year ? parseInt(year, 10) : new Date().getFullYear();
+  // Scenario 2: Custom Date Range
+  if (customStartDate || customEndDate) {
+    const sStr = customStartDate || '1970-01-01';
+    const eStr = customEndDate || '2099-12-31';
+    const sDate = new Date(sStr);
+    const eDate = new Date(eStr);
+    let prevP = null;
 
-  // Filter by Month (e.g. Month 1..12)
+    if (!isNaN(sDate.getTime()) && !isNaN(eDate.getTime()) && eDate >= sDate) {
+      const diffMs = eDate.getTime() - sDate.getTime();
+      const prevEnd = new Date(sDate.getTime() - 86400000); // 1 day before customStartDate
+      const prevStart = new Date(prevEnd.getTime() - diffMs);
+      const prevStartStr = prevStart.toISOString().split('T')[0];
+      const prevEndStr = prevEnd.toISOString().split('T')[0];
+      prevP = {
+        startDate: prevStartStr,
+        endDate: prevEndStr,
+        label: `Kỳ trước (${formatDisplayDate(prevStartStr)} - ${formatDisplayDate(prevEndStr)})`
+      };
+    }
+
+    return {
+      startDate: sStr,
+      endDate: eStr,
+      periodLabel: customStartDate && customEndDate 
+        ? `Từ ${formatDisplayDate(customStartDate)} đến ${formatDisplayDate(customEndDate)}`
+        : customStartDate 
+        ? `Từ ${formatDisplayDate(customStartDate)}`
+        : `Đến ${formatDisplayDate(customEndDate)}`,
+      hasPrevPeriod: Boolean(prevP),
+      prevPeriod: prevP
+    };
+  }
+
+  const selectedYear = year && year !== 'all' ? parseInt(year, 10) : new Date().getFullYear();
+
+  // Scenario 3: Month Filter
   if (month && month !== 'all') {
     const m = parseInt(month, 10);
     const startStr = `${selectedYear}-${String(m).padStart(2, '0')}-01`;
     const lastDay = new Date(selectedYear, m, 0).getDate();
     const endStr = `${selectedYear}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    
+    const prevYear = m === 1 ? selectedYear - 1 : selectedYear;
+    const prevMonth = m === 1 ? 12 : m - 1;
+    const prevLastDay = new Date(prevYear, prevMonth, 0).getDate();
+
     return {
       startDate: startStr,
       endDate: endStr,
       periodLabel: `Tháng ${m}/${selectedYear}`,
+      hasPrevPeriod: true,
       prevPeriod: {
-        startDate: m === 1 ? `${selectedYear - 1}-12-01` : `${selectedYear}-${String(m - 1).padStart(2, '0')}-01`,
-        endDate: m === 1 
-          ? `${selectedYear - 1}-12-31` 
-          : `${selectedYear}-${String(m - 1).padStart(2, '0')}-${String(new Date(selectedYear, m - 1, 0).getDate()).padStart(2, '0')}`,
-        label: m === 1 ? `Tháng 12/${selectedYear - 1}` : `Tháng ${m - 1}/${selectedYear}`
+        startDate: `${prevYear}-${String(prevMonth).padStart(2, '0')}-01`,
+        endDate: `${prevYear}-${String(prevMonth).padStart(2, '0')}-${String(prevLastDay).padStart(2, '0')}`,
+        label: `Tháng ${prevMonth}/${prevYear}`
       }
     };
   }
 
-  // Filter by Quarter (Q1, Q2, Q3, Q4)
+  // Scenario 4: Quarter Filter
   if (quarter && quarter !== 'all') {
     const qMap = {
       'Q1': { startM: '01', endM: '03', lastDay: '31', name: 'Quý 1', prevQ: 'Q4', prevYear: selectedYear - 1 },
@@ -212,6 +254,7 @@ export function getTimeRangeBounds(filter) {
       startDate: `${selectedYear}-${qInfo.startM}-01`,
       endDate: `${selectedYear}-${qInfo.endM}-${qInfo.lastDay}`,
       periodLabel: `${qInfo.name}/${selectedYear}`,
+      hasPrevPeriod: true,
       prevPeriod: {
         startDate: `${qInfo.prevYear}-${prevQInfo.startM}-01`,
         endDate: `${qInfo.prevYear}-${prevQInfo.endM}-${prevQInfo.lastDay}`,
@@ -220,12 +263,13 @@ export function getTimeRangeBounds(filter) {
     };
   }
 
-  // Filter by Year
+  // Scenario 5: Year Filter
   if (year && year !== 'all') {
     return {
       startDate: `${selectedYear}-01-01`,
       endDate: `${selectedYear}-12-31`,
       periodLabel: `Năm ${selectedYear}`,
+      hasPrevPeriod: true,
       prevPeriod: {
         startDate: `${selectedYear - 1}-01-01`,
         endDate: `${selectedYear - 1}-12-31`,
@@ -234,7 +278,13 @@ export function getTimeRangeBounds(filter) {
     };
   }
 
-  return { startDate: null, endDate: null, periodLabel: 'Tất cả thời gian' };
+  return { 
+    startDate: null, 
+    endDate: null, 
+    periodLabel: 'Tất cả thời gian', 
+    hasPrevPeriod: false, 
+    prevPeriod: null 
+  };
 }
 
 /**
