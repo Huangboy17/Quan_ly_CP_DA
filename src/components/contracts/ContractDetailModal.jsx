@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, FileText, Calendar, Building2, Wallet, Plus, Trash2, Edit, CheckCircle2, ShieldCheck, Lock, Paperclip } from 'lucide-react';
-import { formatVND, formatDisplayDate } from '../../utils/formatters';
+import { formatVND, formatDisplayDate, cleanVND } from '../../utils/formatters';
 
 export default function ContractDetailModal({ 
   isOpen, 
@@ -18,19 +18,24 @@ export default function ContractDetailModal({
 
   // Appendices list
   const appendicesList = Array.isArray(contract.appendices) ? contract.appendices : [];
-  const initialContractValueAfterVat = Number(contract.initialContractValueAfterVAT || contract.contractValueAfterVAT || contract.contract_value || 0);
-  const totalAppendicesAfterVat = Number(contract.totalAppendicesAfterVAT || 0);
-  const currentContractValueAfterVat = Number(contract.contractValueAfterVAT || contract.contract_value || 0);
+  const initialContractValueAfterVat = cleanVND(contract.initialContractValueAfterVAT || contract.contractValueAfterVAT || contract.contract_value || 0);
+  const totalAppendicesAfterVat = cleanVND(contract.totalAppendicesAfterVAT || 0);
+  const currentContractValueAfterVat = cleanVND(contract.contractValueAfterVAT || contract.contract_value || 0);
 
-  // Filter payments belonging to this contract and sort by payment_phase / date
+  // Filter payments belonging to this contract and sort strictly by payment_date ASCENDING
   const contractPayments = payments
     .filter(p => p.contract_id === contract.id)
-    .sort((a, b) => Number(a.payment_phase || 0) - Number(b.payment_phase || 0));
+    .sort((a, b) => {
+      const d1 = a.payment_date || '1970-01-01';
+      const d2 = b.payment_date || '1970-01-01';
+      if (d1 !== d2) return d1.localeCompare(d2);
+      return Number(a.payment_phase || 0) - Number(b.payment_phase || 0);
+    });
 
-  // Compute running cumulative sums line-by-line
+  // Compute running cumulative sums line-by-line in chronological order
   let runningSum = 0;
   const paymentsWithCumulative = contractPayments.map(pm => {
-    runningSum += Number(pm.amount_after_vat || 0);
+    runningSum = cleanVND(runningSum + cleanVND(pm.amount_after_vat || 0));
     return {
       ...pm,
       cumulativeAfterVAT: runningSum,
@@ -38,7 +43,7 @@ export default function ContractDetailModal({
   });
 
   const totalPaidAfterVat = runningSum;
-  const remainingValue = Math.max(0, currentContractValueAfterVat - totalPaidAfterVat);
+  const remainingValue = Math.max(0, cleanVND(currentContractValueAfterVat - totalPaidAfterVat));
   const isSettled = contract.status === 'settled';
 
   return (

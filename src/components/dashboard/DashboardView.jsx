@@ -26,10 +26,7 @@ import {
   ResponsiveContainer, 
   PieChart, 
   Pie, 
-  Cell,
-  LineChart,
-  Line,
-  ComposedChart
+  Cell
 } from 'recharts';
 import StatCard from '../common/StatCard';
 import { formatVND, formatVNDCompact, formatDisplayDate } from '../../utils/formatters';
@@ -74,36 +71,7 @@ export default function DashboardView({
     value: Math.round((projectInPeriodMap[name] / 1_000_000_000) * 100) / 100,
   }));
 
-  // 3. Prepare All-Time vs In-Period Comparison Bar Chart for Projects
-  const projectComparisonData = projects.map(p => ({
-    name: p.name.length > 16 ? p.name.substring(0, 14) + '...' : p.name,
-    fullName: p.name,
-    'Giải ngân trong kỳ': Math.round((p.totalPaidInPeriod / 1_000_000_000) * 100) / 100,
-    'Lũy kế toàn thời gian': Math.round((p.totalPaid / 1_000_000_000) * 100) / 100,
-    'Giá trị HĐ': Math.round((p.totalContractValue / 1_000_000_000) * 100) / 100,
-  }));
-
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
-
-  const CustomBarTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg shadow-xl text-xs space-y-1.5 z-50">
-          <p className="font-semibold text-slate-200">{payload[0]?.payload?.fullName || label}</p>
-          {payload.map((entry, index) => (
-            <div key={`item-${index}`} className="flex items-center justify-between gap-4 text-slate-300">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
-                {entry.name}:
-              </span>
-              <span className="font-mono font-bold text-white">{entry.value} Tỷ VNĐ</span>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -326,33 +294,6 @@ export default function DashboardView({
 
       </div>
 
-      {/* Comparison Chart: In-Period vs All-Time Project Disbursement */}
-      <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/70 shadow-lg space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-blue-400" />
-              So Sánh Chi Trả Trong Kỳ vs Lũy Kế Toàn Thời Gian
-            </h3>
-            <p className="text-xs text-slate-400">So sánh mức độ tập trung vốn trong kỳ {periodLabel} với tổng ngân sách dự án (Tỷ VNĐ)</p>
-          </div>
-        </div>
-
-        <div className="h-72 w-full pt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={projectComparisonData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
-              <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-              <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} />
-              <RechartsTooltip content={<CustomBarTooltip />} />
-              <Legend wrapperStyle={{ paddingTop: 10, fontSize: 12 }} />
-              <Bar dataKey="Giải ngân trong kỳ" fill="#10b981" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Lũy kế toàn thời gian" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="Giá trị HĐ" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
 
       {/* Projects Progress Table - Including In-Period Disbursement */}
       <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/70 shadow-lg space-y-5">

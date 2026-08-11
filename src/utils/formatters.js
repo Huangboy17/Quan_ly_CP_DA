@@ -2,18 +2,36 @@
  * Formatters and Time-Based Financial Calculation Helpers
  */
 
+// Helper to sanitize floating point artifacts and small residual differences (< 10 VND)
+export function cleanVND(val) {
+  if (val === undefined || val === null || isNaN(val)) return 0;
+  let num = Math.round(Number(val));
+
+  // Small residual differences <= 10 VND (e.g., 3 VND) brought to 0
+  if (Math.abs(num) <= 10) return 0;
+
+  // Snap floating point artifacts off by <= 10 VND from round thousands (e.g., 56.159.999.996 -> 56.160.000.000)
+  const roundedThousand = Math.round(num / 1000) * 1000;
+  if (Math.abs(num - roundedThousand) <= 10) {
+    return roundedThousand;
+  }
+
+  return num;
+}
+
 // Format number to Vietnamese Currency string: e.g. 1.500.000.000 VNĐ
 export function formatVND(amount) {
   if (amount === undefined || amount === null || isNaN(amount)) return '0 VNĐ';
-  const num = Math.round(Number(amount));
+  const num = cleanVND(amount);
   return new Intl.NumberFormat('vi-VN').format(num) + ' VNĐ';
 }
 
 // Compact VND formatting (e.g., 1.5 Tỷ, 450 Tr)
 export function formatVNDCompact(amount) {
-  if (!amount || isNaN(amount)) return '0 VNĐ';
-  const num = Math.abs(Number(amount));
-  const sign = amount < 0 ? '-' : '';
+  if (amount === undefined || amount === null || isNaN(amount)) return '0 VNĐ';
+  const clean = cleanVND(amount);
+  const num = Math.abs(clean);
+  const sign = clean < 0 ? '-' : '';
   
   if (num >= 1_000_000_000) {
     const val = (num / 1_000_000_000).toFixed(2).replace(/\.00$/, '');
@@ -23,7 +41,7 @@ export function formatVNDCompact(amount) {
     const val = (num / 1_000_000).toFixed(1).replace(/\.0$/, '');
     return `${sign}${val} Tr`;
   }
-  return formatVND(amount);
+  return formatVND(clean);
 }
 
 // Convert numeric amount into Vietnamese Words
@@ -31,6 +49,8 @@ export function numberToWordsVN(number) {
   if (number === undefined || number === null || isNaN(number) || number === 0) {
     return 'Không đồng';
   }
+  const clean = cleanVND(number);
+  if (clean === 0) return 'Không đồng';
 
   const defaultNumbers = ['không', 'một', 'hai', 'ba', 'bốn', 'năm', 'sáu', 'bảy', 'tám', 'chín'];
   
@@ -63,7 +83,7 @@ export function numberToWordsVN(number) {
     return res;
   }
 
-  let num = Math.abs(Math.round(number));
+  let num = Math.abs(clean);
   let strNum = num.toString();
   let units = ['', 'nghìn', 'triệu', 'tỷ', 'nghìn tỷ', 'triệu tỷ'];
   
@@ -117,18 +137,18 @@ export function calcDaysBetween(signingDate, endDate) {
 
 // Calculate VAT values
 export function calculateVAT(amountBeforeVat, vatRate) {
-  const amount = Number(amountBeforeVat) || 0;
+  const amount = cleanVND(amountBeforeVat);
   const rate = Number(vatRate) || 0;
-  const vatAmount = Math.round(amount * (rate / 100));
-  const amountAfterVat = amount + vatAmount;
+  const vatAmount = cleanVND(amount * (rate / 100));
+  const amountAfterVat = cleanVND(amount + vatAmount);
   return { vatAmount, amountAfterVat };
 }
 
 export function calculateVATValues(amountBeforeVat, vatRate) {
-  const before = Number(amountBeforeVat) || 0;
+  const before = cleanVND(amountBeforeVat);
   const rate = Number(vatRate) || 0;
-  const vatAmount = Math.round(before * (rate / 100));
-  const after = before + vatAmount;
+  const vatAmount = cleanVND(before * (rate / 100));
+  const after = cleanVND(before + vatAmount);
   return {
     amountBeforeVAT: before,
     vatRate: rate,

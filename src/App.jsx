@@ -21,6 +21,7 @@ import {
   deletePayment, 
   saveProject, 
   deleteProject,
+  deleteAllProjects,
   getSavedSettings,
   saveSettings,
   settleContract,
@@ -226,6 +227,13 @@ export default function App() {
     return result;
   };
 
+  const handleDeleteAllProjects = () => {
+    const result = deleteAllProjects();
+    handleSetSelectedProjectId('');
+    refreshData();
+    return result;
+  };
+
   const handleSettleContract = (contractId, settlementData) => {
     settleContract(contractId, settlementData);
     refreshData();
@@ -335,6 +343,7 @@ export default function App() {
               onNewProject={handleOpenNewProject}
               onEditProject={handleOpenEditProject}
               onDeleteProject={handleDeleteProject}
+              onDeleteAllProjects={handleDeleteAllProjects}
               onAddTmdtPhase={(projectId, phaseData) => {
                 addTmdtAdjustmentPhase(projectId, phaseData);
                 refreshData();
@@ -348,6 +357,8 @@ export default function App() {
                 refreshData();
               }}
               onOpenExcelImport={handleOpenExcelImport}
+              onViewContractDetail={handleViewContractDetail}
+              onViewContractDossier={handleViewContractDossier}
               setSelectedProjectId={handleSetSelectedProjectId}
               setActiveTab={setActiveTab}
               globalSearch={globalSearch}

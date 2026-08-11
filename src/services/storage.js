@@ -3,7 +3,7 @@
  * Handles LocalStorage persistence, autosave, seed initialization, and JSON import/export.
  * Supports the 3-Value VAT Model & Multi-Phase Sequential TMĐT Adjustment History.
  */
-import { getTimeRangeBounds, isDateInBounds } from '../utils/formatters';
+import { getTimeRangeBounds, isDateInBounds, cleanVND } from '../utils/formatters';
 
 export const STORAGE_KEYS = {
   PROJECTS: 'ql_cp_projects_v2',
@@ -449,13 +449,13 @@ const INITIAL_PAYMENTS = [
 
 // Helper to initialize local storage
 export function initStorage() {
-  if (!localStorage.getItem(STORAGE_KEYS.PROJECTS)) {
+  if (localStorage.getItem(STORAGE_KEYS.PROJECTS) === null) {
     localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(INITIAL_PROJECTS));
   }
-  if (!localStorage.getItem(STORAGE_KEYS.CONTRACTS)) {
+  if (localStorage.getItem(STORAGE_KEYS.CONTRACTS) === null) {
     localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(INITIAL_CONTRACTS));
   }
-  if (!localStorage.getItem(STORAGE_KEYS.PAYMENTS)) {
+  if (localStorage.getItem(STORAGE_KEYS.PAYMENTS) === null) {
     localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(INITIAL_PAYMENTS));
   }
 }
@@ -667,6 +667,27 @@ export function deleteProject(id) {
     deletedContractsCount: deletedContracts.length,
     deletedPaymentsCount: deletedPayments.length,
     remainingProjects: remainingProjects,
+  };
+}
+
+export function deleteAllProjects() {
+  const projects = getProjects();
+  const contracts = getContracts();
+  const payments = getPayments();
+
+  const countProjects = projects.length;
+  const countContracts = contracts.length;
+  const countPayments = payments.length;
+
+  localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify([]));
+  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify([]));
+  localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify([]));
+
+  return {
+    deletedProjectsCount: countProjects,
+    deletedContractsCount: countContracts,
+    deletedPaymentsCount: countPayments,
+    remainingProjects: [],
   };
 }
 
@@ -1043,29 +1064,29 @@ export function getAggregatedData(timeFilter = {}) {
     const totalAppendicesAfterVAT = appendices.reduce((sum, a) => sum + Number(a.amount_after_vat || 0), 0);
 
     // Current Effective Contract Values (Ban đầu + Tổng Phụ lục)
-    const currentContractValueBeforeVAT = initialContractValueBeforeVAT + totalAppendicesBeforeVAT;
-    const currentContractValueVAT = initialVatAmount + totalAppendicesVAT;
-    const currentContractValueAfterVAT = initialContractValueAfterVAT + totalAppendicesAfterVAT;
+    const currentContractValueBeforeVAT = cleanVND(initialContractValueBeforeVAT + totalAppendicesBeforeVAT);
+    const currentContractValueVAT = cleanVND(initialVatAmount + totalAppendicesVAT);
+    const currentContractValueAfterVAT = cleanVND(initialContractValueAfterVAT + totalAppendicesAfterVAT);
 
     // Paid sums
-    const paidBeforeVAT = allTimeContractPaidBeforeVAT[c.id] || 0;
-    const paidVAT = allTimeContractPaidVAT[c.id] || 0;
-    const paidAfterVAT = allTimeContractPaidAfterVAT[c.id] || 0;
+    const paidBeforeVAT = cleanVND(allTimeContractPaidBeforeVAT[c.id] || 0);
+    const paidVAT = cleanVND(allTimeContractPaidVAT[c.id] || 0);
+    const paidAfterVAT = cleanVND(allTimeContractPaidAfterVAT[c.id] || 0);
 
-    const inPeriodPaidBeforeVAT = inPeriodContractPaidBeforeVAT[c.id] || 0;
-    const inPeriodPaidVAT = inPeriodContractPaidVAT[c.id] || 0;
-    const inPeriodPaidAfterVAT = inPeriodContractPaidAfterVAT[c.id] || 0;
+    const inPeriodPaidBeforeVAT = cleanVND(inPeriodContractPaidBeforeVAT[c.id] || 0);
+    const inPeriodPaidVAT = cleanVND(inPeriodContractPaidVAT[c.id] || 0);
+    const inPeriodPaidAfterVAT = cleanVND(inPeriodContractPaidAfterVAT[c.id] || 0);
 
-    // Remaining (Dư nợ còn phải thanh toán dựa trên Giá trị hợp đồng HỆN TẠI)
-    const remainingBeforeVAT = Math.max(0, currentContractValueBeforeVAT - paidBeforeVAT);
-    const remainingVAT = Math.max(0, currentContractValueVAT - paidVAT);
-    const remainingAfterVAT = Math.max(0, currentContractValueAfterVAT - paidAfterVAT);
+    // Remaining (Dư nợ còn phải thanh toán dựa trên Giá trị hợp đồng HIỆN TẠI)
+    const remainingBeforeVAT = Math.max(0, cleanVND(currentContractValueBeforeVAT - paidBeforeVAT));
+    const remainingVAT = Math.max(0, cleanVND(currentContractValueVAT - paidVAT));
+    const remainingAfterVAT = Math.max(0, cleanVND(currentContractValueAfterVAT - paidAfterVAT));
 
     const paidPercentage = currentContractValueAfterVAT > 0 ? (paidAfterVAT / currentContractValueAfterVAT) * 100 : 0;
     const latestPaymentDate = latestPaymentDateMap[c.id] || null;
     const paymentsCount = contractPaymentsCount[c.id] || 0;
     const status = c.status || 'in_progress';
-    const estimatedSettlement = Number(c.estimated_settlement_value !== undefined && c.estimated_settlement_value !== null ? c.estimated_settlement_value : currentContractValueAfterVAT);
+    const estimatedSettlement = cleanVND(c.estimated_settlement_value !== undefined && c.estimated_settlement_value !== null ? c.estimated_settlement_value : currentContractValueAfterVAT);
 
     return {
       ...c,

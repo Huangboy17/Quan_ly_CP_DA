@@ -11,7 +11,8 @@ import {
   Building2, 
   Clock,
   Calendar,
-  FolderOpen
+  FolderOpen,
+  MoreVertical
 } from 'lucide-react';
 import { formatVND, formatDisplayDate } from '../../utils/formatters';
 
@@ -33,6 +34,7 @@ export default function ContractsView({
 
   const [contractorFilter, setContractorFilter] = useState('');
   const [localSearch, setLocalSearch] = useState('');
+  const [activeMenuId, setActiveMenuId] = useState(null);
 
   const contractorsList = Array.from(new Set(contracts.map(c => c.contractor).filter(Boolean)));
   const searchQuery = (globalSearch || localSearch).toLowerCase().trim();
@@ -183,7 +185,7 @@ export default function ContractsView({
       {/* Contracts Data Table */}
       <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/70 shadow-lg space-y-4">
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left text-xs text-slate-300 min-w-[1050px]">
+          <table className="w-full text-left text-xs text-slate-300 min-w-[1100px]">
             <thead className="bg-slate-900 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-700">
               <tr>
                 <th className="py-3 px-3">Số HĐ / Dự Án</th>
@@ -191,9 +193,10 @@ export default function ContractsView({
                 <th className="py-3 px-3 text-right">Trước VAT</th>
                 <th className="py-3 px-3 text-center">VAT</th>
                 <th className="py-3 px-3 text-right font-bold text-white">Sau VAT</th>
-                <th className="py-3 px-3 text-right text-emerald-400">Lũy Kế Đã Chi</th>
-                <th className="py-3 px-3 text-right text-amber-400">Còn Lại (Dư Nợ)</th>
+                <th className="py-3 px-3 text-right text-emerald-400">ĐÃ THANH TOÁN</th>
+                <th className="py-3 px-3 text-right text-amber-400">CÒN PHẢI THANH TOÁN</th>
                 <th className="py-3 px-3 text-right">Dự Kiến Quyết Toán</th>
+                <th className="py-3 px-3 text-center">Thời Hạn</th>
                 <th className="py-3 px-3 text-center">Thao Tác</th>
               </tr>
             </thead>
@@ -202,15 +205,15 @@ export default function ContractsView({
                 const variance = (c.estimated_settlement_value || c.contractValueAfterVAT || c.contract_value) - (c.contractValueAfterVAT || c.contract_value);
                 return (
                   <tr key={c.id} className="hover:bg-slate-700/40 transition">
-                    <td className="py-3.5 px-3">
-                      <div className="font-mono font-bold text-white text-xs flex items-center gap-1.5">
-                        <button
-                          onClick={() => onViewContractDossier ? onViewContractDossier(c.id) : onViewContractDetail(c)}
-                          className="font-mono font-bold text-blue-400 hover:text-blue-300 hover:underline text-xs flex items-center gap-1 cursor-pointer text-left"
-                          title="Mở Hồ Sơ Hợp Đồng"
-                        >
-                          {c.contract_number}
-                        </button>
+                    
+                    {/* CLICKABLE SỐ HĐ / DỰ ÁN CELL */}
+                    <td 
+                      className="py-3.5 px-3 cursor-pointer group"
+                      onClick={() => onViewContractDossier ? onViewContractDossier(c.id) : onViewContractDetail(c)}
+                      title="Bấm để mở Hồ sơ Hợp đồng"
+                    >
+                      <div className="font-mono font-bold text-blue-400 group-hover:text-blue-300 group-hover:underline text-xs flex items-center gap-1.5 flex-wrap">
+                        <span>{c.contract_number}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-sans font-bold border ${
                           c.status === 'settled'
                             ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
@@ -219,9 +222,9 @@ export default function ContractsView({
                           {c.status === 'settled' ? '🔵 Đã quyết toán' : '🟢 Đang thực hiện'}
                         </span>
                       </div>
-                      <div className="text-[11px] text-blue-400 font-medium mt-1 flex items-center gap-1">
-                        <Building2 className="w-3 h-3" />
-                        {c.projectName}
+                      <div className="text-[11px] text-slate-400 group-hover:text-blue-300 transition mt-1 flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        <span className="line-clamp-1">{c.projectName}</span>
                       </div>
                     </td>
 
@@ -252,18 +255,19 @@ export default function ContractsView({
                       )}
                     </td>
 
-                    {/* All Time Cumulative Paid (After VAT + Subtext Before VAT) */}
+                    {/* All Time Cumulative Paid (ĐÃ THANH TOÁN) */}
                     <td className="py-3.5 px-3 text-right font-mono text-emerald-400">
                       <div className="font-bold">{formatVND(c.totalPaidAfterVAT || c.totalPaid)}</div>
                       <div className="text-[10px] text-slate-400 font-normal">Trước VAT: {formatVND(c.totalPaidBeforeVAT)}</div>
                     </td>
 
-                    {/* Remaining Balance (After VAT + Subtext Before VAT) */}
+                    {/* Remaining Balance (CÒN PHẢI THANH TOÁN) */}
                     <td className="py-3.5 px-3 text-right font-mono text-amber-400">
                       <div className="font-bold">{formatVND(c.remainingAfterVAT || c.remainingValue)}</div>
                       <div className="text-[10px] text-slate-400 font-normal">Trước VAT: {formatVND(c.remainingBeforeVAT)}</div>
                     </td>
 
+                    {/* Estimated Settlement Value */}
                     <td className="py-3.5 px-3 text-right font-mono font-semibold">
                       <span className="text-purple-300">{formatVND(c.estimated_settlement_value || c.contractValueAfterVAT)}</span>
                       {variance !== 0 && (
@@ -273,16 +277,20 @@ export default function ContractsView({
                       )}
                     </td>
 
-                    <td className="py-3.5 px-3 font-mono text-[11px] text-slate-400">
-                      <div>{c.execution_days} ngày</div>
-                      <div className="text-[10px] text-amber-300">Đến {formatDisplayDate(c.end_date)}</div>
+                    {/* Compact Duration Column */}
+                    <td className="py-3.5 px-3 text-center font-mono text-[11px] text-slate-400">
+                      <div>{c.execution_days ? `${c.execution_days} ngày` : '---'}</div>
+                      <div className="text-[10px] text-amber-300 font-sans font-medium mt-0.5">
+                        Hết hạn: {formatDisplayDate(c.end_date)}
+                      </div>
                     </td>
 
-                    <td className="py-3.5 px-3 text-center">
-                      <div className="flex items-center justify-center gap-1">
+                    {/* STREAMLINED ACTION COLUMN: [ Hồ sơ HĐ ] [ Thanh toán ] [ ⋮ ] */}
+                    <td className="py-3.5 px-3 text-center relative">
+                      <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => onViewContractDossier ? onViewContractDossier(c.id) : onViewContractDetail(c)}
-                          className="px-2.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white font-bold transition flex items-center gap-1 text-[11px] cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white font-bold transition flex items-center gap-1 text-[11px] cursor-pointer shrink-0"
                           title="Mở Hồ Sơ Hợp Đồng"
                         >
                           <FolderOpen className="w-3.5 h-3.5" /> Hồ sơ HĐ
@@ -295,42 +303,82 @@ export default function ContractsView({
                               onAddPaymentForContract(c);
                             }
                           }}
-                          className={`p-1.5 rounded-lg transition ${
+                          className={`px-2 py-1.5 rounded-lg transition flex items-center gap-1 text-[11px] cursor-pointer shrink-0 ${
                             c.status === 'settled'
-                              ? 'bg-slate-800 text-slate-600 cursor-not-allowed'
-                              : 'bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white'
+                              ? 'bg-slate-800 text-slate-600 cursor-not-allowed border border-slate-700'
+                              : 'bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white font-medium'
                           }`}
                           title={c.status === 'settled' ? 'Hợp đồng đã quyết toán, không thể tạo thêm đợt thanh toán' : 'Thêm Đợt Thanh Toán'}
                         >
-                          <Wallet className="w-3.5 h-3.5" />
+                          <Wallet className="w-3.5 h-3.5" /> Thanh toán
                         </button>
-                        <button
-                          onClick={() => onEditContract(c)}
-                          className="p-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white transition"
-                          title="Chỉnh Sửa HĐ"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Bạn có chắc muốn xóa hợp đồng ${c.contract_number}?`)) {
-                              onDeleteContract(c.id);
-                            }
-                          }}
-                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-600 text-rose-400 hover:text-white transition"
-                          title="Xóa HĐ"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveMenuId(activeMenuId === c.id ? null : c.id);
+                            }}
+                            className="p-1.5 rounded-lg bg-slate-700/60 hover:bg-slate-600 text-slate-300 hover:text-white transition cursor-pointer"
+                            title="Thao tác khác"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+
+                          {activeMenuId === c.id && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-40" 
+                                onClick={() => setActiveMenuId(null)} 
+                              />
+                              <div className="absolute right-0 top-full mt-1 w-44 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-50 py-1.5 text-xs text-left animate-fade-in">
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    onEditContract(c);
+                                  }}
+                                  className="w-full px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-2 transition cursor-pointer"
+                                >
+                                  <Edit className="w-3.5 h-3.5 text-blue-400" />
+                                  Sửa hợp đồng
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    if (onOpenAppendixModal) onOpenAppendixModal(c.id);
+                                  }}
+                                  className="w-full px-3 py-2 text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-2 transition cursor-pointer"
+                                >
+                                  <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                                  Thêm phụ lục
+                                </button>
+                                <div className="my-1 border-t border-slate-800" />
+                                <button
+                                  onClick={() => {
+                                    setActiveMenuId(null);
+                                    if (window.confirm(`Bạn có chắc muốn xóa hợp đồng ${c.contract_number}?`)) {
+                                      onDeleteContract(c.id);
+                                    }
+                                  }}
+                                  className="w-full px-3 py-2 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  Xóa hợp đồng
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </td>
+
                   </tr>
                 );
               })}
 
               {filteredContracts.length === 0 && (
                 <tr>
-                  <td colSpan="9" className="py-10 text-center text-slate-400">
+                  <td colSpan="10" className="py-10 text-center text-slate-400">
                     Không tìm thấy hợp đồng nào phù hợp.
                   </td>
                 </tr>
@@ -343,3 +391,4 @@ export default function ContractsView({
     </div>
   );
 }
+
