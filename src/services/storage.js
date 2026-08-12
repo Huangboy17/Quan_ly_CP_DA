@@ -890,6 +890,16 @@ export function deleteProject(id) {
   };
 }
 
+async function asyncDeleteAllFromSupabase() {
+  if (!isSupabaseConfigured || !supabase) return;
+  try {
+    await supabase.from('thanh_toan_chi_phi').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('hop_dong').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  } catch (e) {
+    console.error('Lỗi asyncDeleteAllFromSupabase:', e);
+  }
+}
+
 export function deleteAllProjects() {
   const projects = getProjects();
   const contracts = getContracts();
@@ -902,6 +912,9 @@ export function deleteAllProjects() {
   localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify([]));
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify([]));
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify([]));
+
+  // Sync with Supabase DB
+  asyncDeleteAllFromSupabase();
 
   return {
     deletedProjectsCount: countProjects,

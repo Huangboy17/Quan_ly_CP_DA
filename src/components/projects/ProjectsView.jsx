@@ -378,6 +378,67 @@ export default function ProjectsView({
     setActiveTab('payments');
   };
 
+  // Safe fallback if activeProj is null (0 projects in database)
+  if (!activeProj) {
+    return (
+      <div className="space-y-6 animate-fade-in pb-12">
+        {toastMsg && (
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-between shadow-lg">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5" />
+              <span>{toastMsg}</span>
+            </div>
+            <button onClick={() => setToastMsg('')} className="text-emerald-400 hover:text-white cursor-pointer">✕</button>
+          </div>
+        )}
+
+        <div className="p-10 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-4 shadow-xl my-6">
+          <Building2 className="w-12 h-12 text-slate-600 mx-auto" />
+          <h3 className="text-lg font-bold text-white">Chưa có dự án nào trong hệ thống</h3>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            Tất cả dữ liệu dự án và các dữ liệu liên quan đã được xóa hoàn toàn. Nhấn nút "+ Thêm dự án mới" để bắt đầu khởi tạo dự án đầu tiên.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <button
+              onClick={onNewProject}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" /> + Thêm dự án mới
+            </button>
+            <button
+              onClick={() => onOpenExcelImport && onOpenExcelImport('projects')}
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
+            >
+              📥 Import từ Excel
+            </button>
+            <button
+              onClick={() => setIsDeleteAllModalOpen(true)}
+              className="px-3.5 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold border border-rose-500/40 transition cursor-pointer flex items-center gap-1.5"
+            >
+              <Trash2 className="w-4 h-4 text-rose-400" /> 🗑️ Xóa tất cả dự án
+            </button>
+          </div>
+        </div>
+
+        <DeleteAllProjectsModal
+          isOpen={isDeleteAllModalOpen}
+          onClose={() => setIsDeleteAllModalOpen(false)}
+          projectsCount={projects.length}
+          contractsCount={contracts.length}
+          paymentsCount={payments.length}
+          onConfirmDeleteAll={async () => {
+            if (onDeleteAllProjects) {
+              await onDeleteAllProjects();
+              if (setSelectedProjectId) setSelectedProjectId('');
+              setToastMsg('Đã xóa toàn bộ dự án và dữ liệu liên quan thành công.');
+              setTimeout(() => setToastMsg(''), 6000);
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in pb-12">
       
@@ -388,7 +449,7 @@ export default function ProjectsView({
             <CheckCircle2 className="w-5 h-5" />
             <span>{toastMsg}</span>
           </div>
-          <button onClick={() => setToastMsg('')} className="text-emerald-400 hover:text-white">✕</button>
+          <button onClick={() => setToastMsg('')} className="text-emerald-400 hover:text-white cursor-pointer">✕</button>
         </div>
       )}
 
@@ -431,8 +492,16 @@ export default function ProjectsView({
             <button
               onClick={() => handleOpenDeleteModal(activeProj)}
               className="px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold border border-rose-500/40 transition cursor-pointer flex items-center gap-1"
+              title="Xóa dự án hiện tại"
             >
               <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Xóa DA
+            </button>
+            <button
+              onClick={() => setIsDeleteAllModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900 text-rose-300 text-xs font-semibold border border-rose-500/50 shadow-sm transition cursor-pointer flex items-center gap-1"
+              title="Xóa toàn bộ dự án và các hợp đồng, thanh toán liên quan"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-400" /> 🗑️ Xóa tất cả dự án
             </button>
             <button
               onClick={onNewProject}
@@ -1255,11 +1324,11 @@ export default function ProjectsView({
         projectsCount={projects.length}
         contractsCount={contracts.length}
         paymentsCount={payments.length}
-        onConfirmDeleteAll={() => {
+        onConfirmDeleteAll={async () => {
           if (onDeleteAllProjects) {
-            onDeleteAllProjects();
+            await onDeleteAllProjects();
             if (setSelectedProjectId) setSelectedProjectId('');
-            setToastMsg('Đã xóa tất cả dự án thành công.');
+            setToastMsg('Đã xóa toàn bộ dự án và dữ liệu liên quan thành công.');
             setTimeout(() => setToastMsg(''), 6000);
           }
         }}
