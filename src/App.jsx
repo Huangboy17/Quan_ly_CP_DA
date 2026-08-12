@@ -510,6 +510,7 @@ export default function App() {
         onClose={() => setIsExcelImportModalOpen(false)}
         initialType={excelImportInitialType}
         onSuccess={refreshData}
+        userId={currentUserId}
       />
 
     </div>

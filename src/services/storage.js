@@ -31,34 +31,24 @@ export async function syncFromSupabase(userId) {
     if (projErr) {
       console.warn('Supabase fetch du_an info:', projErr.message);
     } else if (Array.isArray(duAnRows)) {
-      const mappedProjects = duAnRows.map(row => {
-        let history = [];
-        const rawHist = row.tmdt_history || row.lich_su_tmdt;
-        if (Array.isArray(rawHist)) {
-          history = rawHist;
-        } else if (typeof rawHist === 'string') {
-          try { history = JSON.parse(rawHist); } catch(e) {}
-        }
-
-        return {
-          id: String(row.id || row.ma_du_an || ('p-' + Date.now())),
-          name: row.name || row.ten_du_an || '',
-          code: row.code || row.ma_du_an || '',
-          manager: row.manager || row.ban_quan_ly || '',
-          investor: row.investor || row.chu_dau_tu || '',
-          address: row.address || row.dia_chi || row.location || '',
-          location: row.location || row.dia_diem || row.address || '',
-          description: row.description || row.mo_ta || '',
-          start_date: row.start_date || row.ngay_bat_dau || '',
-          created_at: row.created_at || new Date().toISOString().split('T')[0],
-          execution_time: row.execution_time || row.thoi_gian_thuc_hien || '',
-          timeline: row.timeline || '',
-          status: row.status || row.trang_thai || 'Đang triển khai',
-          initial_tmdt: Number(row.initial_tmdt || row.tong_muc_dau_tu || 0),
-          currentTmdt: Number(row.currentTmdt || row.initial_tmdt || row.tong_muc_dau_tu || 0),
-          tmdt_history: history,
-        };
-      });
+      const mappedProjects = duAnRows.map(row => ({
+        id: String(row.id),
+        code: row.ma_du_an || '',
+        name: row.ten_du_an || '',
+        description: '',
+        address: row.dia_chi || '',
+        location: row.dia_chi || '',
+        investor: row.chu_dau_tu || '',
+        manager: '',
+        start_date: '',
+        created_at: row.created_at || new Date().toISOString(),
+        execution_time: row.thoi_gian_thuc_hien ? String(row.thoi_gian_thuc_hien) : '',
+        timeline: '',
+        status: 'Đang triển khai',
+        initial_tmdt: Number(row.tong_muc_dau_tu || 0),
+        currentTmdt: Number(row.tong_muc_dau_tu || 0),
+        tmdt_history: [],
+      }));
 
       localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(mappedProjects));
     }
@@ -73,39 +63,30 @@ export async function syncFromSupabase(userId) {
       console.warn('Supabase fetch hop_dong info:', cErr.message);
     } else if (Array.isArray(hopDongRows)) {
       const mappedContracts = hopDongRows.map(row => {
-        const beforeVAT = Number(row.contractValueBeforeVAT || row.gia_tri_truoc_vat || row.contract_value_before_vat || row.contract_value || 0);
-        const vatRate = Number(row.vatRate !== undefined ? row.vatRate : (row.vat_rate !== undefined ? row.vat_rate : (row.thue_vat !== undefined ? row.thue_vat : 10)));
-        const vatAmount = Number(row.vatAmount || row.vat_amount || row.tien_vat || Math.round(beforeVAT * (vatRate / 100)));
-        const afterVAT = Number(row.contractValueAfterVAT || row.gia_tri_sau_vat || row.contract_value_after_vat || row.gia_tri_hd || row.contract_value || (beforeVAT + vatAmount));
-
-        let appendices = [];
-        const rawApp = row.appendices || row.phu_luc;
-        if (Array.isArray(rawApp)) {
-          appendices = rawApp;
-        } else if (typeof rawApp === 'string') {
-          try { appendices = JSON.parse(rawApp); } catch(e) {}
-        }
-
+        const beforeVAT = Number(row.gia_tri_truoc_vat || 0);
+        const vatRate = Number(row.vat || 10);
+        const afterVAT = Number(row.gia_tri_sau_vat || 0);
+        const vatAmount = afterVAT - beforeVAT;
         return {
-          id: String(row.id || row.ma_hd || ('c-' + Date.now())),
-          project_id: String(row.project_id || row.ma_du_an || row.projectId || ''),
-          contract_number: row.contract_number || row.so_hd || row.contractNumber || '',
-          content: row.content || row.noi_dung || '',
-          contractor: row.contractor || row.nha_thau || '',
+          id: String(row.id),
+          project_id: String(row.project_id || ''),
+          contract_number: row.so_hop_dong || '',
+          content: row.noi_dung_hop_dong || '',
+          contractor: row.nha_thau || '',
           contractValueBeforeVAT: beforeVAT,
           vatRate: vatRate,
-          vatAmount: vatAmount,
+          vatAmount: vatAmount > 0 ? vatAmount : Math.round(beforeVAT * vatRate / 100),
           contractValueAfterVAT: afterVAT,
           contract_value: afterVAT,
-          signing_date: row.signing_date || row.ngay_ky || '',
-          duration_type: row.duration_type || 'days',
-          execution_days: Number(row.execution_days || row.so_ngay_thuc_hien || 0),
-          end_date: row.end_date || row.ngay_ket_thuc || '',
-          costGroup: row.costGroup || row.cost_group || row.nhom_chi_phi || '',
-          costGroupNote: row.costGroupNote || row.cost_group_note || '',
-          estimated_settlement_value: Number(row.estimated_settlement_value || row.gia_tri_quyettoan || afterVAT),
-          status: row.status || row.trang_thai || 'in_progress',
-          appendices: appendices,
+          signing_date: row.ngay_ky || '',
+          duration_type: 'days',
+          execution_days: Number(row.tien_do_hop_dong || 0),
+          end_date: row.ngay_ket_thuc || '',
+          costGroup: row.nhom_chi_phi || '',
+          costGroupNote: '',
+          estimated_settlement_value: afterVAT,
+          status: 'in_progress',
+          appendices: [],
         };
       });
 
@@ -122,23 +103,20 @@ export async function syncFromSupabase(userId) {
       console.warn('Supabase fetch thanh_toan_chi_phi info:', pErr.message);
     } else if (Array.isArray(thanhToanRows)) {
       const mappedPayments = thanhToanRows.map(row => {
-        const beforeVAT = Number(row.amount_before_vat || row.gia_tri_truoc_vat || 0);
-        const vatRate = Number(row.vat_rate || row.thue_vat || 0);
-        const vatAmount = Number(row.vat_amount || row.tien_vat || Math.round(beforeVAT * (vatRate / 100)));
-        const afterVAT = Number(row.amount_after_vat || row.gia_tri_sau_vat || (beforeVAT + vatAmount));
-
+        const amount = Number(row.so_tien || 0);
         return {
-          id: String(row.id || row.ma_tt || ('pm-' + Date.now())),
-          contract_id: String(row.contract_id || row.hop_dong_id || row.id_hop_dong || ''),
-          payment_phase: Number(row.payment_phase || row.dot_thanh_toan || 1),
-          payment_date: row.payment_date || row.ngay_thanh_toan || '',
-          amount_before_vat: beforeVAT,
-          vat_rate: vatRate,
-          vat_amount: vatAmount,
-          amount_after_vat: afterVAT,
-          note: row.note || row.ghi_chu || '',
-          payment_type: row.payment_type || row.loai_thanh_toan || '',
-          is_settlement: Boolean(row.is_settlement || row.is_quyettoan),
+          id: String(row.id),
+          contract_id: String(row.contract_id || ''),
+          project_id: String(row.project_id || ''),
+          payment_phase: Number(row.dot_thanh_toan || 1),
+          payment_date: row.ngay_thanh_toan || '',
+          amount_before_vat: amount,
+          vat_rate: 0,
+          vat_amount: 0,
+          amount_after_vat: amount,
+          note: row.noi_dung || '',
+          payment_type: row.loai_thanh_toan || '',
+          is_settlement: (row.loai_thanh_toan || '').includes('quyết toán') || (row.loai_thanh_toan || '').includes('Quyết toán'),
         };
       });
 
@@ -152,47 +130,26 @@ export async function syncFromSupabase(userId) {
   }
 }
 
-async function asyncSaveProjectToSupabase(project, userId) {
+export async function asyncSaveProjectToSupabase(project, userId) {
   if (!isSupabaseConfigured || !supabase || !userId) return;
   try {
     const payload = {
-      id: String(project.id),
+      id: project.id,
       user_id: userId,
-      name: project.name || '',
-      code: project.code || '',
-      manager: project.manager || '',
-      investor: project.investor || '',
-      address: project.address || project.location || '',
-      location: project.location || project.address || '',
-      description: project.description || '',
-      start_date: project.start_date || '',
-      execution_time: project.execution_time || '',
-      timeline: project.timeline || '',
-      status: project.status || 'Đang triển khai',
-      initial_tmdt: Number(project.initial_tmdt || 0),
-      currentTmdt: Number(project.currentTmdt || project.initial_tmdt || 0),
-      tmdt_history: project.tmdt_history || [],
-
-      ten_du_an: project.name || '',
       ma_du_an: project.code || '',
+      ten_du_an: project.name || '',
+      dia_chi: project.address || project.location || '',
       chu_dau_tu: project.investor || '',
-      dia_diem: project.location || project.address || '',
       tong_muc_dau_tu: Number(project.initial_tmdt || 0),
-      trang_thai: project.status || 'Đang triển khai'
+      thoi_gian_thuc_hien: project.execution_time ? parseInt(project.execution_time, 10) || null : null,
     };
 
-    const { error } = await supabase.from('du_an').upsert(payload);
+    const { data, error } = await supabase.from('du_an').upsert(payload);
     if (error) {
-      console.warn('Supabase save du_an attempt 1 info:', error.message);
-      const { error: err2 } = await supabase.from('du_an').upsert({
-        id: String(project.id),
-        user_id: userId,
-        name: project.name || '',
-        code: project.code || '',
-        initial_tmdt: Number(project.initial_tmdt || 0)
-      });
-      if (err2) throw err2;
+      console.error('Supabase save du_an error:', error.message, error);
+      throw error;
     }
+    return data;
   } catch (e) {
     console.error('Lỗi asyncSaveProjectToSupabase:', e);
     throw e;
@@ -222,42 +179,31 @@ async function asyncDeleteProjectFromSupabase(id, userId) {
   }
 }
 
-async function asyncSaveContractToSupabase(contract, userId) {
+export async function asyncSaveContractToSupabase(contract, userId) {
   if (!isSupabaseConfigured || !supabase || !userId) return;
   try {
     const payload = {
-      id: String(contract.id),
+      id: contract.id,
       user_id: userId,
-      project_id: String(contract.project_id),
-      contract_number: contract.contract_number,
-      content: contract.content,
-      contractor: contract.contractor,
-      contract_value: contract.contractValueAfterVAT || contract.contract_value,
-      contractValueBeforeVAT: contract.contractValueBeforeVAT,
-      vatRate: contract.vatRate,
-      vatAmount: contract.vatAmount,
-      contractValueAfterVAT: contract.contractValueAfterVAT,
-      signing_date: contract.signing_date,
-      duration_type: contract.duration_type || 'days',
-      execution_days: contract.execution_days || 0,
-      end_date: contract.end_date,
-      costGroup: contract.costGroup || '',
-      costGroupNote: contract.costGroupNote || '',
-      estimated_settlement_value: contract.estimated_settlement_value,
-      status: contract.status || 'in_progress',
-      appendices: contract.appendices || [],
-
-      so_hd: contract.contract_number,
-      noi_dung: contract.content,
-      nha_thau: contract.contractor,
-      ma_du_an: contract.project_id,
-      gia_tri_hd: contract.contractValueAfterVAT || contract.contract_value,
-      ngay_ky: contract.signing_date,
-      trang_thai: contract.status || 'in_progress'
+      project_id: contract.project_id,
+      so_hop_dong: contract.contract_number || '',
+      noi_dung_hop_dong: contract.content || '',
+      gia_tri_truoc_vat: Number(contract.contractValueBeforeVAT || 0),
+      vat: Number(contract.vatRate || 10),
+      gia_tri_sau_vat: Number(contract.contractValueAfterVAT || contract.contract_value || 0),
+      nha_thau: contract.contractor || '',
+      ngay_ky: contract.signing_date || null,
+      tien_do_hop_dong: Number(contract.execution_days || 0) || null,
+      ngay_ket_thuc: contract.end_date || null,
+      nhom_chi_phi: contract.costGroup || '',
     };
 
-    const { error } = await supabase.from('hop_dong').upsert(payload);
-    if (error) console.warn('Supabase save contract info:', error.message);
+    const { data, error } = await supabase.from('hop_dong').upsert(payload);
+    if (error) {
+      console.error('Supabase save hop_dong error:', error.message, error);
+      throw error;
+    }
+    return data;
   } catch (e) {
     console.error('Lỗi asyncSaveContractToSupabase:', e);
     throw e;
@@ -276,32 +222,35 @@ async function asyncDeleteContractFromSupabase(id, userId) {
   }
 }
 
-async function asyncSavePaymentToSupabase(payment, userId) {
+export async function asyncSavePaymentToSupabase(payment, userId) {
   if (!isSupabaseConfigured || !supabase || !userId) return;
   try {
-    const payload = {
-      id: String(payment.id),
-      user_id: userId,
-      contract_id: String(payment.contract_id),
-      payment_phase: payment.payment_phase || 1,
-      payment_date: payment.payment_date,
-      amount_before_vat: payment.amount_before_vat,
-      vat_rate: payment.vat_rate,
-      vat_amount: payment.vat_amount,
-      amount_after_vat: payment.amount_after_vat,
-      note: payment.note || '',
-      payment_type: payment.payment_type || '',
-      is_settlement: Boolean(payment.is_settlement),
+    // Look up project_id from contract if not available on payment
+    let projectId = payment.project_id;
+    if (!projectId && payment.contract_id) {
+      const contracts = getContracts(true);
+      const contract = contracts.find(c => String(c.id) === String(payment.contract_id));
+      if (contract) projectId = contract.project_id;
+    }
 
-      hop_dong_id: payment.contract_id,
-      dot_thanh_toan: payment.payment_phase || 1,
-      ngay_thanh_toan: payment.payment_date,
-      gia_tri_sau_vat: payment.amount_after_vat,
-      ghi_chu: payment.note || ''
+    const payload = {
+      id: payment.id,
+      user_id: userId,
+      project_id: projectId || null,
+      contract_id: payment.contract_id || null,
+      dot_thanh_toan: Number(payment.payment_phase || 1),
+      loai_thanh_toan: payment.payment_type || (payment.is_settlement ? 'Quyết toán' : 'Thanh toán'),
+      so_tien: Number(payment.amount_after_vat || payment.amount_before_vat || 0),
+      ngay_thanh_toan: payment.payment_date || null,
+      noi_dung: payment.note || '',
     };
 
-    const { error } = await supabase.from('thanh_toan_chi_phi').upsert(payload);
-    if (error) console.warn('Supabase save payment info:', error.message);
+    const { data, error } = await supabase.from('thanh_toan_chi_phi').upsert(payload);
+    if (error) {
+      console.error('Supabase save thanh_toan_chi_phi error:', error.message, error);
+      throw error;
+    }
+    return data;
   } catch (e) {
     console.error('Lỗi asyncSavePaymentToSupabase:', e);
     throw e;
@@ -879,7 +828,7 @@ export async function saveProject(project, userId) {
 
     targetProjectToSave = {
       ...project,
-      id: 'p-' + Date.now(),
+      id: crypto.randomUUID(),
       created_at: createdDate,
       location: projLocation,
       address: projAddress,
@@ -1134,7 +1083,7 @@ export async function saveContract(contract, userId) {
   } else {
     targetContractToSave = {
       ...contractToSave,
-      id: 'c-' + Date.now(),
+      id: crypto.randomUUID(),
       status: contract.status || 'in_progress',
       estimated_settlement_value: contract.estimated_settlement_value !== undefined && contract.estimated_settlement_value !== null
         ? Number(contract.estimated_settlement_value)
@@ -1209,7 +1158,7 @@ export async function settleContract(contractId, settlementData, userId) {
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
 
   const settlementPayment = {
-    id: 'pm-' + Date.now(),
+    id: crypto.randomUUID(),
     contract_id: contractId,
     payment_phase: nextPhase,
     payment_date: settlementData.settlement_date,
@@ -1271,7 +1220,7 @@ export async function savePayment(payment, userId) {
   } else {
     targetPaymentToSave = {
       ...paymentToSave,
-      id: 'pm-' + Date.now()
+      id: crypto.randomUUID()
     };
     updated = [targetPaymentToSave, ...payments];
   }

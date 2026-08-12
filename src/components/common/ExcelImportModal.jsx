@@ -32,7 +32,8 @@ export default function ExcelImportModal({
   isOpen,
   onClose,
   initialType = 'projects', // 'projects' | 'contracts' | 'payments'
-  onSuccess
+  onSuccess,
+  userId = null
 }) {
   const [importType, setImportType] = useState(initialType);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -89,23 +90,55 @@ export default function ExcelImportModal({
     }
   };
 
-  const handleCommitImport = () => {
+  const handleCommitImport = async () => {
     if (!analysisResult || analysisResult.validRows.length === 0) return;
 
+    // Check userId - required for Supabase sync
+    if (!userId) {
+      setErrorMsg('Không xác định được tài khoản đăng nhập. Vui lòng đăng nhập lại trước khi Import.');
+      return;
+    }
+
     setIsLoading(true);
+    setErrorMsg('');
     try {
+      let result;
       if (importType === 'projects') {
-        commitProjectImport(analysisResult.validRows);
+        result = await commitProjectImport(analysisResult.validRows, userId);
       } else if (importType === 'contracts') {
-        commitContractImport(analysisResult.validRows);
+        result = await commitContractImport(analysisResult.validRows, userId);
       } else if (importType === 'payments') {
-        commitPaymentImport(analysisResult.validRows);
+        result = await commitPaymentImport(analysisResult.validRows, userId);
       }
 
-      if (onSuccess) onSuccess();
-      onClose();
+      const { importResults } = result || {};
+
+      if (importResults && importResults.failCount > 0) {
+        // Some rows failed - show detailed error report
+        const errorDetails = importResults.errors.map(
+          err => `Dòng ${err.line} – ${err.code}: ${err.error}`
+        ).join('\n');
+        
+        const summaryMsg = `Import hoàn tất: ${analysisResult.validRows.length} dòng, thành công ${importResults.successCount}, thất bại ${importResults.failCount}.\n\nChi tiết lỗi:\n${errorDetails}`;
+        
+        if (importResults.successCount > 0) {
+          // Partial success - refresh data and show warning
+          if (onSuccess) onSuccess();
+          alert(summaryMsg);
+          onClose();
+        } else {
+          // All failed - show error, don't close
+          setErrorMsg(summaryMsg);
+        }
+      } else {
+        // All successful
+        const totalSuccess = importResults ? importResults.successCount : analysisResult.validRows.length;
+        if (onSuccess) onSuccess();
+        alert(`Import thành công ${totalSuccess} dòng dữ liệu vào hệ thống!`);
+        onClose();
+      }
     } catch (err) {
-      setErrorMsg('Lỗi khi cam kết lưu dữ liệu: ' + err.message);
+      setErrorMsg('Lỗi khi Import dữ liệu: ' + (err.message || String(err)));
     } finally {
       setIsLoading(false);
     }

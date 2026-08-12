@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { getProjects, saveProject, getContracts, saveContract, getPayments, savePayment, STORAGE_KEYS } from './storage';
+import { getProjects, saveProject, getContracts, saveContract, getPayments, savePayment, STORAGE_KEYS, asyncSaveProjectToSupabase, asyncSaveContractToSupabase, asyncSavePaymentToSupabase } from './storage';
 
 export const VALID_COST_GROUPS = [
   'Xây dựng - Thiết bị',
@@ -199,21 +199,28 @@ export function validateAndPrepareProjectImport(rawRows, existingProjects = []) 
   };
 }
 
-export function commitProjectImport(validRows) {
+export async function commitProjectImport(validRows, userId = null) {
   const currentProjects = getProjects();
   const projectsMap = new Map();
   
+  // Key by BOTH id AND code for proper matching (existing projects from Supabase have UUID ids)
   currentProjects.forEach(p => {
-    projectsMap.set(p.id.toUpperCase(), p);
+    if (p.id) projectsMap.set(String(p.id).toUpperCase(), p);
+    if (p.code) projectsMap.set(p.code.toUpperCase(), p);
   });
 
-  validRows.forEach(item => {
-    const upperId = item.id.toUpperCase();
-    const existing = projectsMap.get(upperId);
+  const importResults = { successCount: 0, failCount: 0, errors: [] };
+
+  for (const item of validRows) {
+    const upperCode = item.code.toUpperCase();
+    const existing = projectsMap.get(upperCode);
     
+    let projectToSave;
+
     if (existing) {
+      // UPDATE existing project
       const updatedTmdt = item.initial_tmdt > 0 ? item.initial_tmdt : (existing.initial_tmdt || 0);
-      const updatedProj = {
+      projectToSave = {
         ...existing,
         name: item.name,
         description: item.description || existing.description,
@@ -221,20 +228,29 @@ export function commitProjectImport(validRows) {
         location: item.location || item.address || existing.location || existing.address || '',
         investor: item.investor || existing.investor || '',
         initial_tmdt: updatedTmdt,
+        execution_time: item.duration_days > 0 ? String(item.duration_days) : (existing.execution_time || ''),
       };
-      projectsMap.set(upperId, updatedProj);
+      // Keep UUID from DB
+      projectsMap.set(String(existing.id).toUpperCase(), projectToSave);
+      if (existing.code) projectsMap.set(existing.code.toUpperCase(), projectToSave);
     } else {
+      // NEW project - generate UUID for Supabase compatibility
+      const newId = crypto.randomUUID();
       const createdDate = new Date().toISOString().split('T')[0];
-      const newProj = {
-        id: item.id,
+      projectToSave = {
+        id: newId,
         code: item.code || item.id,
         name: item.name,
         description: item.description,
         address: item.address || item.location || '',
         location: item.location || item.address || '',
         investor: item.investor || '',
+        manager: '',
         created_at: createdDate,
         initial_tmdt: item.initial_tmdt || 0,
+        currentTmdt: item.initial_tmdt || 0,
+        execution_time: item.duration_days > 0 ? String(item.duration_days) : '',
+        status: 'Đang triển khai',
         tmdt_history: item.initial_tmdt > 0 ? [{
           id: 'tmdt-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
           phase_number: 1,
@@ -248,13 +264,40 @@ export function commitProjectImport(validRows) {
           file_name: ''
         }] : []
       };
-      projectsMap.set(upperId, newProj);
+      projectsMap.set(newId.toUpperCase(), projectToSave);
+      projectsMap.set(upperCode, projectToSave);
     }
-  });
 
-  const updatedList = Array.from(projectsMap.values());
+    // Sync to Supabase immediately per row for proper error tracking
+    if (userId) {
+      try {
+        await asyncSaveProjectToSupabase(projectToSave, userId);
+        importResults.successCount++;
+      } catch (e) {
+        importResults.failCount++;
+        importResults.errors.push({
+          line: item.line,
+          code: item.code,
+          name: item.name,
+          error: e?.message || String(e),
+        });
+      }
+    } else {
+      importResults.successCount++;
+    }
+  }
+
+  // Deduplicate: collect unique projects by id
+  const uniqueProjects = new Map();
+  for (const p of projectsMap.values()) {
+    if (p.id && !uniqueProjects.has(p.id)) {
+      uniqueProjects.set(p.id, p);
+    }
+  }
+  const updatedList = Array.from(uniqueProjects.values());
   localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(updatedList));
-  return updatedList;
+
+  return { updatedList, importResults };
 }
 
 // ==========================================
@@ -423,7 +466,7 @@ export function validateAndPrepareContractImport(rawRows, existingProjects = [],
   };
 }
 
-export function commitContractImport(validRows) {
+export async function commitContractImport(validRows, userId = null) {
   const currentContracts = getContracts();
   const contractsMap = new Map();
 
@@ -431,12 +474,15 @@ export function commitContractImport(validRows) {
     if (c.contract_number) contractsMap.set(c.contract_number.toUpperCase(), c);
   });
 
-  validRows.forEach(item => {
+  const importResults = { successCount: 0, failCount: 0, errors: [] };
+
+  for (const item of validRows) {
     const upperNum = item.contract_number.toUpperCase();
     const existing = contractsMap.get(upperNum);
+    let contractToSave;
 
     if (existing) {
-      const updatedContract = {
+      contractToSave = {
         ...existing,
         project_id: item.project_id,
         content: item.content || existing.content,
@@ -451,10 +497,10 @@ export function commitContractImport(validRows) {
         end_date: item.end_date || existing.end_date,
         costGroup: item.costGroup !== undefined ? item.costGroup : (existing.costGroup || ''),
       };
-      contractsMap.set(upperNum, updatedContract);
+      contractsMap.set(upperNum, contractToSave);
     } else {
-      const newContract = {
-        id: 'c-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      contractToSave = {
+        id: crypto.randomUUID(),
         project_id: item.project_id,
         contract_number: item.contract_number,
         content: item.content,
@@ -473,13 +519,32 @@ export function commitContractImport(validRows) {
         status: 'in_progress',
         appendices: []
       };
-      contractsMap.set(upperNum, newContract);
+      contractsMap.set(upperNum, contractToSave);
     }
-  });
+
+    // Sync to Supabase per row for proper error tracking
+    if (userId) {
+      try {
+        await asyncSaveContractToSupabase(contractToSave, userId);
+        importResults.successCount++;
+      } catch (e) {
+        importResults.failCount++;
+        importResults.errors.push({
+          line: item.line,
+          code: item.contract_number,
+          name: item.content,
+          error: e?.message || String(e),
+        });
+      }
+    } else {
+      importResults.successCount++;
+    }
+  }
 
   const updatedList = Array.from(contractsMap.values());
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedList));
-  return updatedList;
+
+  return { updatedList, importResults };
 }
 
 // ==========================================
@@ -632,7 +697,7 @@ export function validateAndPreparePaymentImport(rawRows, existingProjects = [], 
   };
 }
 
-export function commitPaymentImport(validRows) {
+export async function commitPaymentImport(validRows, userId = null) {
   const currentPayments = getPayments();
   const currentContracts = getContracts();
 
@@ -642,9 +707,16 @@ export function commitPaymentImport(validRows) {
     paymentsMap.set(key, pm);
   });
 
-  const settledContractIds = new Set();
+  // Build contract→project lookup for deriving project_id
+  const contractProjectMap = new Map();
+  currentContracts.forEach(c => {
+    if (c.id && c.project_id) contractProjectMap.set(String(c.id), c.project_id);
+  });
 
-  validRows.forEach(item => {
+  const settledContractIds = new Set();
+  const importResults = { successCount: 0, failCount: 0, errors: [] };
+
+  for (const item of validRows) {
     const key = item.compositeKey.toUpperCase();
     const existing = paymentsMap.get(key);
 
@@ -652,20 +724,25 @@ export function commitPaymentImport(validRows) {
       settledContractIds.add(item.contract_id);
     }
 
+    let paymentToSave;
+
     if (existing) {
-      const updatedPm = {
+      paymentToSave = {
         ...existing,
         amount_before_vat: item.amount_before_vat,
         vat_rate: item.vat_rate,
         vat_amount: item.vat_amount,
         amount_after_vat: item.amount_after_vat,
         note: item.note || existing.note,
+        // Ensure project_id is present
+        project_id: existing.project_id || contractProjectMap.get(String(item.contract_id)) || '',
       };
-      paymentsMap.set(key, updatedPm);
+      paymentsMap.set(key, paymentToSave);
     } else {
-      const newPm = {
-        id: 'pm-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      paymentToSave = {
+        id: crypto.randomUUID(),
         contract_id: item.contract_id,
+        project_id: contractProjectMap.get(String(item.contract_id)) || '',
         payment_phase: item.payment_phase,
         payment_type: item.payment_type,
         is_settlement: item.is_settlement,
@@ -676,9 +753,27 @@ export function commitPaymentImport(validRows) {
         amount_after_vat: item.amount_after_vat,
         note: item.note,
       };
-      paymentsMap.set(key, newPm);
+      paymentsMap.set(key, paymentToSave);
     }
-  });
+
+    // Sync to Supabase per row for proper error tracking
+    if (userId) {
+      try {
+        await asyncSavePaymentToSupabase(paymentToSave, userId);
+        importResults.successCount++;
+      } catch (e) {
+        importResults.failCount++;
+        importResults.errors.push({
+          line: item.line,
+          code: item.contract_number || item.contract_id,
+          name: `Đợt ${item.payment_phase}`,
+          error: e?.message || String(e),
+        });
+      }
+    } else {
+      importResults.successCount++;
+    }
+  }
 
   const updatedPaymentsList = Array.from(paymentsMap.values());
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(updatedPaymentsList));
@@ -686,17 +781,22 @@ export function commitPaymentImport(validRows) {
   if (settledContractIds.size > 0) {
     const updatedContracts = currentContracts.map(c => {
       if (settledContractIds.has(c.id)) {
-        return {
-          ...c,
-          status: 'settled',
-        };
+        return { ...c, status: 'settled' };
       }
       return c;
     });
     localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
+
+    // Sync settled contracts to Supabase
+    if (userId) {
+      const settledContracts = updatedContracts.filter(c => settledContractIds.has(c.id));
+      for (const c of settledContracts) {
+        try { await asyncSaveContractToSupabase(c, userId); } catch (e) { /* non-critical */ }
+      }
+    }
   }
 
-  return updatedPaymentsList;
+  return { updatedList: updatedPaymentsList, importResults };
 }
 
 // ==========================================
