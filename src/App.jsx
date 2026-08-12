@@ -133,17 +133,21 @@ export default function App() {
 
   // Load and refresh state directly from Supabase & Local Data Engine
   const refreshData = useCallback(async () => {
+    if (isAuthLoading) return;
+
     const currentUserId = userSession?.user?.id;
     if (isSupabaseConfigured && currentUserId) {
       await syncFromSupabase(currentUserId);
     }
     const agg = getAggregatedData(timeFilter, Boolean(currentUserId));
     setData(agg);
-  }, [timeFilter, userSession]);
+  }, [timeFilter, userSession, isAuthLoading]);
 
   useEffect(() => {
-    refreshData();
-  }, [refreshData]);
+    if (!isAuthLoading) {
+      refreshData();
+    }
+  }, [isAuthLoading, refreshData]);
 
   // Keep viewingContract updated if data changes
   useEffect(() => {

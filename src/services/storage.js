@@ -30,7 +30,7 @@ export async function syncFromSupabase(userId) {
 
     if (projErr) {
       console.warn('Supabase fetch du_an info:', projErr.message);
-    } else if (duAnRows && Array.isArray(duAnRows)) {
+    } else if (Array.isArray(duAnRows)) {
       const mappedProjects = duAnRows.map(row => {
         let history = [];
         const rawHist = row.tmdt_history || row.lich_su_tmdt;
@@ -71,7 +71,7 @@ export async function syncFromSupabase(userId) {
 
     if (cErr) {
       console.warn('Supabase fetch hop_dong info:', cErr.message);
-    } else if (hopDongRows && Array.isArray(hopDongRows)) {
+    } else if (Array.isArray(hopDongRows)) {
       const mappedContracts = hopDongRows.map(row => {
         const beforeVAT = Number(row.contractValueBeforeVAT || row.gia_tri_truoc_vat || row.contract_value_before_vat || row.contract_value || 0);
         const vatRate = Number(row.vatRate !== undefined ? row.vatRate : (row.vat_rate !== undefined ? row.vat_rate : (row.thue_vat !== undefined ? row.thue_vat : 10)));
@@ -120,7 +120,7 @@ export async function syncFromSupabase(userId) {
 
     if (pErr) {
       console.warn('Supabase fetch thanh_toan_chi_phi info:', pErr.message);
-    } else if (thanhToanRows && Array.isArray(thanhToanRows)) {
+    } else if (Array.isArray(thanhToanRows)) {
       const mappedPayments = thanhToanRows.map(row => {
         const beforeVAT = Number(row.amount_before_vat || row.gia_tri_truoc_vat || 0);
         const vatRate = Number(row.vat_rate || row.thue_vat || 0);
