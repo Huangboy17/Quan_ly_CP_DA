@@ -18,14 +18,56 @@ export const STORAGE_KEYS = {
 };
 
 // --- SUPABASE SYNC & DATA MAPPING LAYER ---
-export async function syncFromSupabase() {
-  if (!isSupabaseConfigured || !supabase) return false;
+export async function syncFromSupabase(userId) {
+  if (!isSupabaseConfigured || !supabase || !userId) return false;
 
   try {
-    // 1. Fetch from 'hop_dong'
+    // 1. Fetch from 'du_an' table
+    const { data: duAnRows, error: projErr } = await supabase
+      .from('du_an')
+      .select('*')
+      .eq('user_id', userId);
+
+    if (projErr) {
+      console.warn('Supabase fetch du_an info:', projErr.message);
+    } else if (duAnRows && Array.isArray(duAnRows)) {
+      const mappedProjects = duAnRows.map(row => {
+        let history = [];
+        const rawHist = row.tmdt_history || row.lich_su_tmdt;
+        if (Array.isArray(rawHist)) {
+          history = rawHist;
+        } else if (typeof rawHist === 'string') {
+          try { history = JSON.parse(rawHist); } catch(e) {}
+        }
+
+        return {
+          id: String(row.id || row.ma_du_an || ('p-' + Date.now())),
+          name: row.name || row.ten_du_an || '',
+          code: row.code || row.ma_du_an || '',
+          manager: row.manager || row.ban_quan_ly || '',
+          investor: row.investor || row.chu_dau_tu || '',
+          address: row.address || row.dia_chi || row.location || '',
+          location: row.location || row.dia_diem || row.address || '',
+          description: row.description || row.mo_ta || '',
+          start_date: row.start_date || row.ngay_bat_dau || '',
+          created_at: row.created_at || new Date().toISOString().split('T')[0],
+          execution_time: row.execution_time || row.thoi_gian_thuc_hien || '',
+          timeline: row.timeline || '',
+          status: row.status || row.trang_thai || 'Đang triển khai',
+          initial_tmdt: Number(row.initial_tmdt || row.tong_muc_dau_tu || 0),
+          currentTmdt: Number(row.currentTmdt || row.initial_tmdt || row.tong_muc_dau_tu || 0),
+          tmdt_history: history,
+        };
+      });
+
+      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(mappedProjects));
+    }
+
+    // 2. Fetch from 'hop_dong' table
     const { data: hopDongRows, error: cErr } = await supabase
       .from('hop_dong')
-      .select('*');
+      .select('*')
+      .eq('user_id', userId);
 
     if (cErr) {
       console.warn('Supabase fetch hop_dong info:', cErr.message);
@@ -46,7 +88,7 @@ export async function syncFromSupabase() {
 
         return {
           id: String(row.id || row.ma_hd || ('c-' + Date.now())),
-          project_id: String(row.project_id || row.ma_du_an || row.projectId || 'p-101'),
+          project_id: String(row.project_id || row.ma_du_an || row.projectId || ''),
           contract_number: row.contract_number || row.so_hd || row.contractNumber || '',
           content: row.content || row.noi_dung || '',
           contractor: row.contractor || row.nha_thau || '',
@@ -67,15 +109,14 @@ export async function syncFromSupabase() {
         };
       });
 
-      if (mappedContracts.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(mappedContracts));
-      }
+      localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(mappedContracts));
     }
 
-    // 2. Fetch from 'thanh_toan_chi_phi'
+    // 3. Fetch from 'thanh_toan_chi_phi' table
     const { data: thanhToanRows, error: pErr } = await supabase
       .from('thanh_toan_chi_phi')
-      .select('*');
+      .select('*')
+      .eq('user_id', userId);
 
     if (pErr) {
       console.warn('Supabase fetch thanh_toan_chi_phi info:', pErr.message);
@@ -101,9 +142,7 @@ export async function syncFromSupabase() {
         };
       });
 
-      if (mappedPayments.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(mappedPayments));
-      }
+      localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(mappedPayments));
     }
 
     return true;
@@ -113,12 +152,83 @@ export async function syncFromSupabase() {
   }
 }
 
-async function asyncSaveContractToSupabase(contract) {
-  if (!isSupabaseConfigured || !supabase) return;
+async function asyncSaveProjectToSupabase(project, userId) {
+  if (!isSupabaseConfigured || !supabase || !userId) return;
   try {
     const payload = {
-      id: contract.id,
-      project_id: contract.project_id,
+      id: String(project.id),
+      user_id: userId,
+      name: project.name || '',
+      code: project.code || '',
+      manager: project.manager || '',
+      investor: project.investor || '',
+      address: project.address || project.location || '',
+      location: project.location || project.address || '',
+      description: project.description || '',
+      start_date: project.start_date || '',
+      execution_time: project.execution_time || '',
+      timeline: project.timeline || '',
+      status: project.status || 'Đang triển khai',
+      initial_tmdt: Number(project.initial_tmdt || 0),
+      currentTmdt: Number(project.currentTmdt || project.initial_tmdt || 0),
+      tmdt_history: project.tmdt_history || [],
+
+      ten_du_an: project.name || '',
+      ma_du_an: project.code || '',
+      chu_dau_tu: project.investor || '',
+      dia_diem: project.location || project.address || '',
+      tong_muc_dau_tu: Number(project.initial_tmdt || 0),
+      trang_thai: project.status || 'Đang triển khai'
+    };
+
+    const { error } = await supabase.from('du_an').upsert(payload);
+    if (error) {
+      console.warn('Supabase save du_an attempt 1 info:', error.message);
+      const { error: err2 } = await supabase.from('du_an').upsert({
+        id: String(project.id),
+        user_id: userId,
+        name: project.name || '',
+        code: project.code || '',
+        initial_tmdt: Number(project.initial_tmdt || 0)
+      });
+      if (err2) throw err2;
+    }
+  } catch (e) {
+    console.error('Lỗi asyncSaveProjectToSupabase:', e);
+    throw e;
+  }
+}
+
+async function asyncDeleteProjectFromSupabase(id, userId) {
+  if (!isSupabaseConfigured || !supabase || !userId) return;
+  try {
+    const { data: childContracts } = await supabase
+      .from('hop_dong')
+      .select('id')
+      .eq('project_id', id)
+      .eq('user_id', userId);
+
+    if (childContracts && childContracts.length > 0) {
+      const cIds = childContracts.map(c => c.id);
+      await supabase.from('thanh_toan_chi_phi').delete().in('contract_id', cIds).eq('user_id', userId);
+    }
+
+    await supabase.from('hop_dong').delete().eq('project_id', id).eq('user_id', userId);
+    const { error } = await supabase.from('du_an').delete().eq('id', id).eq('user_id', userId);
+    if (error) throw error;
+  } catch (e) {
+    console.error('Lỗi asyncDeleteProjectFromSupabase:', e);
+    throw e;
+  }
+}
+
+async function asyncSaveContractToSupabase(contract, userId) {
+  if (!isSupabaseConfigured || !supabase || !userId) return;
+  try {
+    const payload = {
+      id: String(contract.id),
+      user_id: userId,
+      project_id: String(contract.project_id),
       contract_number: contract.contract_number,
       content: contract.content,
       contractor: contract.contractor,
@@ -150,25 +260,29 @@ async function asyncSaveContractToSupabase(contract) {
     if (error) console.warn('Supabase save contract info:', error.message);
   } catch (e) {
     console.error('Lỗi asyncSaveContractToSupabase:', e);
+    throw e;
   }
 }
 
-async function asyncDeleteContractFromSupabase(id) {
-  if (!isSupabaseConfigured || !supabase) return;
+async function asyncDeleteContractFromSupabase(id, userId) {
+  if (!isSupabaseConfigured || !supabase || !userId) return;
   try {
-    await supabase.from('hop_dong').delete().eq('id', id);
-    await supabase.from('thanh_toan_chi_phi').delete().eq('contract_id', id);
+    await supabase.from('thanh_toan_chi_phi').delete().eq('contract_id', id).eq('user_id', userId);
+    const { error } = await supabase.from('hop_dong').delete().eq('id', id).eq('user_id', userId);
+    if (error) throw error;
   } catch (e) {
     console.error('Lỗi asyncDeleteContractFromSupabase:', e);
+    throw e;
   }
 }
 
-async function asyncSavePaymentToSupabase(payment) {
-  if (!isSupabaseConfigured || !supabase) return;
+async function asyncSavePaymentToSupabase(payment, userId) {
+  if (!isSupabaseConfigured || !supabase || !userId) return;
   try {
     const payload = {
-      id: payment.id,
-      contract_id: payment.contract_id,
+      id: String(payment.id),
+      user_id: userId,
+      contract_id: String(payment.contract_id),
       payment_phase: payment.payment_phase || 1,
       payment_date: payment.payment_date,
       amount_before_vat: payment.amount_before_vat,
@@ -190,15 +304,18 @@ async function asyncSavePaymentToSupabase(payment) {
     if (error) console.warn('Supabase save payment info:', error.message);
   } catch (e) {
     console.error('Lỗi asyncSavePaymentToSupabase:', e);
+    throw e;
   }
 }
 
-async function asyncDeletePaymentFromSupabase(id) {
-  if (!isSupabaseConfigured || !supabase) return;
+async function asyncDeletePaymentFromSupabase(id, userId) {
+  if (!isSupabaseConfigured || !supabase || !userId) return;
   try {
-    await supabase.from('thanh_toan_chi_phi').delete().eq('id', id);
+    const { error } = await supabase.from('thanh_toan_chi_phi').delete().eq('id', id).eq('user_id', userId);
+    if (error) throw error;
   } catch (e) {
     console.error('Lỗi asyncDeletePaymentFromSupabase:', e);
+    throw e;
   }
 }
 
@@ -688,18 +805,22 @@ export function resetStorage() {
 }
 
 // --- PROJECTS REPOSITORY ---
-export function getProjects() {
-  initStorage();
+export function getProjects(isLoggedIn = false) {
+  if (!isLoggedIn) {
+    initStorage();
+  }
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.PROJECTS)) || [];
+    const data = localStorage.getItem(STORAGE_KEYS.PROJECTS);
+    return data !== null ? JSON.parse(data) : [];
   } catch (e) {
-    return INITIAL_PROJECTS;
+    return isLoggedIn ? [] : INITIAL_PROJECTS;
   }
 }
 
-export function saveProject(project) {
-  const projects = getProjects();
+export async function saveProject(project, userId) {
+  const projects = getProjects(Boolean(userId));
   let updated;
+  let targetProjectToSave;
 
   const initialTmdtVal = project.initial_tmdt !== undefined && project.initial_tmdt !== null && project.initial_tmdt !== ''
     ? Number(project.initial_tmdt)
@@ -726,7 +847,7 @@ export function saveProject(project) {
               note: '',
               file_name: ''
             }] : []);
-        return {
+        targetProjectToSave = {
           ...p,
           ...project,
           location: projLocation || p.location || p.address || '',
@@ -735,6 +856,7 @@ export function saveProject(project) {
           initial_tmdt: initialTmdtVal || p.initial_tmdt || 0,
           tmdt_history: history,
         };
+        return targetProjectToSave;
       }
       return p;
     });
@@ -755,7 +877,7 @@ export function saveProject(project) {
         }]
       : [];
 
-    const newProj = {
+    targetProjectToSave = {
       ...project,
       id: 'p-' + Date.now(),
       created_at: createdDate,
@@ -765,14 +887,20 @@ export function saveProject(project) {
       initial_tmdt: initialTmdtVal,
       tmdt_history: history,
     };
-    updated = [newProj, ...projects];
+    updated = [targetProjectToSave, ...projects];
   }
   localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(updated));
+
+  // Sync to Supabase DB 'du_an' table
+  if (userId) {
+    await asyncSaveProjectToSupabase(targetProjectToSave, userId);
+  }
+
   return updated;
 }
 
-export function addTmdtAdjustmentPhase(projectId, adjustmentData) {
-  const projects = getProjects();
+export async function addTmdtAdjustmentPhase(projectId, adjustmentData, userId) {
+  const projects = getProjects(Boolean(userId));
   const targetProj = projects.find(p => p.id === projectId);
   if (!targetProj) return;
 
@@ -798,23 +926,30 @@ export function addTmdtAdjustmentPhase(projectId, adjustmentData) {
 
   const updatedHistory = [...currentHistory, newAdjustment];
 
+  let updatedTargetProj = null;
   const updatedProjects = projects.map(p => {
     if (p.id === projectId) {
-      return {
+      updatedTargetProj = {
         ...p,
         initial_tmdt: initialAmt,
         tmdt_history: updatedHistory,
       };
+      return updatedTargetProj;
     }
     return p;
   });
 
   localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(updatedProjects));
+
+  if (userId && updatedTargetProj) {
+    await asyncSaveProjectToSupabase(updatedTargetProj, userId);
+  }
+
   return updatedProjects;
 }
 
-export function updateTmdtAdjustmentPhase(projectId, phaseId, updatedData) {
-  const projects = getProjects();
+export async function updateTmdtAdjustmentPhase(projectId, phaseId, updatedData, userId) {
+  const projects = getProjects(Boolean(userId));
   const targetProj = projects.find(p => p.id === projectId);
   if (!targetProj) return;
 
@@ -836,13 +971,26 @@ export function updateTmdtAdjustmentPhase(projectId, phaseId, updatedData) {
     return item;
   });
 
-  const updatedProjects = projects.map(p => p.id === projectId ? { ...p, tmdt_history: updatedHistory } : p);
+  let updatedTargetProj = null;
+  const updatedProjects = projects.map(p => {
+    if (p.id === projectId) {
+      updatedTargetProj = { ...p, tmdt_history: updatedHistory };
+      return updatedTargetProj;
+    }
+    return p;
+  });
+
   localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(updatedProjects));
+
+  if (userId && updatedTargetProj) {
+    await asyncSaveProjectToSupabase(updatedTargetProj, userId);
+  }
+
   return updatedProjects;
 }
 
-export function deleteTmdtAdjustmentPhase(projectId, phaseId) {
-  const projects = getProjects();
+export async function deleteTmdtAdjustmentPhase(projectId, phaseId, userId) {
+  const projects = getProjects(Boolean(userId));
   const targetProj = projects.find(p => p.id === projectId);
   if (!targetProj) return;
 
@@ -859,21 +1007,34 @@ export function deleteTmdtAdjustmentPhase(projectId, phaseId) {
     phase_label: `Lần ${idx + 1}`
   }));
 
-  const updatedProjects = projects.map(p => p.id === projectId ? { ...p, tmdt_history: reIndexedHistory } : p);
+  let updatedTargetProj = null;
+  const updatedProjects = projects.map(p => {
+    if (p.id === projectId) {
+      updatedTargetProj = { ...p, tmdt_history: reIndexedHistory };
+      return updatedTargetProj;
+    }
+    return p;
+  });
+
   localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(updatedProjects));
+
+  if (userId && updatedTargetProj) {
+    await asyncSaveProjectToSupabase(updatedTargetProj, userId);
+  }
+
   return updatedProjects;
 }
 
-export function deleteProject(id) {
-  const projects = getProjects();
+export async function deleteProject(id, userId) {
+  const projects = getProjects(Boolean(userId));
   const targetProj = projects.find(p => p.id === id);
 
-  const contracts = getContracts();
+  const contracts = getContracts(Boolean(userId));
   const deletedContracts = contracts.filter(c => c.project_id === id);
   const deletedContractIds = deletedContracts.map(c => c.id);
   const remainingContracts = contracts.filter(c => c.project_id !== id);
 
-  const payments = getPayments();
+  const payments = getPayments(Boolean(userId));
   const deletedPayments = payments.filter(pm => deletedContractIds.includes(pm.contract_id));
   const remainingPayments = payments.filter(pm => !deletedContractIds.includes(pm.contract_id));
 
@@ -881,6 +1042,11 @@ export function deleteProject(id) {
   localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(remainingProjects));
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(remainingContracts));
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(remainingPayments));
+
+  // Sync to Supabase DB
+  if (userId) {
+    await asyncDeleteProjectFromSupabase(id, userId);
+  }
 
   return {
     deletedProject: targetProj,
@@ -890,20 +1056,22 @@ export function deleteProject(id) {
   };
 }
 
-async function asyncDeleteAllFromSupabase() {
-  if (!isSupabaseConfigured || !supabase) return;
+async function asyncDeleteAllFromSupabase(userId) {
+  if (!isSupabaseConfigured || !supabase || !userId) return;
   try {
-    await supabase.from('thanh_toan_chi_phi').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('hop_dong').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('thanh_toan_chi_phi').delete().eq('user_id', userId);
+    await supabase.from('hop_dong').delete().eq('user_id', userId);
+    await supabase.from('du_an').delete().eq('user_id', userId);
   } catch (e) {
     console.error('Lỗi asyncDeleteAllFromSupabase:', e);
+    throw e;
   }
 }
 
-export function deleteAllProjects() {
-  const projects = getProjects();
-  const contracts = getContracts();
-  const payments = getPayments();
+export async function deleteAllProjects(userId) {
+  const projects = getProjects(Boolean(userId));
+  const contracts = getContracts(Boolean(userId));
+  const payments = getPayments(Boolean(userId));
 
   const countProjects = projects.length;
   const countContracts = contracts.length;
@@ -914,7 +1082,9 @@ export function deleteAllProjects() {
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify([]));
 
   // Sync with Supabase DB
-  asyncDeleteAllFromSupabase();
+  if (userId) {
+    await asyncDeleteAllFromSupabase(userId);
+  }
 
   return {
     deletedProjectsCount: countProjects,
@@ -925,17 +1095,20 @@ export function deleteAllProjects() {
 }
 
 // --- CONTRACTS REPOSITORY ---
-export function getContracts() {
-  initStorage();
+export function getContracts(isLoggedIn = false) {
+  if (!isLoggedIn) {
+    initStorage();
+  }
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.CONTRACTS)) || [];
+    const data = localStorage.getItem(STORAGE_KEYS.CONTRACTS);
+    return data !== null ? JSON.parse(data) : [];
   } catch (e) {
-    return INITIAL_CONTRACTS;
+    return isLoggedIn ? [] : INITIAL_CONTRACTS;
   }
 }
 
-export function saveContract(contract) {
-  const contracts = getContracts();
+export async function saveContract(contract, userId) {
+  const contracts = getContracts(Boolean(userId));
   let updated;
   let targetContractToSave;
 
@@ -972,26 +1145,30 @@ export function saveContract(contract) {
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updated));
 
   // Sync with Supabase 'hop_dong' table
-  asyncSaveContractToSupabase(targetContractToSave);
+  if (userId) {
+    await asyncSaveContractToSupabase(targetContractToSave, userId);
+  }
 
   return updated;
 }
 
-export function deleteContract(id) {
-  const contracts = getContracts().filter(c => c.id !== id);
+export async function deleteContract(id, userId) {
+  const contracts = getContracts(Boolean(userId)).filter(c => c.id !== id);
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(contracts));
   
-  const payments = getPayments().filter(pm => pm.contract_id !== id);
+  const payments = getPayments(Boolean(userId)).filter(pm => pm.contract_id !== id);
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
 
   // Sync with Supabase 'hop_dong' & 'thanh_toan_chi_phi' tables
-  asyncDeleteContractFromSupabase(id);
+  if (userId) {
+    await asyncDeleteContractFromSupabase(id, userId);
+  }
 
   return contracts;
 }
 
-export function settleContract(contractId, settlementData) {
-  const contracts = getContracts();
+export async function settleContract(contractId, settlementData, userId) {
+  const contracts = getContracts(Boolean(userId));
   const targetContract = contracts.find(c => c.id === contractId);
   if (!targetContract) return;
 
@@ -1000,7 +1177,7 @@ export function settleContract(contractId, settlementData) {
   const settlementPhaseVAT = Math.round(settlementPhaseBeforeVAT * (vatRate / 100));
   const settlementPhaseAfterVAT = settlementPhaseBeforeVAT + settlementPhaseVAT;
 
-  const payments = getPayments();
+  const payments = getPayments(Boolean(userId));
   const contractPayments = payments.filter(p => p.contract_id === contractId);
   
   const cumulativeBeforeVAT = contractPayments.reduce((sum, p) => sum + Number(p.amount_before_vat || 0), 0);
@@ -1049,24 +1226,29 @@ export function settleContract(contractId, settlementData) {
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(updatedPayments));
 
   // Sync both with Supabase
-  if (settledContractObj) asyncSaveContractToSupabase(settledContractObj);
-  asyncSavePaymentToSupabase(settlementPayment);
+  if (userId) {
+    if (settledContractObj) await asyncSaveContractToSupabase(settledContractObj, userId);
+    await asyncSavePaymentToSupabase(settlementPayment, userId);
+  }
 
   return { contracts: updatedContracts, payments: updatedPayments };
 }
 
 // --- PAYMENTS REPOSITORY ---
-export function getPayments() {
-  initStorage();
+export function getPayments(isLoggedIn = false) {
+  if (!isLoggedIn) {
+    initStorage();
+  }
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.PAYMENTS)) || [];
+    const data = localStorage.getItem(STORAGE_KEYS.PAYMENTS);
+    return data !== null ? JSON.parse(data) : [];
   } catch (e) {
-    return INITIAL_PAYMENTS;
+    return isLoggedIn ? [] : INITIAL_PAYMENTS;
   }
 }
 
-export function savePayment(payment) {
-  const payments = getPayments();
+export async function savePayment(payment, userId) {
+  const payments = getPayments(Boolean(userId));
   let updated;
   let targetPaymentToSave;
 
@@ -1096,17 +1278,21 @@ export function savePayment(payment) {
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(updated));
 
   // Sync with Supabase 'thanh_toan_chi_phi' table
-  asyncSavePaymentToSupabase(targetPaymentToSave);
+  if (userId) {
+    await asyncSavePaymentToSupabase(targetPaymentToSave, userId);
+  }
 
   return updated;
 }
 
-export function deletePayment(id) {
-  const payments = getPayments().filter(p => p.id !== id);
+export async function deletePayment(id, userId) {
+  const payments = getPayments(Boolean(userId)).filter(p => p.id !== id);
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
 
   // Sync with Supabase 'thanh_toan_chi_phi' table
-  asyncDeletePaymentFromSupabase(id);
+  if (userId) {
+    await asyncDeletePaymentFromSupabase(id, userId);
+  }
 
   return payments;
 }
@@ -1130,10 +1316,10 @@ export function saveSettings(settings) {
 }
 
 // --- BACKUP & RESTORE SERVICE ---
-export function exportData() {
-  const projects = getProjects();
-  const contracts = getContracts();
-  const payments = getPayments();
+export function exportData(isLoggedIn = false) {
+  const projects = getProjects(isLoggedIn);
+  const contracts = getContracts(isLoggedIn);
+  const payments = getPayments(isLoggedIn);
   const settings = getSavedSettings();
 
   return {
@@ -1146,7 +1332,7 @@ export function exportData() {
   };
 }
 
-export function importData(jsonData) {
+export async function importData(jsonData, userId) {
   if (!jsonData || typeof jsonData !== 'object') {
     throw new Error('Dữ liệu JSON không hợp lệ!');
   }
@@ -1161,19 +1347,30 @@ export function importData(jsonData) {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(jsonData.settings));
   }
 
-  // Bulk sync imported contracts and payments to Supabase
-  if (Array.isArray(jsonData.contracts)) {
-    jsonData.contracts.forEach(c => asyncSaveContractToSupabase(c));
-  }
-  if (Array.isArray(jsonData.payments)) {
-    jsonData.payments.forEach(p => asyncSavePaymentToSupabase(p));
+  // Bulk sync imported projects, contracts and payments to Supabase
+  if (userId) {
+    if (Array.isArray(jsonData.projects)) {
+      for (const p of jsonData.projects) {
+        await asyncSaveProjectToSupabase(p, userId);
+      }
+    }
+    if (Array.isArray(jsonData.contracts)) {
+      for (const c of jsonData.contracts) {
+        await asyncSaveContractToSupabase(c, userId);
+      }
+    }
+    if (Array.isArray(jsonData.payments)) {
+      for (const pm of jsonData.payments) {
+        await asyncSavePaymentToSupabase(pm, userId);
+      }
+    }
   }
 
   return true;
 }
 
-export function saveContractAppendix(contractId, appendixData) {
-  const contracts = getContracts();
+export async function saveContractAppendix(contractId, appendixData, userId) {
+  const contracts = getContracts(Boolean(userId));
   const targetContract = contracts.find(c => c.id === contractId);
   if (!targetContract) return contracts;
 
@@ -1229,15 +1426,15 @@ export function saveContractAppendix(contractId, appendixData) {
 
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
 
-  if (updatedTargetContract) {
-    asyncSaveContractToSupabase(updatedTargetContract);
+  if (userId && updatedTargetContract) {
+    await asyncSaveContractToSupabase(updatedTargetContract, userId);
   }
 
   return updatedContracts;
 }
 
-export function deleteContractAppendix(contractId, appendixId) {
-  const contracts = getContracts();
+export async function deleteContractAppendix(contractId, appendixId, userId) {
+  const contracts = getContracts(Boolean(userId));
   const targetContract = contracts.find(c => c.id === contractId);
   if (!targetContract) return contracts;
 
@@ -1258,18 +1455,18 @@ export function deleteContractAppendix(contractId, appendixId) {
 
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
 
-  if (updatedTargetContract) {
-    asyncSaveContractToSupabase(updatedTargetContract);
+  if (userId && updatedTargetContract) {
+    await asyncSaveContractToSupabase(updatedTargetContract, userId);
   }
 
   return updatedContracts;
 }
 
 // --- AGGREGATION & TIME-BASED ANALYTICS ENGINE (SINGLE SOURCE OF TRUTH) ---
-export function getAggregatedData(timeFilter = {}) {
-  const projects = getProjects();
-  const contracts = getContracts();
-  const payments = getPayments();
+export function getAggregatedData(timeFilter = {}, isLoggedIn = false) {
+  const projects = getProjects(isLoggedIn);
+  const contracts = getContracts(isLoggedIn);
+  const payments = getPayments(isLoggedIn);
 
   const bounds = getTimeRangeBounds(timeFilter);
   const { startDate, endDate, periodLabel, prevPeriod } = bounds;

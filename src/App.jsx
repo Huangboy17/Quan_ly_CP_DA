@@ -133,12 +133,13 @@ export default function App() {
 
   // Load and refresh state directly from Supabase & Local Data Engine
   const refreshData = useCallback(async () => {
-    if (isSupabaseConfigured) {
-      await syncFromSupabase();
+    const currentUserId = userSession?.user?.id;
+    if (isSupabaseConfigured && currentUserId) {
+      await syncFromSupabase(currentUserId);
     }
-    const agg = getAggregatedData(timeFilter);
+    const agg = getAggregatedData(timeFilter, Boolean(currentUserId));
     setData(agg);
-  }, [timeFilter]);
+  }, [timeFilter, userSession]);
 
   useEffect(() => {
     refreshData();
@@ -152,6 +153,8 @@ export default function App() {
     }
   }, [data, viewingContract]);
 
+  const currentUserId = userSession?.user?.id;
+
   // Handlers for Contracts
   const handleOpenNewContract = () => {
     setEditingContract(null);
@@ -164,12 +167,12 @@ export default function App() {
   };
 
   const handleSaveContract = async (contractData) => {
-    saveContract(contractData);
+    await saveContract(contractData, currentUserId);
     await refreshData();
   };
 
   const handleDeleteContract = async (contractId) => {
-    deleteContract(contractId);
+    await deleteContract(contractId, currentUserId);
     if (selectedContractId && String(selectedContractId) === String(contractId)) {
       setSelectedContractId('');
       if (activeTab === 'contract-dossier') {
@@ -204,12 +207,12 @@ export default function App() {
   };
 
   const handleSaveContractAppendix = async (cId, appendixData) => {
-    saveContractAppendix(cId, appendixData);
+    await saveContractAppendix(cId, appendixData, currentUserId);
     await refreshData();
   };
 
   const handleDeleteContractAppendix = async (cId, appId) => {
-    deleteContractAppendix(cId, appId);
+    await deleteContractAppendix(cId, appId, currentUserId);
     await refreshData();
   };
 
@@ -233,12 +236,12 @@ export default function App() {
   };
 
   const handleSavePayment = async (paymentData) => {
-    savePayment(paymentData);
+    await savePayment(paymentData, currentUserId);
     await refreshData();
   };
 
   const handleDeletePayment = async (paymentId) => {
-    deletePayment(paymentId);
+    await deletePayment(paymentId, currentUserId);
     await refreshData();
   };
 
@@ -254,12 +257,12 @@ export default function App() {
   };
 
   const handleSaveProject = async (projectData) => {
-    saveProject(projectData);
+    await saveProject(projectData, currentUserId);
     await refreshData();
   };
 
   const handleDeleteProject = async (projectId) => {
-    const result = deleteProject(projectId);
+    const result = await deleteProject(projectId, currentUserId);
     if (selectedProjectId === projectId) {
       handleSetSelectedProjectId('');
     }
@@ -268,14 +271,14 @@ export default function App() {
   };
 
   const handleDeleteAllProjects = async () => {
-    const result = deleteAllProjects();
+    const result = await deleteAllProjects(currentUserId);
     handleSetSelectedProjectId('');
     await refreshData();
     return result;
   };
 
   const handleSettleContract = async (contractId, settlementData) => {
-    settleContract(contractId, settlementData);
+    await settleContract(contractId, settlementData, currentUserId);
     await refreshData();
   };
 
@@ -422,15 +425,15 @@ export default function App() {
               onDeleteProject={handleDeleteProject}
               onDeleteAllProjects={handleDeleteAllProjects}
               onAddTmdtPhase={async (projectId, phaseData) => {
-                addTmdtAdjustmentPhase(projectId, phaseData);
+                await addTmdtAdjustmentPhase(projectId, phaseData, currentUserId);
                 await refreshData();
               }}
               onUpdateTmdtPhase={async (projectId, phaseId, phaseData) => {
-                updateTmdtAdjustmentPhase(projectId, phaseId, phaseData);
+                await updateTmdtAdjustmentPhase(projectId, phaseId, phaseData, currentUserId);
                 await refreshData();
               }}
               onDeleteTmdtPhase={async (projectId, phaseId) => {
-                deleteTmdtAdjustmentPhase(projectId, phaseId);
+                await deleteTmdtAdjustmentPhase(projectId, phaseId, currentUserId);
                 await refreshData();
               }}
               onOpenExcelImport={handleOpenExcelImport}
