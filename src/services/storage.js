@@ -31,24 +31,41 @@ export async function syncFromSupabase(userId) {
     if (projErr) {
       console.warn('Supabase fetch du_an info:', projErr.message);
     } else if (Array.isArray(duAnRows)) {
-      const mappedProjects = duAnRows.map(row => ({
-        id: String(row.id),
-        code: row.ma_du_an || '',
-        name: row.ten_du_an || '',
-        description: '',
-        address: row.dia_chi || '',
-        location: row.dia_chi || '',
-        investor: row.chu_dau_tu || '',
-        manager: '',
-        start_date: '',
-        created_at: row.created_at || new Date().toISOString(),
-        execution_time: row.thoi_gian_thuc_hien ? String(row.thoi_gian_thuc_hien) : '',
-        timeline: '',
-        status: 'Đang triển khai',
-        initial_tmdt: Number(row.tong_muc_dau_tu || 0),
-        currentTmdt: Number(row.tong_muc_dau_tu || 0),
-        tmdt_history: [],
-      }));
+      const mappedProjects = duAnRows.map(row => {
+        // Parse tmdt_history JSONB from DB
+        let tmdtHistory = [];
+        try {
+          if (row.tmdt_history) {
+            tmdtHistory = typeof row.tmdt_history === 'string' ? JSON.parse(row.tmdt_history) : row.tmdt_history;
+            if (!Array.isArray(tmdtHistory)) tmdtHistory = [];
+          }
+        } catch (e) { tmdtHistory = []; }
+
+        const tmdtValue = Number(row.tong_muc_dau_tu || 0);
+        // currentTmdt = latest from history if available, otherwise from DB field
+        const currentTmdt = tmdtHistory.length > 0 
+          ? Number(tmdtHistory[tmdtHistory.length - 1].amount || tmdtValue) 
+          : tmdtValue;
+
+        return {
+          id: String(row.id),
+          code: row.ma_du_an || '',
+          name: row.ten_du_an || '',
+          description: '',
+          address: row.dia_chi || '',
+          location: row.dia_chi || '',
+          investor: row.chu_dau_tu || '',
+          manager: '',
+          start_date: '',
+          created_at: row.created_at || new Date().toISOString(),
+          execution_time: row.thoi_gian_thuc_hien ? String(row.thoi_gian_thuc_hien) : '',
+          timeline: '',
+          status: 'Đang triển khai',
+          initial_tmdt: tmdtValue,
+          currentTmdt: currentTmdt,
+          tmdt_history: tmdtHistory,
+        };
+      });
 
       localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(mappedProjects));
     }
@@ -67,6 +84,14 @@ export async function syncFromSupabase(userId) {
         const vatRate = Number(row.vat || 10);
         const afterVAT = Number(row.gia_tri_sau_vat || 0);
         const vatAmount = afterVAT - beforeVAT;
+        // Parse phu_luc JSONB from DB
+        let appendices = [];
+        try {
+          if (row.phu_luc) {
+            appendices = typeof row.phu_luc === 'string' ? JSON.parse(row.phu_luc) : row.phu_luc;
+            if (!Array.isArray(appendices)) appendices = [];
+          }
+        } catch (e) { appendices = []; }
         return {
           id: String(row.id),
           project_id: String(row.project_id || ''),
@@ -86,10 +111,11 @@ export async function syncFromSupabase(userId) {
           costGroupNote: '',
           estimated_settlement_value: afterVAT,
           status: 'in_progress',
-          appendices: [],
+          appendices: appendices,
         };
       });
 
+      // Will attach appendices after fetching phu_luc_hop_dong below
       localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(mappedContracts));
     }
 
@@ -123,6 +149,55 @@ export async function syncFromSupabase(userId) {
       localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(mappedPayments));
     }
 
+    // 4. Fetch from 'phu_luc_hop_dong' table and attach to contracts
+    const { data: phuLucRows, error: plErr } = await supabase
+      .from('phu_luc_hop_dong')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+
+    if (plErr) {
+      // Table may not exist yet — non-fatal, just skip
+      console.warn('Supabase fetch phu_luc_hop_dong info:', plErr.message);
+    } else if (Array.isArray(phuLucRows)) {
+      // Group appendices by contract_id
+      const appendicesByContract = {};
+      for (const row of phuLucRows) {
+        const cid = String(row.contract_id);
+        if (!appendicesByContract[cid]) appendicesByContract[cid] = [];
+        appendicesByContract[cid].push({
+          id: String(row.id),
+          contractId: cid,
+          project_id: String(row.project_id || ''),
+          appendix_number: row.so_phu_luc || '',
+          content: row.noi_dung || '',
+          signed_date: row.ngay_ky || '',
+          amount_before_vat: Number(row.gia_tri_truoc_vat || 0),
+          vat_rate: Number(row.vat || 10),
+          vat_amount: Math.round(Number(row.gia_tri_truoc_vat || 0) * Number(row.vat || 10) / 100),
+          amount_after_vat: Number(row.gia_tri_sau_vat || 0),
+          note: row.ghi_chu || '',
+          created_at: row.created_at || '',
+        });
+      }
+
+      // Re-read contracts from localStorage, attach appendices + compute totals
+      const storedContracts = JSON.parse(localStorage.getItem(STORAGE_KEYS.CONTRACTS) || '[]');
+      const contractsWithAppendices = storedContracts.map(c => {
+        const appList = appendicesByContract[String(c.id)] || [];
+        const totalAppendicesAfterVAT = appList.reduce((s, a) => s + Number(a.amount_after_vat || 0), 0);
+        const baseValue = Number(c.contract_value || c.contractValueAfterVAT || 0);
+        return {
+          ...c,
+          appendices: appList,
+          totalAppendicesAfterVAT: totalAppendicesAfterVAT,
+          initialContractValueAfterVAT: baseValue,
+          contractValueAfterVAT: baseValue + totalAppendicesAfterVAT,
+        };
+      });
+      localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(contractsWithAppendices));
+    }
+
     return true;
   } catch (err) {
     console.error('Lỗi khi đồng bộ dữ liệu Supabase:', err);
@@ -133,6 +208,8 @@ export async function syncFromSupabase(userId) {
 export async function asyncSaveProjectToSupabase(project, userId) {
   if (!isSupabaseConfigured || !supabase || !userId) return;
   try {
+    // Use currentTmdt (latest adjusted value) if available, otherwise fall back to initial_tmdt
+    const latestTmdt = Number(project.currentTmdt || project.initial_tmdt || 0);
     const payload = {
       id: project.id,
       user_id: userId,
@@ -140,8 +217,9 @@ export async function asyncSaveProjectToSupabase(project, userId) {
       ten_du_an: project.name || '',
       dia_chi: project.address || project.location || '',
       chu_dau_tu: project.investor || '',
-      tong_muc_dau_tu: Number(project.initial_tmdt || 0),
+      tong_muc_dau_tu: latestTmdt,
       thoi_gian_thuc_hien: project.execution_time ? parseInt(project.execution_time, 10) || null : null,
+      tmdt_history: Array.isArray(project.tmdt_history) ? project.tmdt_history : [],
     };
 
     const { data, error } = await supabase.from('du_an').upsert(payload);
@@ -196,6 +274,7 @@ export async function asyncSaveContractToSupabase(contract, userId) {
       tien_do_hop_dong: Number(contract.execution_days || 0) || null,
       ngay_ket_thuc: contract.end_date || null,
       nhom_chi_phi: contract.costGroup || '',
+      phu_luc: Array.isArray(contract.appendices) ? contract.appendices : [],
     };
 
     const { data, error } = await supabase.from('hop_dong').upsert(payload);
@@ -253,6 +332,56 @@ export async function asyncSavePaymentToSupabase(payment, userId) {
     return data;
   } catch (e) {
     console.error('Lỗi asyncSavePaymentToSupabase:', e);
+    throw e;
+  }
+}
+
+// ==========================================
+// SUPABASE CRUD — PHỤ LỤC HỢP ĐỒNG (phu_luc_hop_dong)
+// ==========================================
+
+export async function asyncSaveAppendixToSupabase(appendix, userId) {
+  if (!isSupabaseConfigured || !supabase || !userId) return;
+  try {
+    const payload = {
+      id: appendix.id,
+      user_id: userId,
+      contract_id: appendix.contractId || appendix.contract_id,
+      project_id: appendix.project_id || appendix.projectId || null,
+      so_phu_luc: appendix.appendix_number || '',
+      noi_dung: appendix.content || '',
+      ngay_ky: appendix.signed_date || null,
+      gia_tri_truoc_vat: Number(appendix.amount_before_vat || 0),
+      vat: Number(appendix.vat_rate || 10),
+      gia_tri_sau_vat: Number(appendix.amount_after_vat || 0),
+      ghi_chu: appendix.note || '',
+    };
+    const { data, error } = await supabase.from('phu_luc_hop_dong').upsert(payload);
+    if (error) {
+      console.error('Supabase save phu_luc_hop_dong error:', error.message, error);
+      throw error;
+    }
+    return data;
+  } catch (e) {
+    console.error('Lỗi asyncSaveAppendixToSupabase:', e);
+    throw e;
+  }
+}
+
+export async function asyncDeleteAppendixFromSupabase(appendixId, userId) {
+  if (!isSupabaseConfigured || !supabase || !userId) return;
+  try {
+    const { error } = await supabase
+      .from('phu_luc_hop_dong')
+      .delete()
+      .eq('id', appendixId)
+      .eq('user_id', userId);
+    if (error) {
+      console.error('Supabase delete phu_luc_hop_dong error:', error.message, error);
+      throw error;
+    }
+  } catch (e) {
+    console.error('Lỗi asyncDeleteAppendixFromSupabase:', e);
     throw e;
   }
 }
@@ -876,11 +1005,13 @@ export async function addTmdtAdjustmentPhase(projectId, adjustmentData, userId) 
   const updatedHistory = [...currentHistory, newAdjustment];
 
   let updatedTargetProj = null;
+  const newTmdtValue = Number(adjustmentData.amount);
   const updatedProjects = projects.map(p => {
     if (p.id === projectId) {
       updatedTargetProj = {
         ...p,
         initial_tmdt: initialAmt,
+        currentTmdt: newTmdtValue,
         tmdt_history: updatedHistory,
       };
       return updatedTargetProj;
@@ -920,10 +1051,12 @@ export async function updateTmdtAdjustmentPhase(projectId, phaseId, updatedData,
     return item;
   });
 
+  // Recalculate currentTmdt from the latest entry in history
+  const latestAmount = updatedHistory.length > 0 ? Number(updatedHistory[updatedHistory.length - 1].amount) : (targetProj.initial_tmdt || 0);
   let updatedTargetProj = null;
   const updatedProjects = projects.map(p => {
     if (p.id === projectId) {
-      updatedTargetProj = { ...p, tmdt_history: updatedHistory };
+      updatedTargetProj = { ...p, tmdt_history: updatedHistory, currentTmdt: latestAmount };
       return updatedTargetProj;
     }
     return p;
@@ -956,10 +1089,12 @@ export async function deleteTmdtAdjustmentPhase(projectId, phaseId, userId) {
     phase_label: `Lần ${idx + 1}`
   }));
 
+  // Recalculate currentTmdt from remaining history
+  const latestAmount = reIndexedHistory.length > 0 ? Number(reIndexedHistory[reIndexedHistory.length - 1].amount) : (targetProj.initial_tmdt || 0);
   let updatedTargetProj = null;
   const updatedProjects = projects.map(p => {
     if (p.id === projectId) {
-      updatedTargetProj = { ...p, tmdt_history: reIndexedHistory };
+      updatedTargetProj = { ...p, tmdt_history: reIndexedHistory, currentTmdt: latestAmount };
       return updatedTargetProj;
     }
     return p;
@@ -1330,24 +1465,31 @@ export async function saveContractAppendix(contractId, appendixData, userId) {
   const vatAmount = Math.round(amountBeforeVat * (vatRate / 100));
   const amountAfterVat = amountBeforeVat + vatAmount;
 
-  let updatedAppendices;
+  let appendixToSave;
+
   if (appendixData.id) {
-    updatedAppendices = currentAppendices.map(a => a.id === appendixData.id ? {
-      ...a,
+    // Editing existing appendix
+    appendixToSave = {
+      ...currentAppendices.find(a => a.id === appendixData.id),
       ...appendixData,
+      id: appendixData.id,
+      contractId: contractId,
+      contract_id: contractId,
+      project_id: targetContract.project_id,
       vat_rate: vatRate,
       amount_before_vat: amountBeforeVat,
       vat_amount: vatAmount,
       amount_after_vat: amountAfterVat,
-    } : a);
+    };
   } else {
+    // Creating new appendix
     const nextNum = currentAppendices.length + 1;
     const defaultAppendixNumber = `PLHĐ-${nextNum.toString().padStart(2, '0')}`;
-
-    const newAppendix = {
-      id: 'app-' + Date.now(),
+    appendixToSave = {
+      id: crypto.randomUUID(),
       contractId: contractId,
-      projectId: targetContract.project_id,
+      contract_id: contractId,
+      project_id: targetContract.project_id,
       appendix_number: appendixData.appendix_number || defaultAppendixNumber,
       content: appendixData.content || '',
       amount_before_vat: amountBeforeVat,
@@ -1358,56 +1500,78 @@ export async function saveContractAppendix(contractId, appendixData, userId) {
       note: appendixData.note || '',
       created_at: new Date().toISOString(),
     };
-    updatedAppendices = [...currentAppendices, newAppendix];
   }
 
-  let updatedTargetContract = null;
+  // Save to Supabase (source of truth)
+  if (userId) {
+    try {
+      await asyncSaveAppendixToSupabase(appendixToSave, userId);
+    } catch (e) {
+      throw new Error('Không thể lưu phụ lục vào Supabase: ' + (e?.message || String(e)));
+    }
+  }
+
+  // Update local cache optimistically
+  let updatedAppendices;
+  if (appendixData.id) {
+    updatedAppendices = currentAppendices.map(a => a.id === appendixData.id ? appendixToSave : a);
+  } else {
+    updatedAppendices = [...currentAppendices, appendixToSave];
+  }
+
+  const totalAppendicesAfterVAT = updatedAppendices.reduce((s, a) => s + Number(a.amount_after_vat || 0), 0);
+  const baseValue = Number(targetContract.contract_value || 0);
+
   const updatedContracts = contracts.map(c => {
     if (c.id === contractId) {
-      updatedTargetContract = {
+      return {
         ...c,
-        appendices: updatedAppendices
+        appendices: updatedAppendices,
+        totalAppendicesAfterVAT: totalAppendicesAfterVAT,
+        initialContractValueAfterVAT: baseValue,
+        contractValueAfterVAT: baseValue + totalAppendicesAfterVAT,
       };
-      return updatedTargetContract;
     }
     return c;
   });
 
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
-
-  if (userId && updatedTargetContract) {
-    await asyncSaveContractToSupabase(updatedTargetContract, userId);
-  }
-
   return updatedContracts;
 }
 
 export async function deleteContractAppendix(contractId, appendixId, userId) {
+  // Delete from Supabase first (source of truth)
+  if (userId) {
+    try {
+      await asyncDeleteAppendixFromSupabase(appendixId, userId);
+    } catch (e) {
+      throw new Error('Không thể xóa phụ lục khỏi Supabase: ' + (e?.message || String(e)));
+    }
+  }
+
+  // Update local cache
   const contracts = getContracts(Boolean(userId));
   const targetContract = contracts.find(c => c.id === contractId);
   if (!targetContract) return contracts;
 
   const currentAppendices = Array.isArray(targetContract.appendices) ? targetContract.appendices : [];
   const updatedAppendices = currentAppendices.filter(a => a.id !== appendixId);
+  const totalAppendicesAfterVAT = updatedAppendices.reduce((s, a) => s + Number(a.amount_after_vat || 0), 0);
+  const baseValue = Number(targetContract.contract_value || 0);
 
-  let updatedTargetContract = null;
   const updatedContracts = contracts.map(c => {
     if (c.id === contractId) {
-      updatedTargetContract = {
+      return {
         ...c,
-        appendices: updatedAppendices
+        appendices: updatedAppendices,
+        totalAppendicesAfterVAT: totalAppendicesAfterVAT,
+        contractValueAfterVAT: baseValue + totalAppendicesAfterVAT,
       };
-      return updatedTargetContract;
     }
     return c;
   });
 
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
-
-  if (userId && updatedTargetContract) {
-    await asyncSaveContractToSupabase(updatedTargetContract, userId);
-  }
-
   return updatedContracts;
 }
 
