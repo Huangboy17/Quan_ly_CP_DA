@@ -8,6 +8,7 @@ import {
   getTimeRangeBounds, 
   isDateInBounds 
 } from '../utils/formatters';
+import { supabase, isSupabaseConfigured } from './supabase';
 
 export const STORAGE_KEYS = {
   PROJECTS: 'ql_cp_projects_v4',
@@ -15,6 +16,191 @@ export const STORAGE_KEYS = {
   PAYMENTS: 'ql_cp_payments_v4',
   SETTINGS: 'ql_cp_settings_v4',
 };
+
+// --- SUPABASE SYNC & DATA MAPPING LAYER ---
+export async function syncFromSupabase() {
+  if (!isSupabaseConfigured || !supabase) return false;
+
+  try {
+    // 1. Fetch from 'hop_dong'
+    const { data: hopDongRows, error: cErr } = await supabase
+      .from('hop_dong')
+      .select('*');
+
+    if (cErr) {
+      console.warn('Supabase fetch hop_dong info:', cErr.message);
+    } else if (hopDongRows && Array.isArray(hopDongRows)) {
+      const mappedContracts = hopDongRows.map(row => {
+        const beforeVAT = Number(row.contractValueBeforeVAT || row.gia_tri_truoc_vat || row.contract_value_before_vat || row.contract_value || 0);
+        const vatRate = Number(row.vatRate !== undefined ? row.vatRate : (row.vat_rate !== undefined ? row.vat_rate : (row.thue_vat !== undefined ? row.thue_vat : 10)));
+        const vatAmount = Number(row.vatAmount || row.vat_amount || row.tien_vat || Math.round(beforeVAT * (vatRate / 100)));
+        const afterVAT = Number(row.contractValueAfterVAT || row.gia_tri_sau_vat || row.contract_value_after_vat || row.gia_tri_hd || row.contract_value || (beforeVAT + vatAmount));
+
+        let appendices = [];
+        const rawApp = row.appendices || row.phu_luc;
+        if (Array.isArray(rawApp)) {
+          appendices = rawApp;
+        } else if (typeof rawApp === 'string') {
+          try { appendices = JSON.parse(rawApp); } catch(e) {}
+        }
+
+        return {
+          id: String(row.id || row.ma_hd || ('c-' + Date.now())),
+          project_id: String(row.project_id || row.ma_du_an || row.projectId || 'p-101'),
+          contract_number: row.contract_number || row.so_hd || row.contractNumber || '',
+          content: row.content || row.noi_dung || '',
+          contractor: row.contractor || row.nha_thau || '',
+          contractValueBeforeVAT: beforeVAT,
+          vatRate: vatRate,
+          vatAmount: vatAmount,
+          contractValueAfterVAT: afterVAT,
+          contract_value: afterVAT,
+          signing_date: row.signing_date || row.ngay_ky || '',
+          duration_type: row.duration_type || 'days',
+          execution_days: Number(row.execution_days || row.so_ngay_thuc_hien || 0),
+          end_date: row.end_date || row.ngay_ket_thuc || '',
+          costGroup: row.costGroup || row.cost_group || row.nhom_chi_phi || '',
+          costGroupNote: row.costGroupNote || row.cost_group_note || '',
+          estimated_settlement_value: Number(row.estimated_settlement_value || row.gia_tri_quyettoan || afterVAT),
+          status: row.status || row.trang_thai || 'in_progress',
+          appendices: appendices,
+        };
+      });
+
+      if (mappedContracts.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(mappedContracts));
+      }
+    }
+
+    // 2. Fetch from 'thanh_toan_chi_phi'
+    const { data: thanhToanRows, error: pErr } = await supabase
+      .from('thanh_toan_chi_phi')
+      .select('*');
+
+    if (pErr) {
+      console.warn('Supabase fetch thanh_toan_chi_phi info:', pErr.message);
+    } else if (thanhToanRows && Array.isArray(thanhToanRows)) {
+      const mappedPayments = thanhToanRows.map(row => {
+        const beforeVAT = Number(row.amount_before_vat || row.gia_tri_truoc_vat || 0);
+        const vatRate = Number(row.vat_rate || row.thue_vat || 0);
+        const vatAmount = Number(row.vat_amount || row.tien_vat || Math.round(beforeVAT * (vatRate / 100)));
+        const afterVAT = Number(row.amount_after_vat || row.gia_tri_sau_vat || (beforeVAT + vatAmount));
+
+        return {
+          id: String(row.id || row.ma_tt || ('pm-' + Date.now())),
+          contract_id: String(row.contract_id || row.hop_dong_id || row.id_hop_dong || ''),
+          payment_phase: Number(row.payment_phase || row.dot_thanh_toan || 1),
+          payment_date: row.payment_date || row.ngay_thanh_toan || '',
+          amount_before_vat: beforeVAT,
+          vat_rate: vatRate,
+          vat_amount: vatAmount,
+          amount_after_vat: afterVAT,
+          note: row.note || row.ghi_chu || '',
+          payment_type: row.payment_type || row.loai_thanh_toan || '',
+          is_settlement: Boolean(row.is_settlement || row.is_quyettoan),
+        };
+      });
+
+      if (mappedPayments.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(mappedPayments));
+      }
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Lỗi khi đồng bộ dữ liệu Supabase:', err);
+    return false;
+  }
+}
+
+async function asyncSaveContractToSupabase(contract) {
+  if (!isSupabaseConfigured || !supabase) return;
+  try {
+    const payload = {
+      id: contract.id,
+      project_id: contract.project_id,
+      contract_number: contract.contract_number,
+      content: contract.content,
+      contractor: contract.contractor,
+      contract_value: contract.contractValueAfterVAT || contract.contract_value,
+      contractValueBeforeVAT: contract.contractValueBeforeVAT,
+      vatRate: contract.vatRate,
+      vatAmount: contract.vatAmount,
+      contractValueAfterVAT: contract.contractValueAfterVAT,
+      signing_date: contract.signing_date,
+      duration_type: contract.duration_type || 'days',
+      execution_days: contract.execution_days || 0,
+      end_date: contract.end_date,
+      costGroup: contract.costGroup || '',
+      costGroupNote: contract.costGroupNote || '',
+      estimated_settlement_value: contract.estimated_settlement_value,
+      status: contract.status || 'in_progress',
+      appendices: contract.appendices || [],
+
+      so_hd: contract.contract_number,
+      noi_dung: contract.content,
+      nha_thau: contract.contractor,
+      ma_du_an: contract.project_id,
+      gia_tri_hd: contract.contractValueAfterVAT || contract.contract_value,
+      ngay_ky: contract.signing_date,
+      trang_thai: contract.status || 'in_progress'
+    };
+
+    const { error } = await supabase.from('hop_dong').upsert(payload);
+    if (error) console.warn('Supabase save contract info:', error.message);
+  } catch (e) {
+    console.error('Lỗi asyncSaveContractToSupabase:', e);
+  }
+}
+
+async function asyncDeleteContractFromSupabase(id) {
+  if (!isSupabaseConfigured || !supabase) return;
+  try {
+    await supabase.from('hop_dong').delete().eq('id', id);
+    await supabase.from('thanh_toan_chi_phi').delete().eq('contract_id', id);
+  } catch (e) {
+    console.error('Lỗi asyncDeleteContractFromSupabase:', e);
+  }
+}
+
+async function asyncSavePaymentToSupabase(payment) {
+  if (!isSupabaseConfigured || !supabase) return;
+  try {
+    const payload = {
+      id: payment.id,
+      contract_id: payment.contract_id,
+      payment_phase: payment.payment_phase || 1,
+      payment_date: payment.payment_date,
+      amount_before_vat: payment.amount_before_vat,
+      vat_rate: payment.vat_rate,
+      vat_amount: payment.vat_amount,
+      amount_after_vat: payment.amount_after_vat,
+      note: payment.note || '',
+      payment_type: payment.payment_type || '',
+      is_settlement: Boolean(payment.is_settlement),
+
+      hop_dong_id: payment.contract_id,
+      dot_thanh_toan: payment.payment_phase || 1,
+      ngay_thanh_toan: payment.payment_date,
+      gia_tri_sau_vat: payment.amount_after_vat,
+      ghi_chu: payment.note || ''
+    };
+
+    const { error } = await supabase.from('thanh_toan_chi_phi').upsert(payload);
+    if (error) console.warn('Supabase save payment info:', error.message);
+  } catch (e) {
+    console.error('Lỗi asyncSavePaymentToSupabase:', e);
+  }
+}
+
+async function asyncDeletePaymentFromSupabase(id) {
+  if (!isSupabaseConfigured || !supabase) return;
+  try {
+    await supabase.from('thanh_toan_chi_phi').delete().eq('id', id);
+  } catch (e) {
+    console.error('Lỗi asyncDeletePaymentFromSupabase:', e);
+  }
+}
 
 // Initial Seed Projects Data
 const INITIAL_PROJECTS = [
@@ -738,6 +924,7 @@ export function getContracts() {
 export function saveContract(contract) {
   const contracts = getContracts();
   let updated;
+  let targetContractToSave;
 
   const beforeVAT = Number(contract.contractValueBeforeVAT || contract.contract_value || 0);
   const vatRate = Number(contract.vatRate !== undefined ? contract.vatRate : 10);
@@ -756,9 +943,10 @@ export function saveContract(contract) {
   };
 
   if (contract.id) {
-    updated = contracts.map(c => c.id === contract.id ? { ...c, ...contractToSave } : c);
+    targetContractToSave = { ...contractToSave };
+    updated = contracts.map(c => c.id === contract.id ? { ...c, ...targetContractToSave } : c);
   } else {
-    const newContract = {
+    targetContractToSave = {
       ...contractToSave,
       id: 'c-' + Date.now(),
       status: contract.status || 'in_progress',
@@ -766,9 +954,13 @@ export function saveContract(contract) {
         ? Number(contract.estimated_settlement_value)
         : afterVAT
     };
-    updated = [newContract, ...contracts];
+    updated = [targetContractToSave, ...contracts];
   }
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updated));
+
+  // Sync with Supabase 'hop_dong' table
+  asyncSaveContractToSupabase(targetContractToSave);
+
   return updated;
 }
 
@@ -778,6 +970,10 @@ export function deleteContract(id) {
   
   const payments = getPayments().filter(pm => pm.contract_id !== id);
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
+
+  // Sync with Supabase 'hop_dong' & 'thanh_toan_chi_phi' tables
+  asyncDeleteContractFromSupabase(id);
+
   return contracts;
 }
 
@@ -804,9 +1000,10 @@ export function settleContract(contractId, settlementData) {
     ? Math.max(...contractPayments.map(p => Number(p.payment_phase) || 0)) + 1 
     : 1;
 
+  let settledContractObj = null;
   const updatedContracts = contracts.map(c => {
     if (c.id === contractId) {
-      return {
+      settledContractObj = {
         ...c,
         status: 'settled',
         finalSettlementAmount: finalSettlementAmountAfterVAT,
@@ -815,6 +1012,7 @@ export function settleContract(contractId, settlementData) {
         settled_at: settlementData.settlement_date,
         settlement_note: settlementData.note,
       };
+      return settledContractObj;
     }
     return c;
   });
@@ -837,6 +1035,10 @@ export function settleContract(contractId, settlementData) {
   const updatedPayments = [settlementPayment, ...payments];
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(updatedPayments));
 
+  // Sync both with Supabase
+  if (settledContractObj) asyncSaveContractToSupabase(settledContractObj);
+  asyncSavePaymentToSupabase(settlementPayment);
+
   return { contracts: updatedContracts, payments: updatedPayments };
 }
 
@@ -853,6 +1055,7 @@ export function getPayments() {
 export function savePayment(payment) {
   const payments = getPayments();
   let updated;
+  let targetPaymentToSave;
 
   const beforeVAT = Number(payment.amount_before_vat || 0);
   const vatRate = Number(payment.vat_rate || 0);
@@ -868,21 +1071,30 @@ export function savePayment(payment) {
   };
 
   if (payment.id) {
-    updated = payments.map(p => p.id === payment.id ? { ...p, ...paymentToSave } : p);
+    targetPaymentToSave = { ...paymentToSave };
+    updated = payments.map(p => p.id === payment.id ? { ...p, ...targetPaymentToSave } : p);
   } else {
-    const newPayment = {
+    targetPaymentToSave = {
       ...paymentToSave,
       id: 'pm-' + Date.now()
     };
-    updated = [newPayment, ...payments];
+    updated = [targetPaymentToSave, ...payments];
   }
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(updated));
+
+  // Sync with Supabase 'thanh_toan_chi_phi' table
+  asyncSavePaymentToSupabase(targetPaymentToSave);
+
   return updated;
 }
 
 export function deletePayment(id) {
   const payments = getPayments().filter(p => p.id !== id);
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(payments));
+
+  // Sync with Supabase 'thanh_toan_chi_phi' table
+  asyncDeletePaymentFromSupabase(id);
+
   return payments;
 }
 
@@ -935,6 +1147,15 @@ export function importData(jsonData) {
   if (jsonData.settings) {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(jsonData.settings));
   }
+
+  // Bulk sync imported contracts and payments to Supabase
+  if (Array.isArray(jsonData.contracts)) {
+    jsonData.contracts.forEach(c => asyncSaveContractToSupabase(c));
+  }
+  if (Array.isArray(jsonData.payments)) {
+    jsonData.payments.forEach(p => asyncSavePaymentToSupabase(p));
+  }
+
   return true;
 }
 
@@ -981,17 +1202,24 @@ export function saveContractAppendix(contractId, appendixData) {
     updatedAppendices = [...currentAppendices, newAppendix];
   }
 
+  let updatedTargetContract = null;
   const updatedContracts = contracts.map(c => {
     if (c.id === contractId) {
-      return {
+      updatedTargetContract = {
         ...c,
         appendices: updatedAppendices
       };
+      return updatedTargetContract;
     }
     return c;
   });
 
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
+
+  if (updatedTargetContract) {
+    asyncSaveContractToSupabase(updatedTargetContract);
+  }
+
   return updatedContracts;
 }
 
@@ -1003,17 +1231,24 @@ export function deleteContractAppendix(contractId, appendixId) {
   const currentAppendices = Array.isArray(targetContract.appendices) ? targetContract.appendices : [];
   const updatedAppendices = currentAppendices.filter(a => a.id !== appendixId);
 
+  let updatedTargetContract = null;
   const updatedContracts = contracts.map(c => {
     if (c.id === contractId) {
-      return {
+      updatedTargetContract = {
         ...c,
         appendices: updatedAppendices
       };
+      return updatedTargetContract;
     }
     return c;
   });
 
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
+
+  if (updatedTargetContract) {
+    asyncSaveContractToSupabase(updatedTargetContract);
+  }
+
   return updatedContracts;
 }
 

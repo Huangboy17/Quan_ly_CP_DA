@@ -13,8 +13,11 @@ import PaymentModal from './components/payments/PaymentModal';
 import ProjectsView from './components/projects/ProjectsView';
 import ProjectModal from './components/projects/ProjectModal';
 import ExcelImportModal from './components/common/ExcelImportModal';
+import LoginView from './components/auth/LoginView';
+import { supabase, isSupabaseConfigured } from './services/supabase';
 import { 
   getAggregatedData, 
+  syncFromSupabase,
   saveContract, 
   deleteContract, 
   savePayment, 
@@ -46,7 +49,38 @@ export default function App() {
   const [globalSearch, setGlobalSearch] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('');
 
-  // Global Time & Project Filter State - Restored from LocalStorage if available
+  // Supabase Auth State
+  const [userSession, setUserSession] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  // Handle Supabase Auth Session
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      setIsAuthLoading(false);
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserSession(session);
+      setIsAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserSession(session);
+      setIsAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+      setUserSession(null);
+    }
+  };
+
+  // Global Time & Project Filter State
   const [timeFilter, setTimeFilter] = useState(() => {
     const saved = getSavedSettings();
     return saved?.timeFilter || {
@@ -59,14 +93,14 @@ export default function App() {
     };
   });
 
-  // SINGLE SOURCE OF TRUTH: selectedProjectId is ALWAYS 100% derived from timeFilter.project_id!
+  // SINGLE SOURCE OF TRUTH: selectedProjectId is derived from timeFilter.project_id
   const selectedProjectId = timeFilter.project_id || '';
 
   const handleSetSelectedProjectId = useCallback((pId) => {
     setTimeFilter(prev => ({ ...prev, project_id: pId || '' }));
   }, []);
 
-  // Autosave timeFilter settings to LocalStorage whenever modified
+  // Autosave timeFilter settings
   useEffect(() => {
     saveSettings({ timeFilter });
   }, [timeFilter]);
@@ -97,8 +131,11 @@ export default function App() {
     setIsExcelImportModalOpen(true);
   };
 
-  // Load and refresh state directly from LocalStorage Repository using timeFilter
-  const refreshData = useCallback(() => {
+  // Load and refresh state directly from Supabase & Local Data Engine
+  const refreshData = useCallback(async () => {
+    if (isSupabaseConfigured) {
+      await syncFromSupabase();
+    }
     const agg = getAggregatedData(timeFilter);
     setData(agg);
   }, [timeFilter]);
@@ -115,7 +152,7 @@ export default function App() {
     }
   }, [data, viewingContract]);
 
-  // Handlers for Contracts (Autosaved to LocalStorage)
+  // Handlers for Contracts
   const handleOpenNewContract = () => {
     setEditingContract(null);
     setIsContractModalOpen(true);
@@ -126,12 +163,12 @@ export default function App() {
     setIsContractModalOpen(true);
   };
 
-  const handleSaveContract = (contractData) => {
+  const handleSaveContract = async (contractData) => {
     saveContract(contractData);
-    refreshData();
+    await refreshData();
   };
 
-  const handleDeleteContract = (contractId) => {
+  const handleDeleteContract = async (contractId) => {
     deleteContract(contractId);
     if (selectedContractId && String(selectedContractId) === String(contractId)) {
       setSelectedContractId('');
@@ -139,10 +176,10 @@ export default function App() {
         setActiveTab('contracts');
       }
     }
-    refreshData();
+    await refreshData();
   };
 
-  // Standardized Contract Detail Navigation across entire App
+  // Standardized Contract Detail Navigation
   const handleViewContractDossier = (contractOrId) => {
     const cId = typeof contractOrId === 'object' && contractOrId !== null ? contractOrId.id : contractOrId;
     if (cId) {
@@ -153,7 +190,7 @@ export default function App() {
 
   const handleViewContractDetail = handleViewContractDossier;
 
-  // Handlers for Contract Appendices (Phụ Lục Hợp Đồng)
+  // Handlers for Contract Appendices
   const handleOpenAppendixModal = (cId = '') => {
     setAppendixToEdit(null);
     setAppendixInitialContractId(typeof cId === 'string' ? cId : '');
@@ -166,17 +203,17 @@ export default function App() {
     setIsAppendixModalOpen(true);
   };
 
-  const handleSaveContractAppendix = (cId, appendixData) => {
+  const handleSaveContractAppendix = async (cId, appendixData) => {
     saveContractAppendix(cId, appendixData);
-    refreshData();
+    await refreshData();
   };
 
-  const handleDeleteContractAppendix = (cId, appId) => {
+  const handleDeleteContractAppendix = async (cId, appId) => {
     deleteContractAppendix(cId, appId);
-    refreshData();
+    await refreshData();
   };
 
-  // Handlers for Payments (Autosaved to LocalStorage)
+  // Handlers for Payments
   const handleOpenNewPayment = (initialContractId = '') => {
     setEditingPayment(null);
     setPaymentInitialContractId(typeof initialContractId === 'string' ? initialContractId : '');
@@ -195,17 +232,17 @@ export default function App() {
     setIsPaymentModalOpen(true);
   };
 
-  const handleSavePayment = (paymentData) => {
+  const handleSavePayment = async (paymentData) => {
     savePayment(paymentData);
-    refreshData();
+    await refreshData();
   };
 
-  const handleDeletePayment = (paymentId) => {
+  const handleDeletePayment = async (paymentId) => {
     deletePayment(paymentId);
-    refreshData();
+    await refreshData();
   };
 
-  // Handlers for Projects (Autosaved to LocalStorage)
+  // Handlers for Projects
   const handleOpenNewProject = () => {
     setEditingProject(null);
     setIsProjectModalOpen(true);
@@ -216,30 +253,30 @@ export default function App() {
     setIsProjectModalOpen(true);
   };
 
-  const handleSaveProject = (projectData) => {
+  const handleSaveProject = async (projectData) => {
     saveProject(projectData);
-    refreshData();
+    await refreshData();
   };
 
-  const handleDeleteProject = (projectId) => {
+  const handleDeleteProject = async (projectId) => {
     const result = deleteProject(projectId);
     if (selectedProjectId === projectId) {
       handleSetSelectedProjectId('');
     }
-    refreshData();
+    await refreshData();
     return result;
   };
 
-  const handleDeleteAllProjects = () => {
+  const handleDeleteAllProjects = async () => {
     const result = deleteAllProjects();
     handleSetSelectedProjectId('');
-    refreshData();
+    await refreshData();
     return result;
   };
 
-  const handleSettleContract = (contractId, settlementData) => {
+  const handleSettleContract = async (contractId, settlementData) => {
     settleContract(contractId, settlementData);
-    refreshData();
+    await refreshData();
   };
 
   const handleSelectCostGroupFilter = useCallback((groupName, projectId = null) => {
@@ -250,6 +287,30 @@ export default function App() {
     }));
     setActiveTab('contracts');
   }, []);
+
+  // Render Loading Spinner while checking Auth session
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center font-sans">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <span className="text-xs text-slate-400 font-mono">Đang kiểm tra kết nối Supabase...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Require user authentication before accessing financial management system
+  if (isSupabaseConfigured && !userSession) {
+    return (
+      <LoginView 
+        onLoginSuccess={(session) => {
+          setUserSession(session);
+          refreshData();
+        }} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
@@ -264,6 +325,8 @@ export default function App() {
         onDataChange={refreshData}
         globalSearch={globalSearch}
         setGlobalSearch={setGlobalSearch}
+        userSession={userSession}
+        onLogout={handleLogout}
       />
 
       {/* Sticky Global Time & Project Filter Header Bar */}
@@ -358,17 +421,17 @@ export default function App() {
               onEditProject={handleOpenEditProject}
               onDeleteProject={handleDeleteProject}
               onDeleteAllProjects={handleDeleteAllProjects}
-              onAddTmdtPhase={(projectId, phaseData) => {
+              onAddTmdtPhase={async (projectId, phaseData) => {
                 addTmdtAdjustmentPhase(projectId, phaseData);
-                refreshData();
+                await refreshData();
               }}
-              onUpdateTmdtPhase={(projectId, phaseId, phaseData) => {
+              onUpdateTmdtPhase={async (projectId, phaseId, phaseData) => {
                 updateTmdtAdjustmentPhase(projectId, phaseId, phaseData);
-                refreshData();
+                await refreshData();
               }}
-              onDeleteTmdtPhase={(projectId, phaseId) => {
+              onDeleteTmdtPhase={async (projectId, phaseId) => {
                 deleteTmdtAdjustmentPhase(projectId, phaseId);
-                refreshData();
+                await refreshData();
               }}
               onOpenExcelImport={handleOpenExcelImport}
               onViewContractDetail={handleViewContractDetail}
