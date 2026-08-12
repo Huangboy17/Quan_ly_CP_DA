@@ -16,8 +16,7 @@ import ExcelImportModal from './components/common/ExcelImportModal';
 import LoginView from './components/auth/LoginView';
 import { supabase, isSupabaseConfigured } from './services/supabase';
 import { 
-  getAggregatedData, 
-  syncFromSupabase,
+  getAggregatedDataAsync,
   saveContract, 
   deleteContract, 
   savePayment, 
@@ -131,12 +130,9 @@ export default function App() {
     setIsExcelImportModalOpen(true);
   };
 
-  // Load and refresh state directly from Supabase & Local Data Engine
+  // Load and refresh state directly from Supabase DB
   const refreshData = useCallback(async () => {
-    if (isSupabaseConfigured) {
-      await syncFromSupabase();
-    }
-    const agg = getAggregatedData(timeFilter);
+    const agg = await getAggregatedDataAsync(timeFilter);
     setData(agg);
   }, [timeFilter]);
 
@@ -164,12 +160,12 @@ export default function App() {
   };
 
   const handleSaveContract = async (contractData) => {
-    saveContract(contractData);
+    await saveContract(contractData);
     await refreshData();
   };
 
   const handleDeleteContract = async (contractId) => {
-    deleteContract(contractId);
+    await deleteContract(contractId);
     if (selectedContractId && String(selectedContractId) === String(contractId)) {
       setSelectedContractId('');
       if (activeTab === 'contract-dossier') {
@@ -204,12 +200,12 @@ export default function App() {
   };
 
   const handleSaveContractAppendix = async (cId, appendixData) => {
-    saveContractAppendix(cId, appendixData);
+    await saveContractAppendix(cId, appendixData);
     await refreshData();
   };
 
   const handleDeleteContractAppendix = async (cId, appId) => {
-    deleteContractAppendix(cId, appId);
+    await deleteContractAppendix(cId, appId);
     await refreshData();
   };
 
@@ -233,12 +229,12 @@ export default function App() {
   };
 
   const handleSavePayment = async (paymentData) => {
-    savePayment(paymentData);
+    await savePayment(paymentData);
     await refreshData();
   };
 
   const handleDeletePayment = async (paymentId) => {
-    deletePayment(paymentId);
+    await deletePayment(paymentId);
     await refreshData();
   };
 
@@ -254,12 +250,12 @@ export default function App() {
   };
 
   const handleSaveProject = async (projectData) => {
-    saveProject(projectData);
+    await saveProject(projectData);
     await refreshData();
   };
 
   const handleDeleteProject = async (projectId) => {
-    const result = deleteProject(projectId);
+    const result = await deleteProject(projectId);
     if (selectedProjectId === projectId) {
       handleSetSelectedProjectId('');
     }
@@ -268,14 +264,14 @@ export default function App() {
   };
 
   const handleDeleteAllProjects = async () => {
-    const result = deleteAllProjects();
+    const result = await deleteAllProjects();
     handleSetSelectedProjectId('');
     await refreshData();
     return result;
   };
 
   const handleSettleContract = async (contractId, settlementData) => {
-    settleContract(contractId, settlementData);
+    await settleContract(contractId, settlementData);
     await refreshData();
   };
 

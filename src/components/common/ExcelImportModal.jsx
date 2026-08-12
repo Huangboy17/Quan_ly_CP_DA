@@ -89,23 +89,23 @@ export default function ExcelImportModal({
     }
   };
 
-  const handleCommitImport = () => {
+  const handleCommitImport = async () => {
     if (!analysisResult || analysisResult.validRows.length === 0) return;
 
     setIsLoading(true);
     try {
       if (importType === 'projects') {
-        commitProjectImport(analysisResult.validRows);
+        await commitProjectImport(analysisResult.validRows);
       } else if (importType === 'contracts') {
-        commitContractImport(analysisResult.validRows);
+        await commitContractImport(analysisResult.validRows);
       } else if (importType === 'payments') {
-        commitPaymentImport(analysisResult.validRows);
+        await commitPaymentImport(analysisResult.validRows);
       }
 
-      if (onSuccess) onSuccess();
+      if (onSuccess) await onSuccess();
       onClose();
     } catch (err) {
-      setErrorMsg('Lỗi khi cam kết lưu dữ liệu: ' + err.message);
+      setErrorMsg('Lỗi khi lưu dữ liệu lên Supabase: ' + err.message);
     } finally {
       setIsLoading(false);
     }
