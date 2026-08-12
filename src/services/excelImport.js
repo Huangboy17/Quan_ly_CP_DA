@@ -199,23 +199,21 @@ export function validateAndPrepareProjectImport(rawRows, existingProjects = []) 
   };
 }
 
-export async function commitProjectImport(validRows) {
-  const currentProjects = await getProjects();
+export function commitProjectImport(validRows) {
+  const currentProjects = getProjects();
   const projectsMap = new Map();
   
   currentProjects.forEach(p => {
     projectsMap.set(p.id.toUpperCase(), p);
   });
 
-  const savedList = [];
-  for (const item of validRows) {
+  validRows.forEach(item => {
     const upperId = item.id.toUpperCase();
     const existing = projectsMap.get(upperId);
     
-    let projToSave;
     if (existing) {
       const updatedTmdt = item.initial_tmdt > 0 ? item.initial_tmdt : (existing.initial_tmdt || 0);
-      projToSave = {
+      const updatedProj = {
         ...existing,
         name: item.name,
         description: item.description || existing.description,
@@ -224,9 +222,10 @@ export async function commitProjectImport(validRows) {
         investor: item.investor || existing.investor || '',
         initial_tmdt: updatedTmdt,
       };
+      projectsMap.set(upperId, updatedProj);
     } else {
       const createdDate = new Date().toISOString().split('T')[0];
-      projToSave = {
+      const newProj = {
         id: item.id,
         code: item.code || item.id,
         name: item.name,
@@ -249,12 +248,13 @@ export async function commitProjectImport(validRows) {
           file_name: ''
         }] : []
       };
+      projectsMap.set(upperId, newProj);
     }
-    const saved = await saveProject(projToSave);
-    savedList.push(saved);
-  }
+  });
 
-  return savedList;
+  const updatedList = Array.from(projectsMap.values());
+  localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(updatedList));
+  return updatedList;
 }
 
 // ==========================================
@@ -423,22 +423,20 @@ export function validateAndPrepareContractImport(rawRows, existingProjects = [],
   };
 }
 
-export async function commitContractImport(validRows) {
-  const currentContracts = await getContracts();
+export function commitContractImport(validRows) {
+  const currentContracts = getContracts();
   const contractsMap = new Map();
 
   currentContracts.forEach(c => {
     if (c.contract_number) contractsMap.set(c.contract_number.toUpperCase(), c);
   });
 
-  const savedList = [];
-  for (const item of validRows) {
+  validRows.forEach(item => {
     const upperNum = item.contract_number.toUpperCase();
     const existing = contractsMap.get(upperNum);
 
-    let contractToSave;
     if (existing) {
-      contractToSave = {
+      const updatedContract = {
         ...existing,
         project_id: item.project_id,
         content: item.content || existing.content,
@@ -453,8 +451,9 @@ export async function commitContractImport(validRows) {
         end_date: item.end_date || existing.end_date,
         costGroup: item.costGroup !== undefined ? item.costGroup : (existing.costGroup || ''),
       };
+      contractsMap.set(upperNum, updatedContract);
     } else {
-      contractToSave = {
+      const newContract = {
         id: 'c-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
         project_id: item.project_id,
         contract_number: item.contract_number,
@@ -474,12 +473,13 @@ export async function commitContractImport(validRows) {
         status: 'in_progress',
         appendices: []
       };
+      contractsMap.set(upperNum, newContract);
     }
-    const saved = await saveContract(contractToSave);
-    savedList.push(saved);
-  }
+  });
 
-  return savedList;
+  const updatedList = Array.from(contractsMap.values());
+  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedList));
+  return updatedList;
 }
 
 // ==========================================
@@ -632,9 +632,9 @@ export function validateAndPreparePaymentImport(rawRows, existingProjects = [], 
   };
 }
 
-export async function commitPaymentImport(validRows) {
-  const currentPayments = await getPayments();
-  const currentContracts = await getContracts();
+export function commitPaymentImport(validRows) {
+  const currentPayments = getPayments();
+  const currentContracts = getContracts();
 
   const paymentsMap = new Map();
   currentPayments.forEach(pm => {
@@ -643,9 +643,8 @@ export async function commitPaymentImport(validRows) {
   });
 
   const settledContractIds = new Set();
-  const savedPaymentsList = [];
 
-  for (const item of validRows) {
+  validRows.forEach(item => {
     const key = item.compositeKey.toUpperCase();
     const existing = paymentsMap.get(key);
 
@@ -653,9 +652,8 @@ export async function commitPaymentImport(validRows) {
       settledContractIds.add(item.contract_id);
     }
 
-    let pmToSave;
     if (existing) {
-      pmToSave = {
+      const updatedPm = {
         ...existing,
         amount_before_vat: item.amount_before_vat,
         vat_rate: item.vat_rate,
@@ -663,8 +661,9 @@ export async function commitPaymentImport(validRows) {
         amount_after_vat: item.amount_after_vat,
         note: item.note || existing.note,
       };
+      paymentsMap.set(key, updatedPm);
     } else {
-      pmToSave = {
+      const newPm = {
         id: 'pm-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
         contract_id: item.contract_id,
         payment_phase: item.payment_phase,
@@ -677,23 +676,27 @@ export async function commitPaymentImport(validRows) {
         amount_after_vat: item.amount_after_vat,
         note: item.note,
       };
+      paymentsMap.set(key, newPm);
     }
-    const saved = await savePayment(pmToSave);
-    savedPaymentsList.push(saved);
-  }
+  });
+
+  const updatedPaymentsList = Array.from(paymentsMap.values());
+  localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(updatedPaymentsList));
 
   if (settledContractIds.size > 0) {
-    for (const c of currentContracts) {
+    const updatedContracts = currentContracts.map(c => {
       if (settledContractIds.has(c.id)) {
-        await saveContract({
+        return {
           ...c,
           status: 'settled',
-        });
+        };
       }
-    }
+      return c;
+    });
+    localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
   }
 
-  return savedPaymentsList;
+  return updatedPaymentsList;
 }
 
 // ==========================================

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../services/supabase';
+import { seedSampleDataToSupabase } from '../services/storage';
 
 const AuthContext = createContext({
   user: null,
@@ -27,6 +28,9 @@ export const AuthProvider = ({ children }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        seedSampleDataToSupabase(session.user.id);
+      }
       setLoading(false);
     });
 
@@ -34,6 +38,9 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        await seedSampleDataToSupabase(session.user.id);
+      }
       setLoading(false);
     });
 
