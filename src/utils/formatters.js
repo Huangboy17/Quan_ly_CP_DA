@@ -308,13 +308,29 @@ export function getTimeRangeBounds(filter) {
 }
 
 /**
- * Checks if a payment date string falls within [startDate, endDate].
+ * Checks if a date string falls within [startDate, endDate].
  */
 export function isDateInBounds(dateStr, startDate, endDate) {
   if (!dateStr) return false;
   if (startDate && dateStr < startDate) return false;
   if (endDate && dateStr > endDate) return false;
   return true;
+}
+
+/**
+ * Standardized Shared Helper: Filters any data array by timeFilter.
+ */
+export function filterByTimeRange(dataArray = [], timeFilter = {}, dateKey = 'payment_date') {
+  if (!Array.isArray(dataArray)) return [];
+  const bounds = getTimeRangeBounds(timeFilter);
+  const { startDate, endDate } = bounds;
+
+  if (!startDate && !endDate) return dataArray;
+
+  return dataArray.filter(item => {
+    const itemDate = item[dateKey] || item.created_at || item.signing_date || '';
+    return isDateInBounds(itemDate, startDate, endDate);
+  });
 }
 
 /**
@@ -340,4 +356,3 @@ export function removeVietnameseTones(str) {
   result = result.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return result.toLowerCase();
 }
-

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Building2, 
   FolderKanban, 
@@ -9,27 +9,20 @@ import {
   CreditCard, 
   Clock, 
   TrendingUp, 
-  DollarSign, 
   ShieldAlert,
   CheckCircle2,
   PieChart as PieIcon,
-  ChevronDown,
-  ChevronRight,
   Sparkles,
   ArrowUpRight,
-  AlertTriangle,
   ArrowRight,
-  ExternalLink,
   Calendar,
   UserCheck,
   MapPin,
   Tag,
-  AlertCircle,
   Activity,
-  Layers,
   X,
-  RotateCcw,
-  CheckCircle
+  CheckCircle,
+  Info
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -41,9 +34,7 @@ import {
   Tooltip, 
   PieChart, 
   Pie, 
-  Cell,
-  BarChart,
-  Bar
+  Cell
 } from 'recharts';
 import { formatVND, formatVNDCompact, formatDisplayDate, cleanVND, calcEndDate, calcDaysBetween } from '../../utils/formatters';
 import TmdtHistoryModal from './TmdtHistoryModal';
@@ -64,18 +55,29 @@ export default function ProjectsView({
   onOpenExcelImport,
   onViewContractDetail,
   onViewContractDossier,
+  selectedProjectId = '',
   setSelectedProjectId, 
   setActiveTab,
   globalSearch 
 }) {
-  const { projects = [], contracts = [], payments = [] } = data;
+  const { 
+    projects = [], 
+    contracts = [], 
+    payments = [], 
+    filteredPayments = [],
+    inPeriodPayments = [],
+    periodLabel = 'Tất cả thời gian',
+    timeFilter = {},
+    isTimeRangeFilterActive = false
+  } = data;
 
-  // Selected Project State - Default to first project if available
-  const [currentProjId, setCurrentProjId] = useState(() => {
-    return projects.length > 0 ? projects[0].id : '';
-  });
-
-  const activeProj = projects.find(p => p.id === currentProjId) || (projects.length > 0 ? projects[0] : null);
+  // Active Project: Automatically synced with selectedProjectId from Global Filter Header!
+  const activeProj = useMemo(() => {
+    if (selectedProjectId) {
+      return projects.find(p => String(p.id) === String(selectedProjectId)) || (projects.length > 0 ? projects[0] : null);
+    }
+    return projects.length > 0 ? projects[0] : null;
+  }, [projects, selectedProjectId]);
 
   // Modals State
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -99,13 +101,6 @@ export default function ProjectsView({
   const handleOpenDeleteModal = (proj) => {
     setDeletingProject(proj);
     setIsDeleteModalOpen(true);
-  };
-
-  const handleSelectProject = (pId) => {
-    setCurrentProjId(pId);
-    if (setSelectedProjectId) {
-      setSelectedProjectId(pId);
-    }
   };
 
   const handleOpenTmdtHistory = (proj) => {
@@ -143,9 +138,7 @@ export default function ProjectsView({
     }
   };
 
-  // ----------------------------------------------------
-  // EMPTY STATE (IF NO PROJECTS EXIST IN SYSTEM)
-  // ----------------------------------------------------
+  // EMPTY STATE
   if (!activeProj) {
     return (
       <div className="space-y-4 animate-fade-in">
@@ -182,22 +175,33 @@ export default function ProjectsView({
   }
 
   // ====================================================
-  // DATA CALCULATION FOR ACTIVE PROJECT
+  // DATA CALCULATION FOR ACTIVE PROJECT (SINGLE SOURCE OF TRUTH)
   // ====================================================
-
-  // Contracts & payments belonging ONLY to active project
   const projContracts = contracts.filter(c => String(c.project_id) === String(activeProj.id));
   const projContractIds = projContracts.map(c => c.id);
-  const projPayments = payments.filter(pm => projContractIds.includes(pm.contract_id));
 
-  // 1. TỔNG MỨC ĐẦU TƯ (TMĐT)
+  // All-time payments for active project
+  const projAllPayments = payments.filter(pm => projContractIds.includes(pm.contract_id));
+
+  // In-period payments for active project based on timeFilter
+  const activePaymentsForScope = useMemo(() => {
+    if (isTimeRangeFilterActive) {
+      const filtered = (inPeriodPayments.length > 0 ? inPeriodPayments : filteredPayments)
+        .filter(pm => projContractIds.includes(pm.contract_id));
+      return filtered;
+    }
+    return projAllPayments;
+  }, [isTimeRangeFilterActive, inPeriodPayments, filteredPayments, projContractIds, projAllPayments]);
+
+  // 1. TMĐT
   const currentTmdt = cleanVND(activeProj.currentTmdt || activeProj.initial_tmdt || 0);
 
   // 2. GIÁ TRỊ HỢP ĐỒNG ĐÃ KÝ
   const signedContracts = projContracts.reduce((sum, c) => sum + cleanVND(c.value_after_vat || c.contractValueAfterVAT || 0), 0);
 
-  // 3. ĐÃ THANH TOÁN THỰC TẾ
-  const totalPaid = projPayments.reduce((sum, pm) => sum + cleanVND(pm.amount_after_vat || 0), 0);
+  // 3. ĐÃ THANH TOÁN THỰC TẾ (Lũy kế toàn thời gian & Chi trong kỳ)
+  const totalPaidAllTime = projAllPayments.reduce((sum, pm) => sum + cleanVND(pm.amount_after_vat || 0), 0);
+  const totalPaidInPeriod = activePaymentsForScope.reduce((sum, pm) => sum + cleanVND(pm.amount_after_vat || 0), 0);
 
   // 4. DỰ KIẾN QUYẾT TOÁN
   const estimatedSettlement = projContracts.reduce((sum, c) => {
@@ -207,20 +211,19 @@ export default function ProjectsView({
     return sum + val;
   }, 0);
 
-  // 5. CÒN PHẢI THANH TOÁN = Dự kiến quyết toán - Đã thanh toán (Chặn không âm)
-  const remainingToPay = Math.max(0, cleanVND(estimatedSettlement - totalPaid));
+  // 5. CÒN PHẢI THANH TOÁN
+  const remainingToPay = Math.max(0, cleanVND(estimatedSettlement - totalPaidAllTime));
 
-  // 6. NGÂN SÁCH CÒN LẠI = TMĐT - Dự kiến quyết toán
+  // 6. NGÂN SÁCH CÒN LẠI
   const remainingBudget = cleanVND(currentTmdt - estimatedSettlement);
 
   // Percentage Ratios vs TMĐT
   const signedRatio = currentTmdt > 0 ? (signedContracts / currentTmdt) * 100 : 0;
-  const paidTmdtRatio = currentTmdt > 0 ? (totalPaid / currentTmdt) * 100 : 0;
+  const paidTmdtRatio = currentTmdt > 0 ? (totalPaidAllTime / currentTmdt) * 100 : 0;
   const settlementRatio = currentTmdt > 0 ? (estimatedSettlement / currentTmdt) * 100 : 0;
-  const paidSettlementRatio = estimatedSettlement > 0 ? (totalPaid / estimatedSettlement) * 100 : 0;
 
-  // SECTION 7: SỨC KHỎE TÀI CHÍNH DỰ ÁN
-  let healthStatus = 'GOOD'; // 'GOOD' | 'WARNING' | 'DANGER'
+  // SỨC KHỎE TÀI CHÍNH DỰ ÁN
+  let healthStatus = 'GOOD';
   if (remainingBudget < 0 || estimatedSettlement > currentTmdt) {
     healthStatus = 'DANGER';
   } else if (signedContracts > currentTmdt || settlementRatio >= 95) {
@@ -229,20 +232,20 @@ export default function ProjectsView({
     healthStatus = 'GOOD';
   }
 
-  // SECTION 5: TÌNH TRẠNG HỢP ĐỒNG (STATUS BREAKDOWN)
+  // TÌNH TRẠNG HỢP ĐỒNG (STATUS BREAKDOWN)
   const todayStr = new Date().toISOString().substring(0, 10);
 
-  let countInExecution = 0; // Đang thực hiện
-  let countDisbursing = 0;  // Đang giải ngân
-  let countSettled = 0;     // Đã quyết toán
-  let countNotDisbursed = 0;// Chưa giải ngân
-  let countOverdue = 0;     // Quá hạn
+  let countInExecution = 0;
+  let countDisbursing = 0;
+  let countSettled = 0;
+  let countNotDisbursed = 0;
+  let countOverdue = 0;
 
   projContracts.forEach(c => {
     const cEst = (c.settlement_amount_after_vat !== undefined && c.settlement_amount_after_vat !== null && c.settlement_amount_after_vat !== '')
       ? cleanVND(c.settlement_amount_after_vat)
       : cleanVND(c.value_after_vat || c.contractValueAfterVAT || 0);
-    const cPaid = projPayments.filter(p => p.contract_id === c.id).reduce((s, p) => s + cleanVND(p.amount_after_vat), 0);
+    const cPaid = projAllPayments.filter(p => p.contract_id === c.id).reduce((s, p) => s + cleanVND(p.amount_after_vat), 0);
 
     const signingDate = c.signing_date || '';
     const executionDays = Number(c.execution_days || 0);
@@ -262,18 +265,18 @@ export default function ProjectsView({
     }
   });
 
-  // SECTION 4: BIỂU ĐỒ CƠ CẤU NGÂN SÁCH DỰ ÁN (Pie / Donut Data)
+  // BIỂU ĐỒ CƠ CẤU NGÂN SÁCH DỰ ÁN (Pie / Donut Data)
   const budgetStructureData = [
-    { name: 'Đã thanh toán', value: totalPaid, color: '#10b981' },
+    { name: 'Đã thanh toán', value: totalPaidAllTime, color: '#10b981' },
     { name: 'Còn phải thanh toán', value: remainingToPay, color: '#f59e0b' },
     { name: 'Ngân sách còn lại', value: Math.max(0, remainingBudget), color: '#3b82f6' },
   ];
 
-  // SECTION 6: BIỂU ĐỒ DÒNG TIỀN THEO THỜI GIAN (Line/Area Chart Data)
+  // BIỂU ĐỒ DÒNG TIỀN THEO THỜI GIAN
   const monthlyDisbursementMap = {};
-  projPayments.forEach(pm => {
+  activePaymentsForScope.forEach(pm => {
     if (!pm.payment_date) return;
-    const mKey = pm.payment_date.substring(0, 7); // YYYY-MM
+    const mKey = pm.payment_date.substring(0, 7);
     monthlyDisbursementMap[mKey] = cleanVND((monthlyDisbursementMap[mKey] || 0) + cleanVND(pm.amount_after_vat));
   });
 
@@ -292,10 +295,9 @@ export default function ProjectsView({
     };
   });
 
-  // SECTION 8: KHU VỰC "CẦN QUAN TÂM" (RISK & ALERT SUMMARY)
+  // KHU VỰC CẦN QUAN TÂM (RISK & ALERT SUMMARY)
   const detailedRiskAlerts = [];
 
-  // 1. Quá hạn
   projContracts.forEach(c => {
     const signingDate = c.signing_date || '';
     const executionDays = Number(c.execution_days || 0);
@@ -326,7 +328,6 @@ export default function ProjectsView({
     }
   });
 
-  // 2. Vượt TMĐT hoặc Vượt giá trị HĐ
   if (remainingBudget < 0) {
     detailedRiskAlerts.push({
       id: 'proj_exceed_tmdt',
@@ -337,9 +338,8 @@ export default function ProjectsView({
     });
   }
 
-  // 3. Chưa giải ngân
   const notDisbursedContracts = projContracts.filter(c => {
-    const cPaid = projPayments.filter(p => p.contract_id === c.id).reduce((s, p) => s + cleanVND(p.amount_after_vat), 0);
+    const cPaid = projAllPayments.filter(p => p.contract_id === c.id).reduce((s, p) => s + cleanVND(p.amount_after_vat), 0);
     return cPaid === 0;
   });
 
@@ -353,15 +353,15 @@ export default function ProjectsView({
     });
   }
 
-  // SECTION 9: TÓM TẮT THANH TOÁN
-  const contractsWithPaymentsCount = new Set(projPayments.map(p => p.contract_id)).size;
-  const latestPayment = projPayments.length > 0 
-    ? [...projPayments].sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || ''))[0]
+  // TÓM TẮT THANH TOÁN
+  const contractsWithPaymentsCount = new Set(projAllPayments.map(p => p.contract_id)).size;
+  const latestPayment = projAllPayments.length > 0 
+    ? [...projAllPayments].sort((a, b) => (b.payment_date || '').localeCompare(a.payment_date || ''))[0]
     : null;
 
   const formattedAddress = activeProj.location || activeProj.address || 'Chưa cập nhật';
 
-  // Navigation Helper
+  // Navigation Helpers
   const navigateToContractsWithFilter = () => {
     if (setSelectedProjectId) setSelectedProjectId(activeProj.id);
     setActiveTab('contracts');
@@ -386,31 +386,20 @@ export default function ProjectsView({
         </div>
       )}
 
-      {/* ================================================== */}
-      {/* 1. HEADER DỰ ÁN COMPACT (Section 1) */}
-      {/* ================================================== */}
+      {/* HEADER DỰ ÁN COMPACT */}
       <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
         
-        {/* Row 1: Project Selector & Action Buttons */}
+        {/* Row 1: Action Buttons & Project Title Indicator */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-3.5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shrink-0">
               <Building2 className="w-5 h-5" />
             </div>
-
-            <div className="relative">
-              <select
-                value={activeProj.id}
-                onChange={(e) => handleSelectProject(e.target.value)}
-                className="appearance-none w-full sm:w-80 px-3.5 py-2 pr-9 bg-slate-800 border border-blue-500/50 hover:border-blue-400 rounded-xl text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition cursor-pointer shadow-md"
-              >
-                {projects.map(p => (
-                  <option key={p.id} value={p.id} className="bg-slate-900 text-white font-medium py-1">
-                    {p.name} ({formatVNDCompact(p.currentTmdt || p.initial_tmdt || 0)})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-blue-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">DỰ ÁN ĐANG QUẢN TRỊ TÀI CHÍNH</span>
+              <h2 className="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+                {activeProj.name}
+              </h2>
             </div>
           </div>
 
@@ -447,6 +436,22 @@ export default function ProjectsView({
             </button>
           </div>
         </div>
+
+        {/* Global Filter Project Status Banner */}
+        {selectedProjectId ? (
+          <div className="text-[11px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl font-medium flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>🟢 Đang hiển thị chi tiết theo dự án chọn trên Header: <strong className="text-white font-bold">{activeProj.name}</strong></span>
+          </div>
+        ) : (
+          <div className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl font-medium flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Info className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>ℹ️ Bạn đang chọn "Tất cả dự án" trên Header. Đang hiển thị chi tiết dự án đầu tiên: <strong className="text-white font-bold">{activeProj.name}</strong></span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-mono">Chọn 1 dự án trên Header để xem cụ thể</span>
+          </div>
+        )}
 
         {/* Row 2: Project Identification & Metadata Grid */}
         <div className="space-y-3">
@@ -512,21 +517,19 @@ export default function ProjectsView({
 
       </div>
 
-      {/* ================================================== */}
-      {/* 2. 6 KPI TÀI CHÍNH CỐT LÕI (Section 2 - Drill-down enabled) */}
-      {/* ================================================== */}
+      {/* 6 KPI TÀI CHÍNH CỐT LÕI */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-blue-400" />
-            6 CHỈ TIÊU TÀI CHÍNH CỐT LÕI
+            6 CHỈ TIÊU TÀI CHÍNH CỐT LÕI ({periodLabel})
           </h3>
           <span className="text-[11px] text-slate-400 font-mono">Bấm vào card để chuyển sang module chi tiết</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           
-          {/* KPI 1: TỔNG MỨC ĐẦU TƯ (TMĐT) */}
+          {/* KPI 1: TMĐT */}
           <div 
             onClick={() => handleOpenTmdtHistory(activeProj)}
             className="p-4 rounded-xl bg-slate-900 border border-emerald-500/40 hover:border-emerald-400 transition cursor-pointer space-y-1.5 group shadow-md"
@@ -576,16 +579,20 @@ export default function ProjectsView({
             className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/60 transition cursor-pointer space-y-1.5 group shadow-md"
           >
             <div className="flex items-center justify-between text-emerald-400">
-              <span className="text-[11px] font-bold uppercase tracking-wider">3. ĐÃ THANH TOÁN THỰC TẾ</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider">
+                3. {isTimeRangeFilterActive ? `CHI TRẢ TRONG KỲ` : `ĐÃ THANH TOÁN THỰC TẾ`}
+              </span>
               <CreditCard className="w-4 h-4" />
             </div>
 
             <div className="text-xl font-black text-emerald-400 font-mono group-hover:text-emerald-300 transition">
-              {formatVND(totalPaid)}
+              {formatVND(isTimeRangeFilterActive ? totalPaidInPeriod : totalPaidAllTime)}
             </div>
 
             <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-400 text-[10px]">{projPayments.length} đợt phát sinh</span>
+              <span className="text-slate-400 text-[10px]">
+                {isTimeRangeFilterActive ? `Lũy kế all-time: ${formatVNDCompact(totalPaidAllTime)}` : `${projAllPayments.length} đợt phát sinh`}
+              </span>
               <span className="text-emerald-400 font-bold text-[11px]">{paidTmdtRatio.toFixed(1)}% TMĐT</span>
             </div>
           </div>
@@ -656,12 +663,10 @@ export default function ProjectsView({
         </div>
       </div>
 
-      {/* ================================================== */}
-      {/* 3 & 4. CƠ CẤU NGÂN SÁCH & TÌNH HÌNH HỢP ĐỒNG (GRID 2 COLS - Section 4 & 5) */}
-      {/* ================================================== */}
+      {/* CƠ CẤU NGÂN SÁCH & TÌNH HÌNH HỢP ĐỒNG */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* CARD 1: CƠ CẤU NGÂN SÁCH DỰ ÁN (Donut Chart - Section 4) */}
+        {/* CARD 1: CƠ CẤU NGÂN SÁCH DỰ ÁN */}
         <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -694,14 +699,12 @@ export default function ProjectsView({
               </PieChart>
             </ResponsiveContainer>
 
-            {/* Center text displays total TMĐT */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-[10px] text-slate-400 uppercase font-semibold">TỔNG TMĐT</span>
               <span className="text-xs font-black text-white font-mono">{formatVNDCompact(currentTmdt)}</span>
             </div>
           </div>
 
-          {/* Breakdown legend */}
           <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800">
             <div 
               onClick={navigateToPaymentsWithFilter}
@@ -710,7 +713,7 @@ export default function ProjectsView({
               <div className="flex items-center gap-1.5 text-slate-300 text-[11px]">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Đã thanh toán:
               </div>
-              <div className="font-mono font-bold text-emerald-400 text-xs mt-0.5">{formatVND(totalPaid)}</div>
+              <div className="font-mono font-bold text-emerald-400 text-xs mt-0.5">{formatVND(totalPaidAllTime)}</div>
             </div>
 
             <div 
@@ -734,7 +737,7 @@ export default function ProjectsView({
           </div>
         </div>
 
-        {/* CARD 2: TÌNH HÌNH HỢP ĐỒNG (Status Breakdown - Section 5 - Drill-down enabled) */}
+        {/* CARD 2: TÌNH HÌNH HỢP ĐỒNG */}
         <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
@@ -744,7 +747,6 @@ export default function ProjectsView({
             <span className="text-[11px] text-slate-400 font-mono">Tổng cộng: <strong className="text-white">{projContracts.length}</strong> hợp đồng</span>
           </div>
 
-          {/* Interactive Status Badges Grid */}
           <div className="grid grid-cols-2 gap-2.5 text-xs">
             
             <div 
@@ -755,7 +757,7 @@ export default function ProjectsView({
                 <span className="text-[11px] text-slate-400 block font-medium">Đang thực hiện</span>
                 <span className="font-mono font-bold text-blue-400 text-sm mt-0.5 block">{countInExecution} HĐ</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-500" />
+              <ArrowRight className="w-4 h-4 text-slate-500" />
             </div>
 
             <div 
@@ -766,7 +768,7 @@ export default function ProjectsView({
                 <span className="text-[11px] text-slate-400 block font-medium">Đang giải ngân</span>
                 <span className="font-mono font-bold text-emerald-400 text-sm mt-0.5 block">{countDisbursing} HĐ</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-500" />
+              <ArrowRight className="w-4 h-4 text-slate-500" />
             </div>
 
             <div 
@@ -777,7 +779,7 @@ export default function ProjectsView({
                 <span className="text-[11px] text-slate-400 block font-medium">Đã quyết toán</span>
                 <span className="font-mono font-bold text-cyan-300 text-sm mt-0.5 block">{countSettled} HĐ</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-500" />
+              <ArrowRight className="w-4 h-4 text-slate-500" />
             </div>
 
             <div 
@@ -788,7 +790,7 @@ export default function ProjectsView({
                 <span className="text-[11px] text-slate-400 block font-medium">Chưa giải ngân</span>
                 <span className="font-mono font-bold text-amber-400 text-sm mt-0.5 block">{countNotDisbursed} HĐ</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-500" />
+              <ArrowRight className="w-4 h-4 text-slate-500" />
             </div>
 
             <div 
@@ -804,7 +806,7 @@ export default function ProjectsView({
               </div>
               <div className="flex items-center gap-1">
                 <span className="font-mono font-bold text-rose-400 text-sm">{countOverdue} HĐ</span>
-                <ChevronRight className="w-4 h-4 text-rose-400" />
+                <ArrowRight className="w-4 h-4 text-rose-400" />
               </div>
             </div>
 
@@ -813,7 +815,7 @@ export default function ProjectsView({
           <div className="pt-2 border-t border-slate-800 flex justify-end">
             <button
               onClick={navigateToContractsWithFilter}
-              className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition"
+              className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition cursor-pointer"
             >
               Quản lý hợp đồng chi tiết <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -822,14 +824,12 @@ export default function ProjectsView({
 
       </div>
 
-      {/* ================================================== */}
-      {/* 5. BIỂU ĐỒ DÒNG TIỀN THEO THỜI GIAN (Section 6) */}
-      {/* ================================================== */}
+      {/* BIỂU ĐỒ DÒNG TIỀN THEO THỜI GIAN */}
       <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-emerald-400" />
-            DÒNG TIỀN DỰ ÁN (GIẢI NGÂN THEO THỜI GIAN)
+            DÒNG TIỀN DỰ ÁN (GIẢI NGÂN THEO THỜI GIAN - {periodLabel})
           </h3>
           <span className="text-[11px] text-slate-400 font-mono">Bấm vào điểm dữ liệu để chuyển sang Quản lý Thanh toán</span>
         </div>
@@ -840,8 +840,8 @@ export default function ProjectsView({
               <AreaChart 
                 data={cashflowChartData} 
                 margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
-                onClick={(data) => {
-                  if (data && data.activePayload && data.activePayload.length > 0) {
+                onClick={(chartData) => {
+                  if (chartData && chartData.activePayload && chartData.activePayload.length > 0) {
                     navigateToPaymentsWithFilter();
                   }
                 }}
@@ -880,19 +880,17 @@ export default function ProjectsView({
           <div className="h-48 flex items-center justify-center text-slate-500 text-xs italic bg-slate-950/40 rounded-xl border border-slate-800 space-y-2">
             <div className="text-center">
               <CreditCard className="w-8 h-8 text-slate-600 mx-auto mb-1" />
-              <p className="font-semibold text-slate-400">Chưa đủ dữ liệu thanh toán để vẽ biểu đồ dòng tiền.</p>
-              <p className="text-[11px] text-slate-500 mt-0.5">Vui lòng nhập đợt thanh toán cho dự án này để theo dõi tiến độ giải ngân.</p>
+              <p className="font-semibold text-slate-400">Chưa đủ dữ liệu thanh toán trong phạm vi chọn để vẽ biểu đồ dòng tiền.</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Vui lòng chọn phạm vi thời gian khác hoặc nhập đợt thanh toán cho dự án này.</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* ================================================== */}
-      {/* 6. SỨC KHỎE TÀI CHÍNH & KHU VỰC CẦN QUAN TÂM (GRID 2 COLS - Section 7 & 8) */}
-      {/* ================================================== */}
+      {/* SỨC KHỎE TÀI CHÍNH & KHU VỰC CẦN QUAN TÂM */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* CARD 1: SỨC KHỎE TÀI CHÍNH DỰ ÁN (Section 7) */}
+        {/* CARD 1: SỨC KHỎE TÀI CHÍNH DỰ ÁN */}
         <div className={`p-5 rounded-2xl border shadow-xl flex flex-col justify-between space-y-4 ${
           healthStatus === 'DANGER'
             ? 'bg-slate-900 border-rose-500/60'
@@ -918,7 +916,6 @@ export default function ProjectsView({
               </span>
             </div>
 
-            {/* Key Governance Ratios Grid */}
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
                 <span className="text-[10px] text-slate-400 uppercase font-semibold block">Đã thanh toán / TMĐT</span>
@@ -943,7 +940,6 @@ export default function ProjectsView({
               </div>
             </div>
 
-            {/* Sleek Budget Progress Bar */}
             <div className="space-y-1.5 pt-1">
               <div className="flex justify-between text-[11px] font-mono">
                 <span className="text-slate-400">Tiến độ sử dụng ngân sách dự kiến:</span>
@@ -961,7 +957,7 @@ export default function ProjectsView({
           </div>
         </div>
 
-        {/* CARD 2: CẦN QUAN TÂM (RISK SUMMARY WIDGET - Section 8) */}
+        {/* CARD 2: CẦN QUAN TÂM */}
         <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -972,13 +968,12 @@ export default function ProjectsView({
 
               <button
                 onClick={() => setIsAlertModalOpen(true)}
-                className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition"
+                className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition cursor-pointer"
               >
                 Xem tất cả cảnh báo <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Categorized Risk Summary Rows */}
             <div className="space-y-2 text-xs">
               {detailedRiskAlerts.slice(0, 4).map((alt) => (
                 <div 
@@ -995,7 +990,7 @@ export default function ProjectsView({
                   <div className="flex items-center gap-2 pr-2">
                     <span className="font-bold text-[11px] truncate">{alt.title}</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 shrink-0 opacity-70" />
+                  <ArrowRight className="w-4 h-4 shrink-0 opacity-70" />
                 </div>
               ))}
 
@@ -1011,17 +1006,15 @@ export default function ProjectsView({
 
       </div>
 
-      {/* ================================================== */}
-      {/* 7. TÓM TẮT THANH TOÁN & ĐIỀU HƯỚNG (Section 9) */}
-      {/* ================================================== */}
+      {/* TÓM TẮT THANH TOÁN */}
       <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
           <div>
             <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-emerald-400" />
-              TÌNH HÌNH THANH TOÁN TỔNG HỢP
+              TÌNH HÌNH THANH TOÁN TỔNG HỢP ({periodLabel})
             </h3>
-            <p className="text-[11px] text-slate-400">Tóm tắt tiến độ giải ngân của dự án (xem chi tiết tại Quản lý Thanh toán)</p>
+            <p className="text-[11px] text-slate-400">Tóm tắt tiến độ giải ngân của dự án trong phạm vi lọc đã chọn</p>
           </div>
 
           <button
@@ -1034,13 +1027,13 @@ export default function ProjectsView({
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs font-mono">
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-            <span className="text-[10px] text-slate-400 font-sans uppercase font-semibold block mb-0.5">Tổng Số Đợt Thanh Toán</span>
-            <span className="font-bold text-white text-sm">{projPayments.length} đợt phát sinh</span>
+            <span className="text-[10px] text-slate-400 font-sans uppercase font-semibold block mb-0.5">Số Đợt Chi Trong Kỳ</span>
+            <span className="font-bold text-white text-sm">{activePaymentsForScope.length} đợt</span>
           </div>
 
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-            <span className="text-[10px] text-slate-400 font-sans uppercase font-semibold block mb-0.5">Giá Trị Đã Thanh Toán</span>
-            <span className="font-bold text-emerald-400 text-sm">{formatVND(totalPaid)}</span>
+            <span className="text-[10px] text-slate-400 font-sans uppercase font-semibold block mb-0.5">Chi Trả Trong Kỳ</span>
+            <span className="font-bold text-emerald-400 text-sm">{formatVND(totalPaidInPeriod)}</span>
           </div>
 
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
@@ -1062,25 +1055,20 @@ export default function ProjectsView({
         </div>
       </div>
 
-      {/* ================================================== */}
-      {/* ALL ALERTS MODAL / DRAWER (Section 8 Detail View) */}
-      {/* ================================================== */}
+      {/* ALL ALERTS MODAL */}
       {isAlertModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-8">
-            
-            {/* Header */}
             <div className="px-6 py-4 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShieldAlert className="w-5 h-5 text-amber-400" />
                 <h3 className="text-base font-bold text-white">Danh Sách Cảnh Báo & Vấn Đề Cần Quan Tâm</h3>
               </div>
-              <button onClick={() => setIsAlertModalOpen(false)} className="p-1.5 text-slate-400 hover:text-white rounded-lg">
+              <button onClick={() => setIsAlertModalOpen(false)} className="p-1.5 text-slate-400 hover:text-white rounded-lg cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* List */}
             <div className="p-6 space-y-3 max-h-[70vh] overflow-y-auto text-xs">
               {detailedRiskAlerts.map((alt) => (
                 <div 
@@ -1114,24 +1102,20 @@ export default function ProjectsView({
               )}
             </div>
 
-            {/* Footer */}
             <div className="px-6 py-3 bg-slate-800/90 border-t border-slate-700/80 flex items-center justify-between">
               <span className="text-xs text-slate-400 font-mono">Tổng số: {detailedRiskAlerts.length} ghi nhận</span>
               <button
                 onClick={() => setIsAlertModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition"
+                className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition cursor-pointer"
               >
                 Đóng
               </button>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* ================================================== */}
-      {/* EXISTING SYSTEM MODALS LAYER */}
-      {/* ================================================== */}
+      {/* SYSTEM MODALS LAYER */}
       <TmdtHistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
@@ -1174,10 +1158,10 @@ export default function ProjectsView({
           onConfirmDelete={(projId) => {
             const result = onDeleteProject(projId);
             const remaining = projects.filter(p => p.id !== projId);
-            if (remaining.length > 0) {
-              handleSelectProject(remaining[0].id);
-            } else {
-              handleSelectProject('');
+            if (remaining.length > 0 && setSelectedProjectId) {
+              setSelectedProjectId(remaining[0].id);
+            } else if (setSelectedProjectId) {
+              setSelectedProjectId('');
             }
             return result;
           }}
@@ -1193,7 +1177,7 @@ export default function ProjectsView({
         onConfirmDeleteAll={() => {
           if (onDeleteAllProjects) {
             onDeleteAllProjects();
-            handleSelectProject('');
+            if (setSelectedProjectId) setSelectedProjectId('');
             setToastMsg('Đã xóa tất cả dự án thành công.');
             setTimeout(() => setToastMsg(''), 6000);
           }

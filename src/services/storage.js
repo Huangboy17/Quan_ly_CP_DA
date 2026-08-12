@@ -1,98 +1,111 @@
-/**
- * Storage Service / Repository Pattern Layer
- * Handles LocalStorage persistence, autosave, seed initialization, and JSON import/export.
- * Supports the 3-Value VAT Model & Multi-Phase Sequential TMĐT Adjustment History.
- */
-import { getTimeRangeBounds, isDateInBounds, cleanVND } from '../utils/formatters';
+import { 
+  formatVND, 
+  formatVNDCompact, 
+  formatDisplayDate, 
+  cleanVND, 
+  calcEndDate, 
+  calcDaysBetween, 
+  getTimeRangeBounds, 
+  isDateInBounds 
+} from '../utils/formatters';
 
 export const STORAGE_KEYS = {
-  PROJECTS: 'ql_cp_projects_v2',
-  CONTRACTS: 'ql_cp_contracts_v2',
-  PAYMENTS: 'ql_cp_payments_v2',
-  SETTINGS: 'ql_cp_settings_v2',
+  PROJECTS: 'ql_cp_projects_v4',
+  CONTRACTS: 'ql_cp_contracts_v4',
+  PAYMENTS: 'ql_cp_payments_v4',
+  SETTINGS: 'ql_cp_settings_v4',
 };
 
-// Seed Data
+// Initial Seed Projects Data
 const INITIAL_PROJECTS = [
   {
     id: 'p-101',
-    name: 'Khu Đô Thị Sông Hồng Riverside',
-    description: 'Dự án khu đô thị sinh thái 15ha bao gồm biệt thự, chung cư cao cấp & hạ tầng đồng bộ tại Đông Anh, Hà Nội.',
-    location: 'Đông Anh, Hà Nội',
-    address: 'Đông Anh, Hà Nội',
-    investor: 'Công ty CP Đầu tư Sông Hồng',
-    created_at: '2024-01-10',
-    initial_tmdt: 80000000000,
+    name: 'Khu đô thị sinh thái Bắc Sông Hồng',
+    code: 'DA-2024/BSH-01',
+    manager: 'Ban QLDA Đầu tư Xây dựng Hạ tầng KĐT',
+    investor: 'Công ty CP Đầu tư & Phát triển Đô thị Sông Hồng',
+    address: 'Xã Tiên Dương, Huyện Đông Anh, Hà Nội',
+    location: 'Huyện Đông Anh, Hà Nội',
+    description: 'Dự án khu đô thị sinh thái đẳng cấp với hệ thống hạ tầng kỹ thuật đồng bộ, 3 tháp chung cư cao cấp và 50 căn biệt thự đơn lập.',
+    start_date: '2024-01-15',
+    created_at: '2024-01-15',
+    execution_time: '24 tháng (2024 - 2026)',
+    timeline: '24 tháng',
+    status: 'Đang triển khai',
+    initial_tmdt: 120000000000,
+    currentTmdt: 120000000000,
     tmdt_history: [
-      { 
-        id: 'tmdt-101-1', 
+      {
+        id: 'tmdt-101-1',
         phase_number: 1,
         phase_label: 'Lần 1',
-        date: '2024-01-10', 
-        amount: 80000000000, 
-        content: 'Phê duyệt ban đầu',
-        decision_number: 'QĐ-101/QĐ-UBND',
+        date: '2024-01-15',
+        amount: 120000000000,
+        content: 'Phê duyệt ban đầu theo Quyết định 15/QĐ-UBND',
+        decision_number: '15/QĐ-UBND',
         reason: 'Phê duyệt chủ trương đầu tư ban đầu',
-        note: 'Dự toán thiết kế cơ sở 15ha',
-        file_name: 'QuyetDinh_PheDuyet_80Ty.pdf'
-      },
-      { 
-        id: 'tmdt-101-2', 
-        phase_number: 2,
-        phase_label: 'Lần 2',
-        date: '2024-11-15', 
-        amount: 85000000000, 
-        content: 'Điều chỉnh TMĐT',
-        decision_number: 'QĐ-452/QĐ-UBND',
-        reason: 'Điều chỉnh bổ sung hạng mục giao thông & hạ tầng mở rộng',
-        note: 'Bổ sung thêm 5 tỷ cho đường gom dân sinh',
-        file_name: 'QuyetDinh_DieuChinh_85Ty.pdf'
+        note: 'Dự án trọng điểm phát triển hạ tầng phía Bắc',
+        file_name: 'Quyết_định_15_QĐ_UBND.pdf'
       }
     ]
   },
   {
     id: 'p-102',
-    name: 'Tòa Nhà Văn Phòng TechHub Tower',
-    description: 'Tòa tháp văn phòng Hạng A cao 25 tầng + 3 tầng hầm tại Q.1, TP. Hồ Chí Minh.',
-    location: 'Q.1, TP. Hồ Chí Minh',
-    address: 'Q.1, TP. Hồ Chí Minh',
-    investor: 'Tập đoàn TechHub Vietnam',
-    created_at: '2024-05-15',
-    initial_tmdt: 50000000000,
+    name: 'Khu công nghiệp và đô thị logistics Đông Bắc',
+    code: 'DA-2024/DBL-02',
+    manager: 'Ban QLDA Khu Kinh tế & KCN Hải Phòng',
+    investor: 'Tổng Công ty KCN & Logistics Đông Bắc',
+    address: 'Phường Đông Hải 2, Quận Hải An, TP. Hải Phòng',
+    location: 'TP. Hải Phòng',
+    description: 'Khu phức hợp công nghiệp kho vận thông minh kết hợp trung tâm logistics cảng biển quốc tế.',
+    start_date: '2024-05-10',
+    created_at: '2024-05-10',
+    execution_time: '36 tháng (2024 - 2027)',
+    timeline: '36 tháng',
+    status: 'Đang triển khai',
+    initial_tmdt: 85000000000,
+    currentTmdt: 85000000000,
     tmdt_history: [
-      { 
-        id: 'tmdt-102-1', 
+      {
+        id: 'tmdt-102-1',
         phase_number: 1,
         phase_label: 'Lần 1',
-        date: '2024-05-15', 
-        amount: 50000000000, 
-        content: 'Phê duyệt ban đầu',
-        decision_number: 'QĐ-204/QĐ-UBND',
-        reason: 'Phê duyệt dự án đầu tư xây dựng tòa tháp văn phòng',
-        note: 'Dự toán tổng thể 25 tầng',
-        file_name: 'QuyetDinh_TechHub_50Ty.pdf'
+        date: '2024-05-10',
+        amount: 85000000000,
+        content: 'Phê duyệt ban đầu theo Quyết định 102/QĐ-BCT',
+        decision_number: '102/QĐ-BCT',
+        reason: 'Quyết định duyệt báo cáo nghiên cứu khả thi',
+        note: 'Dự án logistics cảng biển trọng điểm',
+        file_name: 'Quyết_định_102_QĐ_BCT.pdf'
       }
     ]
   },
   {
     id: 'p-103',
-    name: 'Nhà Máy Linh Kiện Điện Tử Bình Dương',
-    description: 'Tổ hợp nhà xưởng sản xuất thiết bị bán dẫn 50.000m² tại KCN VSIP II.',
-    location: 'KCN VSIP II, Bình Dương',
-    address: 'KCN VSIP II, Bình Dương',
-    investor: 'Công ty TNHH Linh Kiện Bình Dương',
-    created_at: '2025-01-10',
-    initial_tmdt: 40000000000,
+    name: 'Tòa nhà văn phòng thông minh TechHub Bình Dương',
+    code: 'DA-2025/THB-03',
+    manager: 'Ban QLDA Phát triển Công nghệ Cao',
+    investor: 'Công ty TNHH Giải pháp Công nghệ TechHub',
+    address: 'Đại lộ Bình Dương, TP. Thủ Dầu Một, Bình Dương',
+    location: 'TP. Thủ Dầu Một, Bình Dương',
+    description: 'Tòa nhà văn phòng chuẩn Green Building 25 tầng kết hợp trung tâm dữ liệu R&D đạt tiêu chuẩn Tier III.',
+    start_date: '2025-01-05',
+    created_at: '2025-01-05',
+    execution_time: '18 tháng (2025 - 2026)',
+    timeline: '18 tháng',
+    status: 'Đang triển khai',
+    initial_tmdt: 45000000000,
+    currentTmdt: 45000000000,
     tmdt_history: [
-      { 
-        id: 'tmdt-103-1', 
+      {
+        id: 'tmdt-103-1',
         phase_number: 1,
         phase_label: 'Lần 1',
-        date: '2025-01-10', 
-        amount: 40000000000, 
-        content: 'Phê duyệt ban đầu',
-        decision_number: 'QĐ-088/BQL-KCN',
-        reason: 'Phê duyệt đầu tư xưởng sản xuất thiết bị bán dẫn',
+        date: '2025-01-05',
+        amount: 45000000000,
+        content: 'Phê duyệt ban đầu theo Quyết định 08/QĐ-SXD',
+        decision_number: '08/QĐ-SXD',
+        reason: 'Phê duyệt dự án đầu tư công nghệ cao',
         note: '',
         file_name: ''
       }
@@ -100,28 +113,35 @@ const INITIAL_PROJECTS = [
   },
   {
     id: 'p-104',
-    name: 'Trung Tâm Thương Mại Grand Plaza',
-    description: 'Cải tạo mặt ngoài, hệ thống PCCC, MEP & nâng cấp toàn bộ TTM.',
-    location: 'Cầu Giấy, Hà Nội',
-    address: 'Cầu Giấy, Hà Nội',
-    investor: 'Công ty CP Thương Mại Grand Plaza',
+    name: 'Trung tâm Thương mại & Khách sạn 5 sao Grand Plaza',
+    code: 'DA-2025/GPL-04',
+    manager: 'Ban QLDA Khách sạn & Thương mại',
+    investor: 'Tập đoàn Đầu tư Du lịch & Khách sạn Quốc tế',
+    address: 'Đường Võ Nguyên Giáp, Quận Sơn Trà, TP. Đà Nẵng',
+    location: 'TP. Đà Nẵng',
+    description: 'Tổ hợp khách sạn 5 sao 30 tầng kết hợp trung tâm mua sắm cao cấp ven biển Đà Nẵng.',
+    start_date: '2025-06-01',
     created_at: '2025-06-01',
-    initial_tmdt: 12000000000,
+    execution_time: '30 tháng (2025 - 2027)',
+    timeline: '30 tháng',
+    status: 'Đang chuẩn bị',
+    initial_tmdt: 60000000000,
+    currentTmdt: 60000000000,
     tmdt_history: [
-      { 
-        id: 'tmdt-104-1', 
+      {
+        id: 'tmdt-104-1',
         phase_number: 1,
         phase_label: 'Lần 1',
-        date: '2025-06-01', 
-        amount: 12000000000, 
-        content: 'Phê duyệt ban đầu',
-        decision_number: 'QĐ-512/QĐ-GP',
-        reason: 'Phê duyệt kế hoạch cải tạo nâng cấp TTM',
+        date: '2025-06-01',
+        amount: 60000000000,
+        content: 'Phê duyệt ban đầu theo Quyết định 45/QĐ-UBND-DN',
+        decision_number: '45/QĐ-UBND-DN',
+        reason: 'Duyệt quy hoạch 1/500 và dự án',
         note: '',
         file_name: ''
       }
     ]
-  },
+  }
 ];
 
 const INITIAL_CONTRACTS = [
@@ -129,13 +149,13 @@ const INITIAL_CONTRACTS = [
     id: 'c-201',
     project_id: 'p-101',
     contract_number: 'HĐ-2024/SH-01',
-    content: 'Thi công cọc khoan nhồi, tầng hầm và kết cấu móng',
-    contractor: 'Công ty CP Xây dựng Contec',
-    contractValueBeforeVAT: 16818181818,
+    content: 'Thi công cọc khoan nhồi & xử lý nền móng phân khu tháp A1-A3',
+    contractor: 'Công ty CP Xây dựng Phục Hưng Holdings',
+    contractValueBeforeVAT: 15636363636,
     vatRate: 10,
-    vatAmount: 1681818182,
-    contractValueAfterVAT: 18500000000,
-    contract_value: 18500000000,
+    vatAmount: 1563636364,
+    contractValueAfterVAT: 17200000000,
+    contract_value: 17200000000,
     signing_date: '2024-02-15',
     duration_type: 'days',
     execution_days: 150,
@@ -599,7 +619,7 @@ export function updateTmdtAdjustmentPhase(projectId, phaseId, updatedData) {
   if (!targetProj) return;
 
   const currentHistory = Array.isArray(targetProj.tmdt_history) ? targetProj.tmdt_history : [];
-  const updatedHistory = currentHistory.map((item, idx) => {
+  const updatedHistory = currentHistory.map((item) => {
     if (item.id === phaseId) {
       return {
         ...item,
@@ -745,7 +765,6 @@ export function deleteContract(id) {
   return contracts;
 }
 
-// --- CONTRACT SETTLEMENT REPOSITORY METHOD ---
 export function settleContract(contractId, settlementData) {
   const contracts = getContracts();
   const targetContract = contracts.find(c => c.id === contractId);
@@ -769,7 +788,6 @@ export function settleContract(contractId, settlementData) {
     ? Math.max(...contractPayments.map(p => Number(p.payment_phase) || 0)) + 1 
     : 1;
 
-  // 1. Cập nhật trạng thái Hợp đồng thành 'settled' (Đã quyết toán)
   const updatedContracts = contracts.map(c => {
     if (c.id === contractId) {
       return {
@@ -786,7 +804,6 @@ export function settleContract(contractId, settlementData) {
   });
   localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
 
-  // 2. Tạo đợt thanh toán cuối cùng có payment_type = 'FINAL_SETTLEMENT'
   const settlementPayment = {
     id: 'pm-' + Date.now(),
     contract_id: contractId,
@@ -984,7 +1001,7 @@ export function deleteContractAppendix(contractId, appendixId) {
   return updatedContracts;
 }
 
-// --- AGGREGATION & TIME-BASED ANALYTICS ENGINE (3-VALUE VAT & MULTI-PHASE TMĐT MODEL) ---
+// --- AGGREGATION & TIME-BASED ANALYTICS ENGINE (SINGLE SOURCE OF TRUTH) ---
 export function getAggregatedData(timeFilter = {}) {
   const projects = getProjects();
   const contracts = getContracts();
@@ -993,6 +1010,7 @@ export function getAggregatedData(timeFilter = {}) {
   const bounds = getTimeRangeBounds(timeFilter);
   const { startDate, endDate, periodLabel, prevPeriod } = bounds;
   const selectedProjectId = timeFilter.project_id || '';
+  const isTimeRangeFilterActive = Boolean(startDate || endDate);
 
   const allTimeContractPaidBeforeVAT = {};
   const allTimeContractPaidVAT = {};
@@ -1046,7 +1064,6 @@ export function getAggregatedData(timeFilter = {}) {
   const enrichedContracts = contracts.map(c => {
     const project = projects.find(p => p.id === c.project_id);
 
-    // Compute contract initial 3-tier values (Gốc)
     const vatRate = c.vatRate !== undefined ? Number(c.vatRate) : 10;
     let initialContractValueBeforeVAT = c.contractValueBeforeVAT;
     let initialContractValueAfterVAT = c.contractValueAfterVAT || c.contract_value;
@@ -1057,18 +1074,15 @@ export function getAggregatedData(timeFilter = {}) {
     }
     const initialVatAmount = Math.round(initialContractValueBeforeVAT * (vatRate / 100));
 
-    // Process Appendices (Phụ lục hợp đồng)
     const appendices = Array.isArray(c.appendices) ? c.appendices : [];
     const totalAppendicesBeforeVAT = appendices.reduce((sum, a) => sum + Number(a.amount_before_vat || 0), 0);
     const totalAppendicesVAT = appendices.reduce((sum, a) => sum + Number(a.vat_amount || 0), 0);
     const totalAppendicesAfterVAT = appendices.reduce((sum, a) => sum + Number(a.amount_after_vat || 0), 0);
 
-    // Current Effective Contract Values (Ban đầu + Tổng Phụ lục)
     const currentContractValueBeforeVAT = cleanVND(initialContractValueBeforeVAT + totalAppendicesBeforeVAT);
     const currentContractValueVAT = cleanVND(initialVatAmount + totalAppendicesVAT);
     const currentContractValueAfterVAT = cleanVND(initialContractValueAfterVAT + totalAppendicesAfterVAT);
 
-    // Paid sums
     const paidBeforeVAT = cleanVND(allTimeContractPaidBeforeVAT[c.id] || 0);
     const paidVAT = cleanVND(allTimeContractPaidVAT[c.id] || 0);
     const paidAfterVAT = cleanVND(allTimeContractPaidAfterVAT[c.id] || 0);
@@ -1077,7 +1091,6 @@ export function getAggregatedData(timeFilter = {}) {
     const inPeriodPaidVAT = cleanVND(inPeriodContractPaidVAT[c.id] || 0);
     const inPeriodPaidAfterVAT = cleanVND(inPeriodContractPaidAfterVAT[c.id] || 0);
 
-    // Remaining (Dư nợ còn phải thanh toán dựa trên Giá trị hợp đồng HIỆN TẠI)
     const remainingBeforeVAT = Math.max(0, cleanVND(currentContractValueBeforeVAT - paidBeforeVAT));
     const remainingVAT = Math.max(0, cleanVND(currentContractValueVAT - paidVAT));
     const remainingAfterVAT = Math.max(0, cleanVND(currentContractValueAfterVAT - paidAfterVAT));
@@ -1129,9 +1142,25 @@ export function getAggregatedData(timeFilter = {}) {
     };
   });
 
+  // Filter contracts list strictly by selectedProjectId
   const filteredContractsList = selectedProjectId 
-    ? enrichedContracts.filter(c => c.project_id === selectedProjectId)
+    ? enrichedContracts.filter(c => String(c.project_id) === String(selectedProjectId))
     : enrichedContracts;
+
+  // Filter inPeriodPayments strictly by selectedProjectId
+  const inPeriodPaymentsFiltered = inPeriodPayments.filter(pm => {
+    if (!selectedProjectId) return true;
+    const c = contracts.find(ct => String(ct.id) === String(pm.contract_id));
+    return c && String(c.project_id) === String(selectedProjectId);
+  });
+
+  // Filter all payments strictly by selectedProjectId & date range if active
+  const basePaymentsList = isTimeRangeFilterActive ? inPeriodPayments : payments;
+  const filteredPaymentsList = basePaymentsList.filter(pm => {
+    if (!selectedProjectId) return true;
+    const c = contracts.find(ct => String(ct.id) === String(pm.contract_id));
+    return c && String(c.project_id) === String(selectedProjectId);
+  });
 
   // Totals for Contract Values (3-tier)
   const totalContractValueBeforeVAT = filteredContractsList.reduce((sum, c) => sum + Number(c.contractValueBeforeVAT || 0), 0);
@@ -1149,12 +1178,6 @@ export function getAggregatedData(timeFilter = {}) {
   const totalRemainingAfterVAT = totalContractValueAfterVAT - totalPaidAfterVAT;
 
   // In-period payments (3-tier)
-  const inPeriodPaymentsFiltered = inPeriodPayments.filter(pm => {
-    if (!selectedProjectId) return true;
-    const c = contracts.find(ct => ct.id === pm.contract_id);
-    return c && c.project_id === selectedProjectId;
-  });
-
   const totalPaidInPeriodBeforeVAT = inPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.amount_before_vat || 0), 0);
   const totalPaidInPeriodVAT = inPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.vat_amount || 0), 0);
   const totalPaidInPeriodAfterVAT = inPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.amount_after_vat || 0), 0);
@@ -1162,8 +1185,8 @@ export function getAggregatedData(timeFilter = {}) {
   // Previous Period Payments calculation (3-tier)
   const prevPeriodPaymentsFiltered = prevPeriodPayments.filter(pm => {
     if (!selectedProjectId) return true;
-    const c = contracts.find(ct => ct.id === pm.contract_id);
-    return c && c.project_id === selectedProjectId;
+    const c = contracts.find(ct => String(ct.id) === String(pm.contract_id));
+    return c && String(c.project_id) === String(selectedProjectId);
   });
 
   const prevPeriodPaidBeforeVAT = prevPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.amount_before_vat || 0), 0);
@@ -1196,6 +1219,10 @@ export function getAggregatedData(timeFilter = {}) {
     const projPaidVAT = projContracts.reduce((sum, c) => sum + Number(c.totalPaidVAT || 0), 0);
     const projPaidAfterVAT = projContracts.reduce((sum, c) => sum + Number(c.totalPaidAfterVAT || 0), 0);
 
+    const projPaidInPeriodBeforeVAT = projContracts.reduce((sum, c) => sum + Number(c.inPeriodPaidBeforeVAT || 0), 0);
+    const projPaidInPeriodVAT = projContracts.reduce((sum, c) => sum + Number(c.inPeriodPaidVAT || 0), 0);
+    const projPaidInPeriodAfterVAT = projContracts.reduce((sum, c) => sum + Number(c.inPeriodPaidAfterVAT || 0), 0);
+
     const projEstimatedSettlement = projContracts.reduce((sum, c) => sum + Number(c.estimated_settlement_value || c.contractValueAfterVAT || 0), 0);
 
     const projRemainingBeforeVAT = projContractValueBeforeVAT - projPaidBeforeVAT;
@@ -1204,7 +1231,6 @@ export function getAggregatedData(timeFilter = {}) {
 
     const projPaidPct = projContractValueAfterVAT > 0 ? (projPaidAfterVAT / projContractValueAfterVAT) * 100 : 0;
 
-    // --- SEQUENTIAL MULTI-PHASE TMĐT HISTORY MIGRATION & CALCULATION ---
     let rawHistory = Array.isArray(p.tmdt_history) && p.tmdt_history.length > 0
       ? p.tmdt_history
       : (p.initial_tmdt > 0 ? [{
@@ -1235,7 +1261,6 @@ export function getAggregatedData(timeFilter = {}) {
       }];
     }
 
-    // Process history items line-by-line: add phase numbers, labels, diff_amount, is_current
     const processedHistory = rawHistory.map((item, idx) => {
       const phaseNum = idx + 1;
       const prevAmt = idx > 0 ? Number(rawHistory[idx - 1].amount) : null;
@@ -1264,7 +1289,6 @@ export function getAggregatedData(timeFilter = {}) {
     const latestApprovalDate = latestPhase ? latestPhase.date : (p.created_at || 'N/A');
     const latestPhaseLabel = latestPhase ? latestPhase.phase_label : 'Lần 1';
 
-    // Financial Indicators & Ratios
     const signedContractsRatio = currentTmdt > 0 ? Math.round((projContractValueAfterVAT / currentTmdt) * 1000) / 10 : 0;
     const paymentProgressRatio = projEstimatedSettlement > 0 ? Math.round((projPaidAfterVAT / projEstimatedSettlement) * 1000) / 10 : 0;
     const paidContractsCount = projContracts.filter(c => c.totalPaidAfterVAT > 0).length;
@@ -1274,7 +1298,6 @@ export function getAggregatedData(timeFilter = {}) {
     const remainingToPay = projEstimatedSettlement - projPaidAfterVAT;
     const remainingProjectBudget = currentTmdt - projEstimatedSettlement;
 
-    // Financial Warnings
     const financialWarnings = [];
     if (currentTmdt > 0 && projEstimatedSettlement > currentTmdt) {
       financialWarnings.push({
@@ -1321,7 +1344,6 @@ export function getAggregatedData(timeFilter = {}) {
       latestPhaseLabel,
       unallocatedTmdt,
 
-      // 6 Financial Groups
       totalContractValueBeforeVAT: projContractValueBeforeVAT,
       totalContractVAT: projContractVAT,
       totalContractValueAfterVAT: projContractValueAfterVAT,
@@ -1331,6 +1353,11 @@ export function getAggregatedData(timeFilter = {}) {
       totalPaidVAT: projPaidVAT,
       totalPaidAfterVAT: projPaidAfterVAT,
       totalPaid: projPaidAfterVAT,
+
+      totalPaidInPeriodBeforeVAT: projPaidInPeriodBeforeVAT,
+      totalPaidInPeriodVAT: projPaidInPeriodVAT,
+      totalPaidInPeriodAfterVAT: projPaidInPeriodAfterVAT,
+      totalPaidInPeriod: projPaidInPeriodAfterVAT,
 
       projEstimatedSettlement,
 
@@ -1352,33 +1379,52 @@ export function getAggregatedData(timeFilter = {}) {
     };
   });
 
+  const filteredProjectsList = selectedProjectId 
+    ? enrichedProjects.filter(p => String(p.id) === String(selectedProjectId))
+    : enrichedProjects;
+
   return {
+    // SINGLE SOURCE OF TRUTH FILTERED DATASETS (Filtered by Project & Time Filter!)
+    filteredProjects: filteredProjectsList,
+    filteredContracts: filteredContractsList,
+    filteredPayments: filteredPaymentsList,
+    inPeriodPayments: inPeriodPaymentsFiltered,
+
+    // RAW / ALL-TIME ARRAYS
     projects: enrichedProjects,
     contracts: enrichedContracts,
-    payments,
-    inPeriodPayments,
+    payments: payments,
+
+    // METADATA
     timeFilter,
     periodLabel,
+    selectedProjectId,
+    isTimeRangeFilterActive,
+
+    // CENTRALLY AGGREGATED TOTALS
     totals: {
-      totalProjectsCount: projects.length,
+      totalProjectsCount: filteredProjectsList.length,
       totalContractsCount: filteredContractsList.length,
 
-      // 3-tier Totals
+      // 3-tier Contract Totals
       totalContractValueBeforeVAT,
       totalContractVAT,
       totalContractValueAfterVAT,
       totalContractValue: totalContractValueAfterVAT,
 
+      // 3-tier Cumulative Paid Totals
       totalPaidBeforeVAT,
       totalPaidVAT,
       totalPaidAfterVAT,
       totalPaidValueAllTime: totalPaidAfterVAT,
 
+      // 3-tier Remaining Totals
       totalRemainingBeforeVAT,
       totalRemainingVAT,
       totalRemainingAfterVAT,
       totalRemainingValue: totalRemainingAfterVAT,
 
+      // In-period Payment Totals
       totalPaidInPeriodBeforeVAT,
       totalPaidInPeriodVAT,
       totalPaidInPeriodAfterVAT,

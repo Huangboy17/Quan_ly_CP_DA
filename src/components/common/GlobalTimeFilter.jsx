@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Filter, RotateCcw, Building2, ChevronDown, Clock, ArrowRight } from 'lucide-react';
+import { Calendar, RotateCcw } from 'lucide-react';
 
 export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects = [] }) {
   const yearOptions = ['all', '2024', '2025', '2026'];
@@ -19,56 +19,122 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
     { value: '12', label: 'Tháng 12' },
   ];
 
+  // Rule 1: Choosing "Năm: Tất cả" resets Quý & Tháng to "all" and clears custom dates
   const handleYearChange = (year) => {
-    setTimeFilter(prev => ({
-      ...prev,
-      year,
-      customStartDate: '',
-      customEndDate: '',
-    }));
+    setTimeFilter(prev => {
+      const updated = {
+        ...prev,
+        year,
+        quarter: year === 'all' ? 'all' : prev.quarter,
+        month: year === 'all' ? 'all' : prev.month,
+        customStartDate: '',
+        customEndDate: '',
+      };
+      console.log('🌐 [GlobalTimeFilter] Year Changed:', updated);
+      return updated;
+    });
   };
 
+  // Rule 2: Choosing a specific Quarter (Q1..Q4) forces a specific Year (defaults to current year or 2025 if "all"), resets Month
   const handleQuarterChange = (quarter) => {
-    setTimeFilter(prev => ({
-      ...prev,
-      quarter,
-      month: 'all',
-      customStartDate: '',
-      customEndDate: '',
-    }));
+    setTimeFilter(prev => {
+      let activeYear = prev.year;
+      if (quarter !== 'all' && (prev.year === 'all' || !prev.year)) {
+        activeYear = new Date().getFullYear().toString();
+        if (!['2024', '2025', '2026'].includes(activeYear)) activeYear = '2025';
+      }
+      const updated = {
+        ...prev,
+        year: activeYear,
+        quarter,
+        month: 'all',
+        customStartDate: '',
+        customEndDate: '',
+      };
+      console.log('🌐 [GlobalTimeFilter] Quarter Changed:', updated);
+      return updated;
+    });
   };
 
+  // Rule 3: Choosing a specific Month (1..12) forces a specific Year (defaults to current year or 2025 if "all"), resets Quarter
   const handleMonthChange = (month) => {
-    setTimeFilter(prev => ({
-      ...prev,
-      month,
-      quarter: 'all',
-      customStartDate: '',
-      customEndDate: '',
-    }));
+    setTimeFilter(prev => {
+      let activeYear = prev.year;
+      if (month !== 'all' && (prev.year === 'all' || !prev.year)) {
+        activeYear = new Date().getFullYear().toString();
+        if (!['2024', '2025', '2026'].includes(activeYear)) activeYear = '2025';
+      }
+      const updated = {
+        ...prev,
+        year: activeYear,
+        month,
+        quarter: 'all',
+        customStartDate: '',
+        customEndDate: '',
+      };
+      console.log('🌐 [GlobalTimeFilter] Month Changed:', updated);
+      return updated;
+    });
+  };
+
+  // Rule 4: Custom Date Range selection clears Year/Quarter/Month buttons to avoid filter conflict
+  const handleCustomStartDateChange = (val) => {
+    setTimeFilter(prev => {
+      const updated = {
+        ...prev,
+        customStartDate: val,
+        year: 'all',
+        quarter: 'all',
+        month: 'all',
+      };
+      console.log('🌐 [GlobalTimeFilter] Custom Start Date Changed:', updated);
+      return updated;
+    });
+  };
+
+  const handleCustomEndDateChange = (val) => {
+    setTimeFilter(prev => {
+      const updated = {
+        ...prev,
+        customEndDate: val,
+        year: 'all',
+        quarter: 'all',
+        month: 'all',
+      };
+      console.log('🌐 [GlobalTimeFilter] Custom End Date Changed:', updated);
+      return updated;
+    });
   };
 
   const handleProjectChange = (project_id) => {
-    setTimeFilter(prev => ({ ...prev, project_id }));
+    setTimeFilter(prev => {
+      const updated = { ...prev, project_id };
+      console.log('🌐 [GlobalTimeFilter] Project Changed:', updated);
+      return updated;
+    });
   };
 
   const handleResetFilter = () => {
-    setTimeFilter({
+    const defaultState = {
       year: 'all',
       quarter: 'all',
       month: 'all',
       customStartDate: '',
       customEndDate: '',
       project_id: '',
-    });
+    };
+    console.log('🌐 [GlobalTimeFilter] Reset Filter:', defaultState);
+    setTimeFilter(defaultState);
   };
 
-  const isFiltered = (timeFilter.year && timeFilter.year !== 'all') ||
+  const isFiltered = Boolean(
+    (timeFilter.year && timeFilter.year !== 'all') ||
     (timeFilter.quarter && timeFilter.quarter !== 'all') ||
     (timeFilter.month && timeFilter.month !== 'all') ||
     timeFilter.customStartDate ||
     timeFilter.customEndDate ||
-    timeFilter.project_id;
+    timeFilter.project_id
+  );
 
   return (
     <div className="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 lg:px-6 py-3 sticky top-16 z-20 shadow-xl w-full">
@@ -143,13 +209,7 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
               <input
                 type="date"
                 value={timeFilter.customStartDate || ''}
-                onChange={(e) => setTimeFilter(prev => ({ 
-                  ...prev, 
-                  customStartDate: e.target.value, 
-                  year: 'all', 
-                  quarter: 'all', 
-                  month: 'all' 
-                }))}
+                onChange={(e) => handleCustomStartDateChange(e.target.value)}
                 className="bg-slate-900/90 border border-slate-600 hover:border-cyan-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/40 text-white font-mono font-bold rounded-lg px-2.5 py-1 text-xs outline-none transition shadow-sm"
               />
             </div>
@@ -161,13 +221,7 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
               <input
                 type="date"
                 value={timeFilter.customEndDate || ''}
-                onChange={(e) => setTimeFilter(prev => ({ 
-                  ...prev, 
-                  customEndDate: e.target.value, 
-                  year: 'all', 
-                  quarter: 'all', 
-                  month: 'all' 
-                }))}
+                onChange={(e) => handleCustomEndDateChange(e.target.value)}
                 className="bg-slate-900/90 border border-slate-600 hover:border-cyan-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/40 text-white font-mono font-bold rounded-lg px-2.5 py-1 text-xs outline-none transition shadow-sm"
               />
             </div>

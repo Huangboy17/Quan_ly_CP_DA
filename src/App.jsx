@@ -44,10 +44,9 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [globalSearch, setGlobalSearch] = useState('');
-  const [selectedProjectId, setSelectedProjectId] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('');
 
-  // Global Time Filter State - Restored from LocalStorage if available
+  // Global Time & Project Filter State - Restored from LocalStorage if available
   const [timeFilter, setTimeFilter] = useState(() => {
     const saved = getSavedSettings();
     return saved?.timeFilter || {
@@ -60,16 +59,17 @@ export default function App() {
     };
   });
 
+  // SINGLE SOURCE OF TRUTH: selectedProjectId is ALWAYS 100% derived from timeFilter.project_id!
+  const selectedProjectId = timeFilter.project_id || '';
+
+  const handleSetSelectedProjectId = useCallback((pId) => {
+    setTimeFilter(prev => ({ ...prev, project_id: pId || '' }));
+  }, []);
+
   // Autosave timeFilter settings to LocalStorage whenever modified
   useEffect(() => {
     saveSettings({ timeFilter });
   }, [timeFilter]);
-
-  // Sync selectedProjectId with timeFilter if set
-  const handleSetSelectedProjectId = (pId) => {
-    setSelectedProjectId(pId);
-    setTimeFilter(prev => ({ ...prev, project_id: pId }));
-  };
 
   // Modals state
   const [isContractModalOpen, setIsContractModalOpen] = useState(false);
@@ -97,7 +97,7 @@ export default function App() {
     setIsExcelImportModalOpen(true);
   };
 
-  // Load and refresh state directly from LocalStorage Repository
+  // Load and refresh state directly from LocalStorage Repository using timeFilter
   const refreshData = useCallback(() => {
     const agg = getAggregatedData(timeFilter);
     setData(agg);
@@ -254,7 +254,7 @@ export default function App() {
         setGlobalSearch={setGlobalSearch}
       />
 
-      {/* Sticky Global Time-Based Filter Toolbar */}
+      {/* Sticky Global Time & Project Filter Header Bar */}
       <GlobalTimeFilter
         timeFilter={timeFilter}
         setTimeFilter={setTimeFilter}
@@ -281,8 +281,9 @@ export default function App() {
           {activeTab === 'dashboard' && (
             <DashboardView
               data={data}
-              setActiveTab={setActiveTab}
+              selectedProjectId={selectedProjectId}
               setSelectedProjectId={handleSetSelectedProjectId}
+              setActiveTab={setActiveTab}
               onNewContract={handleOpenNewContract}
               onNewPayment={() => handleOpenNewPayment()}
             />
@@ -359,6 +360,7 @@ export default function App() {
               onOpenExcelImport={handleOpenExcelImport}
               onViewContractDetail={handleViewContractDetail}
               onViewContractDossier={handleViewContractDossier}
+              selectedProjectId={selectedProjectId}
               setSelectedProjectId={handleSetSelectedProjectId}
               setActiveTab={setActiveTab}
               globalSearch={globalSearch}
