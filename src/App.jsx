@@ -239,6 +239,15 @@ export default function App() {
     refreshData();
   };
 
+  const handleSelectCostGroupFilter = useCallback((groupName, projectId = null) => {
+    setTimeFilter(prev => ({
+      ...prev,
+      cost_group: groupName || '',
+      project_id: projectId !== null ? projectId : prev.project_id
+    }));
+    setActiveTab('contracts');
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       
@@ -286,6 +295,7 @@ export default function App() {
               setActiveTab={setActiveTab}
               onNewContract={handleOpenNewContract}
               onNewPayment={() => handleOpenNewPayment()}
+              onSelectCostGroup={(costGroup) => handleSelectCostGroupFilter(costGroup)}
             />
           )}
 
@@ -363,6 +373,7 @@ export default function App() {
               selectedProjectId={selectedProjectId}
               setSelectedProjectId={handleSetSelectedProjectId}
               setActiveTab={setActiveTab}
+              onSelectCostGroup={(costGroup, projId) => handleSelectCostGroupFilter(costGroup, projId)}
               globalSearch={globalSearch}
             />
           )}

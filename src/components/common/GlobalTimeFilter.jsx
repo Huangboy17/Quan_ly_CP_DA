@@ -1,5 +1,6 @@
 import React from 'react';
-import { Calendar, RotateCcw } from 'lucide-react';
+import { Calendar, RotateCcw, Tag } from 'lucide-react';
+import { COST_GROUP_OPTIONS } from '../contracts/ContractModal';
 
 export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects = [] }) {
   const yearOptions = ['all', '2024', '2025', '2026'];
@@ -35,7 +36,7 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
     });
   };
 
-  // Rule 2: Choosing a specific Quarter (Q1..Q4) forces a specific Year (defaults to current year or 2025 if "all"), resets Month
+  // Rule 2: Choosing a specific Quarter (Q1..Q4) forces a specific Year, resets Month
   const handleQuarterChange = (quarter) => {
     setTimeFilter(prev => {
       let activeYear = prev.year;
@@ -56,7 +57,7 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
     });
   };
 
-  // Rule 3: Choosing a specific Month (1..12) forces a specific Year (defaults to current year or 2025 if "all"), resets Quarter
+  // Rule 3: Choosing a specific Month (1..12) forces a specific Year, resets Quarter
   const handleMonthChange = (month) => {
     setTimeFilter(prev => {
       let activeYear = prev.year;
@@ -114,6 +115,14 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
     });
   };
 
+  const handleCostGroupChange = (cost_group) => {
+    setTimeFilter(prev => {
+      const updated = { ...prev, cost_group };
+      console.log('🌐 [GlobalTimeFilter] Cost Group Changed:', updated);
+      return updated;
+    });
+  };
+
   const handleResetFilter = () => {
     const defaultState = {
       year: 'all',
@@ -122,6 +131,7 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
       customStartDate: '',
       customEndDate: '',
       project_id: '',
+      cost_group: '',
     };
     console.log('🌐 [GlobalTimeFilter] Reset Filter:', defaultState);
     setTimeFilter(defaultState);
@@ -133,7 +143,8 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
     (timeFilter.month && timeFilter.month !== 'all') ||
     timeFilter.customStartDate ||
     timeFilter.customEndDate ||
-    timeFilter.project_id
+    timeFilter.project_id ||
+    timeFilter.cost_group
   );
 
   return (
@@ -200,11 +211,9 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
             </select>
           </div>
 
-          {/* High-Contrast Custom Date Range Picker Container */}
+          {/* Custom Date Range Picker Container */}
           <div className="flex items-center gap-2 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/90 shadow-inner text-slate-200">
             <span className="text-[11px] font-bold text-slate-300">Từ:</span>
-            
-            {/* Custom Date Input: From Date */}
             <div className="relative flex items-center">
               <input
                 type="date"
@@ -213,10 +222,7 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
                 className="bg-slate-900/90 border border-slate-600 hover:border-cyan-400 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/40 text-white font-mono font-bold rounded-lg px-2.5 py-1 text-xs outline-none transition shadow-sm"
               />
             </div>
-
             <span className="text-[11px] font-bold text-slate-300">Đến:</span>
-            
-            {/* Custom Date Input: To Date */}
             <div className="relative flex items-center">
               <input
                 type="date"
@@ -241,12 +247,27 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
             </select>
           </div>
 
+          {/* Cost Group Filter */}
+          <div className="relative shrink-0">
+            <select
+              value={timeFilter.cost_group || ''}
+              onChange={(e) => handleCostGroupChange(e.target.value)}
+              className="px-3 py-1.5 bg-slate-800/90 border border-slate-700 rounded-xl text-slate-200 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/40 text-xs font-semibold transition cursor-pointer hover:border-slate-600"
+            >
+              <option value="">-- Tất cả Nhóm Chi Phí --</option>
+              <option value="unassigned">Chưa phân loại</option>
+              {COST_GROUP_OPTIONS.map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Reset Filter Button */}
           {isFiltered && (
             <button
               onClick={handleResetFilter}
               className="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm"
-              title="Đặt lại toàn bộ bộ lọc thời gian"
+              title="Đặt lại toàn bộ bộ lọc"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Đặt lại

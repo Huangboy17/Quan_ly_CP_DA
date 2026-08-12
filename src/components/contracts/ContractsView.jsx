@@ -14,9 +14,11 @@ import {
   Layers,
   Sparkles,
   ArrowRight,
-  ChevronDown
+  ChevronDown,
+  Tag
 } from 'lucide-react';
 import { formatVND, formatDisplayDate } from '../../utils/formatters';
+import { COST_GROUP_OPTIONS } from './ContractModal';
 
 export default function ContractsView({
   data,
@@ -37,25 +39,35 @@ export default function ContractsView({
   const baseContracts = centralFilteredContracts.length > 0 || selectedProjectId ? centralFilteredContracts : contracts;
 
   const [contractorFilter, setContractorFilter] = useState('');
+  const [costGroupFilter, setCostGroupFilter] = useState('');
   const [localSearch, setLocalSearch] = useState('');
 
   const contractorsList = Array.from(new Set(baseContracts.map(c => c.contractor).filter(Boolean))).sort();
   const searchQuery = (globalSearch || localSearch).toLowerCase().trim();
 
-  // Filter baseContracts by local contractor dropdown & search query
+  // Filter baseContracts by local contractor, cost group dropdown & search query
   const filteredContracts = baseContracts.filter(c => {
     if (contractorFilter && c.contractor !== contractorFilter) return false;
+    if (costGroupFilter) {
+      if (costGroupFilter === 'unassigned') {
+        if (c.costGroup && c.costGroup.trim() !== '') return false;
+      } else if (c.costGroup !== costGroupFilter) {
+        return false;
+      }
+    }
     if (searchQuery) {
       const matchNum = c.contract_number?.toLowerCase().includes(searchQuery);
       const matchContent = c.content?.toLowerCase().includes(searchQuery);
       const matchContractor = c.contractor?.toLowerCase().includes(searchQuery);
       const matchProject = c.projectName?.toLowerCase().includes(searchQuery);
-      return matchNum || matchContent || matchContractor || matchProject;
+      const matchGroup = c.costGroup?.toLowerCase().includes(searchQuery);
+      const matchGroupNote = c.costGroupNote?.toLowerCase().includes(searchQuery);
+      return matchNum || matchContent || matchContractor || matchProject || matchGroup || matchGroupNote;
     }
     return true;
   });
 
-  const isLocalFiltered = Boolean(contractorFilter || localSearch);
+  const isLocalFiltered = Boolean(contractorFilter || costGroupFilter || localSearch);
 
   return (
     <div className="space-y-4 animate-fade-in pb-12">
@@ -68,7 +80,7 @@ export default function ContractsView({
             Quản Lý Hợp Đồng & Nhập Liệu
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Quản lý hợp đồng thi công, theo dõi giá trị giải ngân lũy kế và phát sinh chi trong kỳ <span className="text-emerald-400 font-semibold">{periodLabel}</span>.
+            Quản lý hợp đồng thi công, phân loại Nhóm chi phí, theo dõi giá trị giải ngân lũy kế và phát sinh chi trong kỳ <span className="text-emerald-400 font-semibold">{periodLabel}</span>.
           </p>
         </div>
 
@@ -97,7 +109,7 @@ export default function ContractsView({
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Tìm theo số HĐ, nội dung, nhà thầu..."
+              placeholder="Tìm theo số HĐ, nội dung, nhà thầu, nhóm chi phí..."
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 font-medium"
@@ -118,11 +130,27 @@ export default function ContractsView({
             </select>
           </div>
 
+          {/* Cost Group Filter Dropdown */}
+          <div className="relative shrink-0">
+            <select
+              value={costGroupFilter}
+              onChange={(e) => setCostGroupFilter(e.target.value)}
+              className="bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-cyan-400 cursor-pointer"
+            >
+              <option value="">-- Tất cả Nhóm Chi Phí --</option>
+              <option value="unassigned">Chưa phân loại</option>
+              {COST_GROUP_OPTIONS.map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Reset Local Filters */}
           {isLocalFiltered && (
             <button
               onClick={() => {
                 setContractorFilter('');
+                setCostGroupFilter('');
                 setLocalSearch('');
               }}
               className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
@@ -141,11 +169,12 @@ export default function ContractsView({
       {/* Contracts Data Table */}
       <div className="rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-hidden">
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left text-xs text-slate-300 min-w-[950px]">
+          <table className="w-full text-left text-xs text-slate-300 min-w-[1050px]">
             <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
               <tr>
-                <th className="py-3.5 px-4 w-40">Số HĐ / Ngày Ký</th>
+                <th className="py-3.5 px-4 w-36">Số HĐ / Ngày Ký</th>
                 <th className="py-3.5 px-4">Tên HĐ & Nhà Thầu</th>
+                <th className="py-3.5 px-4 w-40">Nhóm Chi Phí</th>
                 <th className="py-3.5 px-4 text-right w-36">Giá Trị HĐ (Sau VAT)</th>
                 <th className="py-3.5 px-4 text-right w-36">Chi Trả Trong Kỳ</th>
                 <th className="py-3.5 px-4 text-right w-36">Lũy Kế Đã Chi</th>
@@ -160,6 +189,7 @@ export default function ContractsView({
                 return (
                   <tr key={c.id} className="hover:bg-slate-800/50 transition">
                     
+                    {/* Số HĐ / Ngày Ký */}
                     <td className="py-3.5 px-4 font-mono">
                       <div className="font-bold text-white text-xs">{c.contract_number}</div>
                       <div className="text-[11px] text-slate-400 mt-0.5">{formatDisplayDate(c.signing_date)}</div>
@@ -170,6 +200,7 @@ export default function ContractsView({
                       )}
                     </td>
 
+                    {/* Tên HĐ & Nhà Thầu */}
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-slate-100 text-xs line-clamp-1">{c.content}</div>
                       <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
@@ -179,22 +210,47 @@ export default function ContractsView({
                       </div>
                     </td>
 
+                    {/* Nhóm Chi Phí */}
+                    <td className="py-3.5 px-4">
+                      {c.costGroup ? (
+                        <div className="flex flex-col items-start gap-0.5">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 inline-block">
+                            {c.costGroup}
+                          </span>
+                          {c.costGroup === 'Khác' && c.costGroupNote && (
+                            <span className="text-[10px] text-purple-300 italic font-mono">
+                              ({c.costGroupNote})
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700 inline-block font-mono">
+                          Chưa phân loại
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Giá trị HĐ sau VAT */}
                     <td className="py-3.5 px-4 text-right font-mono font-bold text-white">
                       {formatVND(c.contractValueAfterVAT || c.contract_value)}
                     </td>
 
+                    {/* Chi trả trong kỳ */}
                     <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-400 bg-emerald-500/5">
                       {formatVND(c.inPeriodPaidAfterVAT || 0)}
                     </td>
 
+                    {/* Lũy kế đã chi */}
                     <td className="py-3.5 px-4 text-right font-mono font-semibold text-blue-300">
                       {formatVND(c.totalPaidAfterVAT || c.totalPaid || 0)}
                     </td>
 
+                    {/* Còn lại */}
                     <td className="py-3.5 px-4 text-right font-mono font-medium text-amber-400">
                       {formatVND(c.remainingAfterVAT || c.remainingValue || 0)}
                     </td>
 
+                    {/* Trạng thái */}
                     <td className="py-3.5 px-4 text-center">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-block border ${
                         c.status === 'settled'
@@ -205,6 +261,7 @@ export default function ContractsView({
                       </span>
                     </td>
 
+                    {/* Thao tác */}
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
@@ -237,7 +294,7 @@ export default function ContractsView({
 
               {filteredContracts.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="py-10 text-center text-slate-400">
+                  <td colSpan="9" className="py-10 text-center text-slate-400">
                     Không tìm thấy hợp đồng nào phù hợp với bộ lọc đã chọn.
                   </td>
                 </tr>

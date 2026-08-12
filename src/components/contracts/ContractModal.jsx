@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, DollarSign, Building2, Plus, Sparkles, Percent } from 'lucide-react';
+import { X, Calendar, Clock, DollarSign, Building2, Plus, Sparkles, Tag } from 'lucide-react';
 import { 
   formatVND, 
   numberToWordsVN, 
@@ -9,6 +9,15 @@ import {
   parseRawNumber,
   calculateVATValues
 } from '../../utils/formatters';
+
+export const COST_GROUP_OPTIONS = [
+  'Xây dựng - Thiết bị',
+  'Chi phí QLDA',
+  'Tư vấn',
+  'Chi phí khác',
+  'Lãi vay',
+  'Khác',
+];
 
 export default function ContractModal({ 
   isOpen, 
@@ -22,15 +31,17 @@ export default function ContractModal({
     project_id: '',
     contract_number: '',
     content: '',
-    contractor: '',
     contractValueBeforeVAT: '',
     vatRate: 10,
     isCustomVat: false,
     customVatRate: '',
+    contractor: '',
     signing_date: new Date().toISOString().split('T')[0],
     duration_type: 'days', // 'days' | 'end_date'
     execution_days: 90,
     end_date: '',
+    costGroup: '', // Default: '' (Chưa phân loại)
+    costGroupNote: '',
     estimated_settlement_value: '',
   });
 
@@ -48,8 +59,10 @@ export default function ContractModal({
         vatRate: vRate,
         isCustomVat: isCustom,
         customVatRate: isCustom ? vRate.toString() : '',
+        costGroup: editingContract.costGroup || '',
+        costGroupNote: editingContract.costGroupNote || '',
         estimated_settlement_value: editingContract.estimated_settlement_value || '',
-        execution_days: editingContract.execution_days || 30,
+        execution_days: editingContract.execution_days || 90,
         duration_type: editingContract.duration_type || 'days',
       });
       setSettlementTouched(true);
@@ -60,22 +73,23 @@ export default function ContractModal({
         project_id: projects[0]?.id || '',
         contract_number: `HĐ-${new Date().getFullYear()}/` + Math.floor(100 + Math.random() * 900),
         content: '',
-        contractor: '',
         contractValueBeforeVAT: '',
         vatRate: 10,
         isCustomVat: false,
         customVatRate: '',
+        contractor: '',
         signing_date: defaultSigning,
         duration_type: 'days',
         execution_days: defaultDays,
         end_date: calcEndDate(defaultSigning, defaultDays),
+        costGroup: '', // Default: '' (Chưa phân loại)
+        costGroupNote: '',
         estimated_settlement_value: '',
       });
       setSettlementTouched(false);
     }
   }, [editingContract, isOpen, projects]);
 
-  // Recalculate duration / end_date logic whenever signing_date, execution_days, or end_date changes
   const handleSigningDateChange = (date) => {
     setFormData(prev => {
       let updatedEnd = prev.end_date;
@@ -113,24 +127,6 @@ export default function ContractModal({
         ...prev,
         end_date: date,
         execution_days: computedDays
-      };
-    });
-  };
-
-  const handleDurationTypeToggle = (type) => {
-    setFormData(prev => {
-      let updatedDays = prev.execution_days;
-      let updatedEnd = prev.end_date;
-      if (type === 'days' && prev.execution_days) {
-        updatedEnd = calcEndDate(prev.signing_date, prev.execution_days);
-      } else if (type === 'end_date' && prev.end_date) {
-        updatedDays = calcDaysBetween(prev.signing_date, prev.end_date);
-      }
-      return {
-        ...prev,
-        duration_type: type,
-        execution_days: updatedDays,
-        end_date: updatedEnd
       };
     });
   };
@@ -203,6 +199,8 @@ export default function ContractModal({
       vatAmount: vatAmount,
       contractValueAfterVAT: amountAfterVAT,
       contract_value: amountAfterVAT,
+      costGroup: formData.costGroup || '',
+      costGroupNote: formData.costGroup === 'Khác' ? (formData.costGroupNote || '') : '',
       estimated_settlement_value: formData.estimated_settlement_value 
         ? Number(formData.estimated_settlement_value) 
         : amountAfterVAT,
@@ -228,7 +226,7 @@ export default function ContractModal({
               <h3 className="text-base font-bold text-white">
                 {editingContract ? 'Cập Nhật Hợp Đồng' : 'Thêm Hợp Đồng Mới'}
               </h3>
-              <p className="text-xs text-slate-400">Mô hình 3 Giá Trị: Trước VAT ➔ Tỷ lệ VAT ➔ Tiền VAT & Giá trị sau VAT</p>
+              <p className="text-xs text-slate-400">Nhập đầy đủ thông tin hợp đồng và phân loại Nhóm chi phí</p>
             </div>
           </div>
           <button 
@@ -242,11 +240,11 @@ export default function ContractModal({
         {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           
-          {/* Row 1: Select Project with Inline "+ Thêm Dự Án" */}
+          {/* STT 1: Mã dự án */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-semibold text-slate-300">
-                Dự Án Xây Dựng <span className="text-rose-400">*</span>
+                1. Mã dự án <span className="text-rose-400">*</span>
               </label>
               {onOpenNewProjectModal && (
                 <button
@@ -266,45 +264,30 @@ export default function ContractModal({
             >
               <option value="">-- Chọn dự án --</option>
               {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
+                <option key={p.id} value={p.id}>{p.name} ({p.code || p.id})</option>
               ))}
             </select>
           </div>
 
-          {/* Row 2: Contract Number & Contractor */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Số Hợp Đồng <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Ví dụ: HĐ-2025/SH-01"
-                value={formData.contract_number}
-                onChange={(e) => setFormData({ ...formData, contract_number: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-mono transition"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Nhà Thầu / Đơn Vị Thi Công <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="text"
-                placeholder="Tên công ty nhà thầu..."
-                value={formData.contractor}
-                onChange={(e) => setFormData({ ...formData, contractor: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Row 3: Content / Scope */}
+          {/* STT 2: Số hợp đồng */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Nội Dung / Hạng Mục Thi Công
+              2. Số hợp đồng <span className="text-rose-400">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Ví dụ: HĐ-2026/SH-01"
+              value={formData.contract_number}
+              onChange={(e) => setFormData({ ...formData, contract_number: e.target.value })}
+              className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-mono transition"
+              required
+            />
+          </div>
+
+          {/* STT 3: Nội dung hợp đồng */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              3. Nội dung hợp đồng / Gói thầu
             </label>
             <input
               type="text"
@@ -315,24 +298,24 @@ export default function ContractModal({
             />
           </div>
 
-          {/* Row 4: 3-VALUE VAT MODEL INPUT PANEL */}
+          {/* STT 4, 5, 6: GIÁ TRỊ HỢP ĐỒNG (Trước VAT, VAT %, Sau VAT) */}
           <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
               <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-emerald-400" />
-                Mô Hình 3 Giá Trị Hợp Đồng (Trước VAT ➔ VAT ➔ Sau VAT)
+                Mô Hình Giá Trị Hợp Đồng & Thuế VAT
               </span>
             </div>
 
-            {/* Input 1: Contract Value Before VAT */}
+            {/* STT 4: Giá trị trước VAT */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Giá Trị Hợp Đồng Trước VAT <span className="text-rose-400">*</span>
+                4. Giá trị trước VAT <span className="text-rose-400">*</span>
               </label>
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="25.000.000.000"
+                  placeholder="5.000.000.000"
                   value={formatInputNumber(formData.contractValueBeforeVAT)}
                   onChange={(e) => handleBeforeVATChange(e.target.value)}
                   className="w-full pl-3.5 pr-12 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono font-bold text-white focus:outline-none focus:border-emerald-500 transition"
@@ -344,25 +327,10 @@ export default function ContractModal({
               </div>
             </div>
 
-            {/* Quick Money Chips */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-slate-400 mr-1">Cộng nhanh:</span>
-              {[500_000_000, 1_000_000_000, 5_000_000_000, 10_000_000_000].map((amt) => (
-                <button
-                  key={amt}
-                  type="button"
-                  onClick={() => handleBeforeVATChange((Number(formData.contractValueBeforeVAT || 0) + amt).toString())}
-                  className="px-2 py-0.5 rounded bg-slate-700/80 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-mono transition cursor-pointer"
-                >
-                  +{amt >= 1_000_000_000 ? `${amt / 1_000_000_000} Tỷ` : `${amt / 1_000_000} Tr`}
-                </button>
-              ))}
-            </div>
-
-            {/* Input 2: VAT Rate Selection Chips (5%, 8%, 10%, Khác) */}
+            {/* STT 5: VAT (%) */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                Tỷ Lệ Thuế VAT (%) <span className="text-rose-400">*</span>
+                5. VAT (%) <span className="text-rose-400">*</span>
               </label>
               <div className="flex flex-wrap items-center gap-2">
                 {[5, 8, 10].map((rate) => (
@@ -393,7 +361,6 @@ export default function ContractModal({
                 </button>
               </div>
 
-              {/* Custom VAT Percentage Input */}
               {formData.isCustomVat && (
                 <div className="mt-2.5 flex items-center gap-2 animate-in fade-in duration-150">
                   <span className="text-xs font-medium text-purple-300">Nhập tỷ lệ VAT tùy chỉnh:</span>
@@ -413,7 +380,7 @@ export default function ContractModal({
               )}
             </div>
 
-            {/* Read-Only Auto-Calculated VAT & After-VAT Panel */}
+            {/* STT 6: Giá trị sau VAT (Tự động tính) */}
             <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
               <div className="flex justify-between text-slate-400">
                 <span>Giá trị trước VAT:</span>
@@ -424,62 +391,41 @@ export default function ContractModal({
                 <span className="font-mono text-blue-300 font-bold">+{formatVND(vatAmount)}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-slate-800 text-sm font-extrabold">
-                <span className="text-white">Giá Trị Hợp Đồng Sau VAT:</span>
+                <span className="text-white">6. Giá trị sau VAT (Tự động tính):</span>
                 <span className="font-mono text-emerald-400 text-base">{formatVND(amountAfterVAT)}</span>
               </div>
             </div>
-
-            {/* Text Words Preview for After VAT */}
-            {amountAfterVAT > 0 && (
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-start gap-2">
-                <Sparkles className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
-                <div>
-                  <span className="font-semibold text-white">Bằng chữ (Sau VAT): </span>
-                  <span className="italic">{numberToWordsVN(amountAfterVAT)}</span>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Row 5: Signing Date & Duration */}
+          {/* STT 7: Nhà thầu */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+              7. Nhà thầu / Đơn vị thi công <span className="text-rose-400">*</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Tên công ty nhà thầu..."
+              value={formData.contractor}
+              onChange={(e) => setFormData({ ...formData, contractor: e.target.value })}
+              className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition"
+              required
+            />
+          </div>
+
+          {/* STT 8, 9, 10: THỜI GIAN VÀ TIẾN ĐỘ (Ngày ký, Tiến độ HĐ, Ngày kết thúc) */}
           <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-700/60 pb-3">
+            <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
               <span className="text-xs font-semibold text-slate-200 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-400" />
-                Tiến Độ & Thời Gian Thực Hiện
+                Thời Gian & Tiến Độ Thực Hiện Hợp Đồng
               </span>
-
-              {/* Radio Toggle: Số ngày vs Ngày kết thúc */}
-              <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-700 text-xs">
-                <button
-                  type="button"
-                  onClick={() => handleDurationTypeToggle('days')}
-                  className={`px-3 py-1 rounded-md font-medium transition cursor-pointer ${
-                    formData.duration_type === 'days'
-                      ? 'bg-blue-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Nhập số ngày
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDurationTypeToggle('end_date')}
-                  className={`px-3 py-1 rounded-md font-medium transition cursor-pointer ${
-                    formData.duration_type === 'end_date'
-                      ? 'bg-blue-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  Chọn ngày kết thúc
-                </button>
-              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              {/* STT 8: Ngày ký */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Ngày Ký Hợp Đồng
+                <label className="block font-semibold text-slate-300 mb-1">
+                  8. Ngày ký
                 </label>
                 <input
                   type="date"
@@ -490,48 +436,74 @@ export default function ContractModal({
                 />
               </div>
 
-              {formData.duration_type === 'days' ? (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Số Ngày Thực Hiện
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="90"
-                    value={formData.execution_days}
-                    onChange={(e) => handleDaysChange(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono text-amber-300 focus:outline-none focus:border-blue-500 transition"
-                  />
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Ngày Kết Thúc Dự Kiến
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.end_date}
-                    onChange={(e) => handleEndDateChange(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition"
-                  />
-                </div>
-              )}
-
+              {/* STT 9: Tiến độ HĐ (ngày) */}
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">
-                  Tự Động Tính Kết Quả
+                <label className="block font-semibold text-slate-300 mb-1">
+                  9. Tiến độ HĐ (ngày)
                 </label>
-                <div className="px-3 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs font-mono text-slate-300 flex items-center justify-between">
-                  <span>
-                    {formData.duration_type === 'days' 
-                      ? `Hạn chót: ${formData.end_date ? formData.end_date.split('-').reverse().join('/') : '---'}`
-                      : `Tổng: ${formData.execution_days} ngày`}
-                  </span>
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                </div>
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="365"
+                  value={formData.execution_days}
+                  onChange={(e) => handleDaysChange(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono text-amber-300 focus:outline-none focus:border-blue-500 transition"
+                />
+              </div>
+
+              {/* STT 10: Ngày kết thúc (Tự động tính) */}
+              <div>
+                <label className="block font-semibold text-slate-400 mb-1">
+                  10. Ngày kết thúc (Tự động tính)
+                </label>
+                <input
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => handleEndDateChange(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition font-mono"
+                />
               </div>
             </div>
+          </div>
+
+          {/* STT 11: NHÓM CHI PHÍ */}
+          <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-3">
+            <div className="flex items-center gap-2 border-b border-slate-700/60 pb-2">
+              <Tag className="w-4 h-4 text-cyan-400" />
+              <label className="text-xs font-bold text-white uppercase tracking-wider">
+                11. Nhóm chi phí
+              </label>
+            </div>
+
+            <div>
+              <select
+                value={formData.costGroup}
+                onChange={(e) => setFormData({ ...formData, costGroup: e.target.value })}
+                className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-cyan-400 font-semibold cursor-pointer transition"
+              >
+                <option value="">-- Chưa phân loại / Để trống --</option>
+                {COST_GROUP_OPTIONS.map((group) => (
+                  <option key={group} value={group}>{group}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Ghi chú nhóm chi phí khi chọn "Khác" */}
+            {formData.costGroup === 'Khác' && (
+              <div className="space-y-1.5 pt-1 animate-in fade-in duration-200">
+                <label className="block text-xs font-semibold text-purple-300">
+                  Ghi chú nhóm chi phí <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Bảo hiểm công trình, Chi phí dự phòng..."
+                  value={formData.costGroupNote}
+                  onChange={(e) => setFormData({ ...formData, costGroupNote: e.target.value })}
+                  className="w-full px-3.5 py-2 bg-slate-900 border border-purple-500/60 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 transition"
+                  required={formData.costGroup === 'Khác'}
+                />
+              </div>
+            )}
           </div>
 
           {/* Modal Footer Actions */}

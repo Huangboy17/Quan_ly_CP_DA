@@ -42,6 +42,7 @@ import TmdtFormModal from './TmdtFormModal';
 import TmdtPhaseDetailModal from './TmdtPhaseDetailModal';
 import DeleteProjectModal from './DeleteProjectModal';
 import DeleteAllProjectsModal from './DeleteAllProjectsModal';
+import ContractCostGroupChart from '../common/ContractCostGroupChart';
 
 export default function ProjectsView({ 
   data, 
@@ -58,6 +59,7 @@ export default function ProjectsView({
   selectedProjectId = '',
   setSelectedProjectId, 
   setActiveTab,
+  onSelectCostGroup,
   globalSearch 
 }) {
   const { 
@@ -663,11 +665,28 @@ export default function ProjectsView({
         </div>
       </div>
 
-      {/* CƠ CẤU NGÂN SÁCH & TÌNH HÌNH HỢP ĐỒNG */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* CƠ CẤU HỢP ĐỒNG, NGÂN SÁCH & TÌNH HÌNH HỢP ĐỒNG */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* CARD 1: CƠ CẤU NGÂN SÁCH DỰ ÁN */}
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
+        {/* CARD 1: CƠ CẤU HỢP ĐỒNG THEO NHÓM CHI PHÍ */}
+        <div className="lg:col-span-1">
+          <ContractCostGroupChart
+            contracts={projContracts}
+            title="Giá trị hợp đồng theo nhóm chi phí"
+            subtitle={`Dự án: ${activeProj.name}`}
+            onSelectCostGroup={(costGroup) => {
+              if (setSelectedProjectId) setSelectedProjectId(activeProj.id);
+              if (onSelectCostGroup) {
+                onSelectCostGroup(costGroup, activeProj.id);
+              } else {
+                setActiveTab('contracts');
+              }
+            }}
+          />
+        </div>
+
+        {/* CARD 2: CƠ CẤU NGÂN SÁCH DỰ ÁN */}
+        <div className="lg:col-span-1 p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
               <PieIcon className="w-4 h-4 text-emerald-400" />

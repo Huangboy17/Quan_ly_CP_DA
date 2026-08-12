@@ -160,8 +160,10 @@ const INITIAL_CONTRACTS = [
     duration_type: 'days',
     execution_days: 150,
     end_date: '2024-07-14',
+    costGroup: 'Xây dựng - Thiết bị',
+    costGroupNote: '',
     estimated_settlement_value: 19200000000,
-    status: 'settled', // 🔵 Đã quyết toán
+    status: 'settled',
     appendices: [
       {
         id: 'app-201-1',
@@ -193,8 +195,10 @@ const INITIAL_CONTRACTS = [
     duration_type: 'end_date',
     execution_days: 365,
     end_date: '2025-06-01',
+    costGroup: 'Xây dựng - Thiết bị',
+    costGroupNote: '',
     estimated_settlement_value: 43500000000,
-    status: 'in_progress', // 🟢 Đang thực hiện
+    status: 'in_progress',
   },
   {
     id: 'c-203',
@@ -211,6 +215,8 @@ const INITIAL_CONTRACTS = [
     duration_type: 'days',
     execution_days: 180,
     end_date: '2024-12-07',
+    costGroup: 'Xây dựng - Thiết bị',
+    costGroupNote: '',
     estimated_settlement_value: 28000000000,
     status: 'in_progress',
   },
@@ -229,6 +235,8 @@ const INITIAL_CONTRACTS = [
     duration_type: 'days',
     execution_days: 240,
     end_date: '2025-09-12',
+    costGroup: 'Xây dựng - Thiết bị',
+    costGroupNote: '',
     estimated_settlement_value: 16500000000,
     status: 'in_progress',
   },
@@ -236,7 +244,7 @@ const INITIAL_CONTRACTS = [
     id: 'c-205',
     project_id: 'p-103',
     contract_number: 'HĐ-2025/BD-01',
-    content: 'Xây dựng khung nhà xưởng & hạ tầng giao thông nội bộ',
+    content: 'Tư vấn lập thiết kế kỹ thuật & giám sát thi công',
     contractor: 'Công ty CP Xây dựng Coteccons',
     contractValueBeforeVAT: 32407407407,
     vatRate: 8,
@@ -247,6 +255,8 @@ const INITIAL_CONTRACTS = [
     duration_type: 'days',
     execution_days: 200,
     end_date: '2025-08-20',
+    costGroup: 'Tư vấn',
+    costGroupNote: '',
     estimated_settlement_value: 35000000000,
     status: 'in_progress',
   },
@@ -254,7 +264,7 @@ const INITIAL_CONTRACTS = [
     id: 'c-206',
     project_id: 'p-104',
     contract_number: 'HĐ-2025/GP-01',
-    content: 'Cải tạo mặt dựng Aluminum & kính hộp phản quang',
+    content: 'Tư vấn thẩm tra & thẩm định dự toán thi công',
     contractor: 'Công ty CP BM Windows',
     contractValueBeforeVAT: 8363636364,
     vatRate: 10,
@@ -265,6 +275,8 @@ const INITIAL_CONTRACTS = [
     duration_type: 'days',
     execution_days: 120,
     end_date: '2025-11-07',
+    costGroup: 'Tư vấn',
+    costGroupNote: '',
     estimated_settlement_value: 9200000000,
     status: 'in_progress',
   },
@@ -272,7 +284,7 @@ const INITIAL_CONTRACTS = [
     id: 'c-207',
     project_id: 'p-101',
     contract_number: 'HĐ-2026/SH-03',
-    content: 'Hoàn thiện nội thất & cảnh quan sân vườn khu biệt thự',
+    content: 'Bảo hiểm rủi ro tài sản công trình & khảo sát môi trường',
     contractor: 'Công ty CP Kiến trúc & Nội thất An Cường',
     contractValueBeforeVAT: 12727272727,
     vatRate: 10,
@@ -283,6 +295,8 @@ const INITIAL_CONTRACTS = [
     duration_type: 'days',
     execution_days: 150,
     end_date: '2026-06-09',
+    costGroup: 'Khác',
+    costGroupNote: 'Bảo hiểm công trình & ĐTM',
     estimated_settlement_value: 14000000000,
     status: 'in_progress',
   },
@@ -737,6 +751,8 @@ export function saveContract(contract) {
     vatAmount: vatAmount,
     contractValueAfterVAT: afterVAT,
     contract_value: afterVAT,
+    costGroup: contract.costGroup || '',
+    costGroupNote: contract.costGroup === 'Khác' ? (contract.costGroupNote || '') : '',
   };
 
   if (contract.id) {
@@ -1010,6 +1026,7 @@ export function getAggregatedData(timeFilter = {}) {
   const bounds = getTimeRangeBounds(timeFilter);
   const { startDate, endDate, periodLabel, prevPeriod } = bounds;
   const selectedProjectId = timeFilter.project_id || '';
+  const selectedCostGroup = timeFilter.cost_group || '';
   const isTimeRangeFilterActive = Boolean(startDate || endDate);
 
   const allTimeContractPaidBeforeVAT = {};
@@ -1101,10 +1118,15 @@ export function getAggregatedData(timeFilter = {}) {
     const status = c.status || 'in_progress';
     const estimatedSettlement = cleanVND(c.estimated_settlement_value !== undefined && c.estimated_settlement_value !== null ? c.estimated_settlement_value : currentContractValueAfterVAT);
 
+    const costGroup = c.costGroup || '';
+    const costGroupNote = c.costGroupNote || '';
+
     return {
       ...c,
       status,
       vatRate,
+      costGroup,
+      costGroupNote,
       appendices,
       initialContractValueBeforeVAT,
       initialVatAmount,
@@ -1142,24 +1164,58 @@ export function getAggregatedData(timeFilter = {}) {
     };
   });
 
-  // Filter contracts list strictly by selectedProjectId
-  const filteredContractsList = selectedProjectId 
-    ? enrichedContracts.filter(c => String(c.project_id) === String(selectedProjectId))
-    : enrichedContracts;
-
-  // Filter inPeriodPayments strictly by selectedProjectId
-  const inPeriodPaymentsFiltered = inPeriodPayments.filter(pm => {
-    if (!selectedProjectId) return true;
-    const c = contracts.find(ct => String(ct.id) === String(pm.contract_id));
-    return c && String(c.project_id) === String(selectedProjectId);
+  // Enrich payments with inherited costGroup from Contract
+  const enrichedPayments = payments.map(pm => {
+    const contract = enrichedContracts.find(c => String(c.id) === String(pm.contract_id));
+    return {
+      ...pm,
+      costGroup: contract ? (contract.costGroup || '') : '',
+      costGroupNote: contract ? (contract.costGroupNote || '') : '',
+    };
   });
 
-  // Filter all payments strictly by selectedProjectId & date range if active
+  // Filter contracts list strictly by selectedProjectId AND selectedCostGroup
+  const filteredContractsList = enrichedContracts.filter(c => {
+    if (selectedProjectId && String(c.project_id) !== String(selectedProjectId)) return false;
+    if (selectedCostGroup) {
+      if (selectedCostGroup === 'unassigned') {
+        if (c.costGroup && c.costGroup.trim() !== '') return false;
+      } else if (c.costGroup !== selectedCostGroup) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // Filter inPeriodPayments strictly by selectedProjectId AND selectedCostGroup
+  const inPeriodPaymentsFiltered = inPeriodPayments.filter(pm => {
+    const c = enrichedContracts.find(ct => String(ct.id) === String(pm.contract_id));
+    if (!c) return false;
+    if (selectedProjectId && String(c.project_id) !== String(selectedProjectId)) return false;
+    if (selectedCostGroup) {
+      if (selectedCostGroup === 'unassigned') {
+        if (c.costGroup && c.costGroup.trim() !== '') return false;
+      } else if (c.costGroup !== selectedCostGroup) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // Filter all payments strictly by selectedProjectId, selectedCostGroup & date range if active
   const basePaymentsList = isTimeRangeFilterActive ? inPeriodPayments : payments;
   const filteredPaymentsList = basePaymentsList.filter(pm => {
-    if (!selectedProjectId) return true;
-    const c = contracts.find(ct => String(ct.id) === String(pm.contract_id));
-    return c && String(c.project_id) === String(selectedProjectId);
+    const c = enrichedContracts.find(ct => String(ct.id) === String(pm.contract_id));
+    if (!c) return false;
+    if (selectedProjectId && String(c.project_id) !== String(selectedProjectId)) return false;
+    if (selectedCostGroup) {
+      if (selectedCostGroup === 'unassigned') {
+        if (c.costGroup && c.costGroup.trim() !== '') return false;
+      } else if (c.costGroup !== selectedCostGroup) {
+        return false;
+      }
+    }
+    return true;
   });
 
   // Totals for Contract Values (3-tier)
@@ -1184,9 +1240,17 @@ export function getAggregatedData(timeFilter = {}) {
 
   // Previous Period Payments calculation (3-tier)
   const prevPeriodPaymentsFiltered = prevPeriodPayments.filter(pm => {
-    if (!selectedProjectId) return true;
-    const c = contracts.find(ct => String(ct.id) === String(pm.contract_id));
-    return c && String(c.project_id) === String(selectedProjectId);
+    const c = enrichedContracts.find(ct => String(ct.id) === String(pm.contract_id));
+    if (!c) return false;
+    if (selectedProjectId && String(c.project_id) !== String(selectedProjectId)) return false;
+    if (selectedCostGroup) {
+      if (selectedCostGroup === 'unassigned') {
+        if (c.costGroup && c.costGroup.trim() !== '') return false;
+      } else if (c.costGroup !== selectedCostGroup) {
+        return false;
+      }
+    }
+    return true;
   });
 
   const prevPeriodPaidBeforeVAT = prevPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.amount_before_vat || 0), 0);
@@ -1393,12 +1457,13 @@ export function getAggregatedData(timeFilter = {}) {
     // RAW / ALL-TIME ARRAYS
     projects: enrichedProjects,
     contracts: enrichedContracts,
-    payments: payments,
+    payments: enrichedPayments,
 
     // METADATA
     timeFilter,
     periodLabel,
     selectedProjectId,
+    selectedCostGroup,
     isTimeRangeFilterActive,
 
     // CENTRALLY AGGREGATED TOTALS

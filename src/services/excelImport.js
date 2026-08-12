@@ -1,6 +1,15 @@
 import * as XLSX from 'xlsx';
 import { getProjects, saveProject, getContracts, saveContract, getPayments, savePayment, STORAGE_KEYS } from './storage';
 
+export const VALID_COST_GROUPS = [
+  'Xây dựng - Thiết bị',
+  'Chi phí QLDA',
+  'Tư vấn',
+  'Chi phí khác',
+  'Lãi vay',
+  'Khác',
+];
+
 /**
  * Normalizes header keys by trimming whitespace, removing multiple spaces,
  * and converting to lowercase string for matching.
@@ -16,7 +25,6 @@ function normalizeHeader(str) {
 function parseNumber(val) {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
   if (!val) return 0;
-  // If string contains dots/commas format: e.g. 5.000.000.000 or 5,000,000,000
   const cleaned = val.toString().replace(/[^\d.-]/g, '');
   const num = parseFloat(cleaned);
   return isNaN(num) ? 0 : num;
@@ -31,7 +39,6 @@ function formatDateStr(val) {
     return val.toISOString().split('T')[0];
   }
   if (typeof val === 'number') {
-    // Excel date serial number (1900 epoch)
     const dateObj = XLSX.SSF.parse_date_code(val);
     if (dateObj) {
       const y = dateObj.y;
@@ -41,7 +48,6 @@ function formatDateStr(val) {
     }
   }
   const str = val.toString().trim();
-  // Handle DD/MM/YYYY
   const partsSlash = str.split('/');
   if (partsSlash.length === 3) {
     const d = partsSlash[0].padStart(2, '0');
@@ -49,7 +55,6 @@ function formatDateStr(val) {
     const y = partsSlash[2];
     return `${y}-${m}-${d}`;
   }
-  // Handle YYYY-MM-DD
   const partsDash = str.split('-');
   if (partsDash.length === 3) {
     if (partsDash[0].length === 4) return str;
@@ -85,7 +90,6 @@ export async function parseExcelFile(file) {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
-        // Convert to array of object rows
         const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
         resolve(rawJson);
       } catch (err) {
@@ -116,9 +120,8 @@ export function validateAndPrepareProjectImport(rawRows, existingProjects = []) 
   const batchCodes = new Set();
 
   rawRows.forEach((row, idx) => {
-    const lineNum = idx + 2; // Row 1 is header
+    const lineNum = idx + 2;
     
-    // Map row columns with case-insensitive / accent-insensitive header matching
     let code = '';
     let name = '';
     let address = '';
@@ -266,6 +269,7 @@ export function validateAndPrepareContractImport(rawRows, existingProjects = [],
   const projectsMap = new Map();
   existingProjects.forEach(p => {
     if (p.id) projectsMap.set(p.id.toString().trim().toUpperCase(), p);
+    if (p.code) projectsMap.set(p.code.toString().trim().toUpperCase(), p);
   });
 
   const contractsMap = new Map();
@@ -288,6 +292,8 @@ export function validateAndPrepareContractImport(rawRows, existingProjects = [],
     let signedDate = '';
     let days = 0;
     let endDate = '';
+    let costGroup = '';
+    let hasCostGroupCol = false;
 
     Object.keys(row).forEach(key => {
       const normKey = normalizeHeader(key);
@@ -313,6 +319,9 @@ export function validateAndPrepareContractImport(rawRows, existingProjects = [],
         days = parseNumber(val);
       } else if (normKey.includes('ngày kết thúc') || normKey.includes('ngay ket thuc') || normKey === 'end_date') {
         endDate = formatDateStr(val);
+      } else if (normKey.includes('nhóm chi phí') || normKey.includes('nhom chi phi') || normKey === 'cost_group' || normKey === 'costgroup') {
+        hasCostGroupCol = true;
+        costGroup = val ? val.toString().trim() : '';
       }
     });
 
@@ -331,6 +340,23 @@ export function validateAndPrepareContractImport(rawRows, existingProjects = [],
     if (!contractNumber) {
       errorRows.push({ line: lineNum, code: '---', reason: 'Thiếu thông tin [Số hợp đồng] (Bắt buộc)' });
       return;
+    }
+
+    // Validate Cost Group value if column is present and cell is non-empty
+    if (hasCostGroupCol && costGroup) {
+      const canonicalMatch = VALID_COST_GROUPS.find(
+        g => g.toLowerCase() === costGroup.toLowerCase()
+      );
+      if (canonicalMatch) {
+        costGroup = canonicalMatch;
+      } else {
+        errorRows.push({ 
+          line: lineNum, 
+          code: contractNumber, 
+          reason: `Nhóm chi phí "${costGroup}" không hợp lệ. Vui lòng chọn đúng một trong các nhóm: ${VALID_COST_GROUPS.join(', ')}` 
+        });
+        return;
+      }
     }
 
     // Auto calculate VAT financial model
@@ -375,6 +401,8 @@ export function validateAndPrepareContractImport(rawRows, existingProjects = [],
       signing_date: signedDate || new Date().toISOString().split('T')[0],
       execution_days: days || 180,
       end_date: endDate || calculateEndDate(signedDate || new Date().toISOString().split('T')[0], days || 180),
+      costGroup: costGroup || '', // If empty or legacy Excel, defaults to '' (Chưa phân loại)
+      costGroupNote: '',
       estimated_settlement_value: afterVat,
       status: 'in_progress',
       actionType: actionType,
@@ -421,6 +449,7 @@ export function commitContractImport(validRows) {
         signing_date: item.signing_date || existing.signing_date,
         execution_days: item.execution_days || existing.execution_days,
         end_date: item.end_date || existing.end_date,
+        costGroup: item.costGroup !== undefined ? item.costGroup : (existing.costGroup || ''),
       };
       contractsMap.set(upperNum, updatedContract);
     } else {
@@ -438,6 +467,8 @@ export function commitContractImport(validRows) {
         signing_date: item.signing_date,
         execution_days: item.execution_days,
         end_date: item.end_date,
+        costGroup: item.costGroup || '',
+        costGroupNote: '',
         estimated_settlement_value: item.contractValueAfterVAT,
         status: 'in_progress',
         appendices: []
@@ -463,6 +494,7 @@ export function validateAndPreparePaymentImport(rawRows, existingProjects = [], 
   const projectsMap = new Map();
   existingProjects.forEach(p => {
     if (p.id) projectsMap.set(p.id.toString().trim().toUpperCase(), p);
+    if (p.code) projectsMap.set(p.code.toString().trim().toUpperCase(), p);
   });
 
   const contractsMap = new Map();
@@ -472,7 +504,6 @@ export function validateAndPreparePaymentImport(rawRows, existingProjects = [], 
 
   const existingPaymentsMap = new Map();
   existingPayments.forEach(pm => {
-    // Unique composite key: contract_id + phase + type + date
     const key = `${pm.contract_id}_${pm.payment_phase}_${pm.payment_type || 'PAYMENT'}_${pm.payment_date}`;
     existingPaymentsMap.set(key.toUpperCase(), pm);
   });
@@ -539,7 +570,6 @@ export function validateAndPreparePaymentImport(rawRows, existingProjects = [], 
       return;
     }
 
-    // Auto VAT model calculation
     if (afterVat > 0 && beforeVat === 0) {
       beforeVat = Math.round(afterVat / (1 + (vatRate / 100)));
     } else if (beforeVat > 0 && afterVat === 0) {
@@ -555,7 +585,6 @@ export function validateAndPreparePaymentImport(rawRows, existingProjects = [], 
     const isSettlement = paymentTypeStr.toLowerCase().includes('quyết toán') || paymentTypeStr.toLowerCase().includes('quyet toan');
     const paymentTypeKey = isSettlement ? 'FINAL_SETTLEMENT' : 'PAYMENT';
 
-    // Unique Composite Key
     const compositeKey = `${contractObj.id}_${phase}_${paymentTypeKey}_${paymentDate}`.toUpperCase();
     const existingPayment = existingPaymentsMap.get(compositeKey);
     const isProcessedInBatch = batchPaymentKeys.has(compositeKey);
@@ -654,7 +683,6 @@ export function commitPaymentImport(validRows) {
   const updatedPaymentsList = Array.from(paymentsMap.values());
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(updatedPaymentsList));
 
-  // Auto Update Contract Statuses if Settlement Imported
   if (settledContractIds.size > 0) {
     const updatedContracts = currentContracts.map(c => {
       if (settledContractIds.has(c.id)) {
@@ -710,21 +738,36 @@ export function downloadContractTemplate() {
       'VAT (%)': 10,
       'Giá trị sau VAT': 27500000000,
       'Nhà thầu': 'Công ty CP Xây dựng Contec',
-      'Ngày ký': '2026-02-15',
-      'Tiến độ HĐ (ngày)': 180,
-      'Ngày kết thúc': '2026-08-14'
+      'Ngày ký': '01/01/2026',
+      'Tiến độ HĐ (ngày)': 365,
+      'Ngày kết thúc': '01/01/2027',
+      'Nhóm Chi Phí': 'Xây dựng - Thiết bị'
     },
     {
       'Mã dự án': 'DA-001',
       'Số hợp đồng': 'HĐ-2026/SH-02',
-      'Nội dung hợp đồng': 'Thi công kết cấu phần thân tháp A1',
-      'Giá trị trước VAT': 40000000000,
+      'Nội dung hợp đồng': 'Tư vấn thiết kế kỹ thuật tháp A1',
+      'Giá trị trước VAT': 500000000,
       'VAT (%)': 10,
-      'Giá trị sau VAT': 44000000000,
-      'Nhà thầu': 'Tập đoàn Xây dựng Hòa Bình',
-      'Ngày ký': '2026-05-01',
-      'Tiến độ HĐ (ngày)': 365,
-      'Ngày kết thúc': '2027-05-01'
+      'Giá trị sau VAT': 550000000,
+      'Nhà thầu': 'Tập đoàn Tư vấn Thiết kế A',
+      'Ngày ký': '05/01/2026',
+      'Tiến độ HĐ (ngày)': 120,
+      'Ngày kết thúc': '05/05/2026',
+      'Nhóm Chi Phí': 'Tư vấn'
+    },
+    {
+      'Mã dự án': 'DA-001',
+      'Số hợp đồng': 'HĐ-2026/SH-03',
+      'Nội dung hợp đồng': 'Bảo hiểm công trình',
+      'Giá trị trước VAT': 300000000,
+      'VAT (%)': 10,
+      'Giá trị sau VAT': 330000000,
+      'Nhà thầu': 'Tổng Công ty Bảo hiểm B',
+      'Ngày ký': '10/01/2026',
+      'Tiến độ HĐ (ngày)': 90,
+      'Ngày kết thúc': '10/04/2026',
+      'Nhóm Chi Phí': 'Khác'
     }
   ];
 

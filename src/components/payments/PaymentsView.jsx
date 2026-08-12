@@ -564,6 +564,11 @@ export default function PaymentsView({
                     <td className="py-3 px-3.5 font-mono">
                       <div className="font-bold text-white">{pm.contractNumber}</div>
                       <div className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{pm.contractor}</div>
+                      {pm.costGroup && (
+                        <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-sans">
+                          {pm.costGroup} {pm.costGroup === 'Khác' && pm.costGroupNote ? `(${pm.costGroupNote})` : ''}
+                        </span>
+                      )}
                     </td>
 
                     <td className="py-3 px-3.5 text-center font-mono">

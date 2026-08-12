@@ -30,6 +30,7 @@ import {
 } from 'recharts';
 import StatCard from '../common/StatCard';
 import { formatVND, formatVNDCompact } from '../../utils/formatters';
+import ContractCostGroupChart from '../common/ContractCostGroupChart';
 
 export default function DashboardView({ 
   data, 
@@ -37,17 +38,21 @@ export default function DashboardView({
   setSelectedProjectId,
   setActiveTab, 
   onNewContract, 
-  onNewPayment 
+  onNewPayment,
+  onSelectCostGroup
 }) {
   const { 
     totals = {}, 
     projects = [], 
     contracts = [], 
+    filteredContracts = [],
     filteredPayments = [], 
     filteredProjects = [], 
     inPeriodPayments = [], 
     periodLabel = 'Tất cả thời gian' 
   } = data;
+
+  const activeContractsList = (filteredContracts && filteredContracts.length > 0) ? filteredContracts : contracts;
 
   // Active Payments for Charts: Use filteredPayments from Single Source of Truth
   const activePaymentsForScope = useMemo(() => {
@@ -89,10 +94,8 @@ export default function DashboardView({
       let key = 'Chưa phân loại';
       
       if (selectedProjectId) {
-        // If a specific project is selected, group by Contractor / Nhà thầu
         key = contract && contract.contractor ? contract.contractor : (contract ? contract.contract_number : 'Khác');
       } else {
-        // If All Projects selected, group by Project Name
         key = contract ? contract.projectName : 'Chưa phân loại';
       }
       
@@ -187,10 +190,9 @@ export default function DashboardView({
         </div>
       </div>
 
-      {/* KPI Cards Grid - 3-Value VAT Model & Scope Metrics */}
+      {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         
-        {/* Card 1: In-Period Total Payment (3-Tier) */}
         <StatCard
           title={`Chi Trả Trong Kỳ`}
           value={formatVNDCompact(totals.totalPaidInPeriodAfterVAT || totals.totalPaidInPeriod || 0)}
@@ -204,7 +206,6 @@ export default function DashboardView({
           }
         />
 
-        {/* Card 2: In-Period Transaction Count */}
         <StatCard
           title="Lượt Chi Trong Kỳ"
           value={`${totals.inPeriodTransactionsCount || 0} Đợt`}
@@ -213,7 +214,6 @@ export default function DashboardView({
           color="cyan"
         />
 
-        {/* Card 3: Period over Period Growth or All Time Scope */}
         {totals.hasPrevPeriod && totals.prevPeriodLabel ? (
           <StatCard
             title={`So Với ${totals.prevPeriodLabel}`}
@@ -250,7 +250,6 @@ export default function DashboardView({
           />
         )}
 
-        {/* Card 4: All-Time Contract Value (3-Tier) */}
         <StatCard
           title="Tổng Giá Trị HĐ (Sau VAT)"
           value={formatVNDCompact(totals.totalContractValueAfterVAT || totals.totalContractValue)}
@@ -259,7 +258,6 @@ export default function DashboardView({
           color="blue"
         />
 
-        {/* Card 5: All-Time Cumulative Paid (3-Tier) */}
         <StatCard
           title="Lũy Kế Đã Chi (Sau VAT)"
           value={formatVNDCompact(totals.totalPaidAfterVAT || totals.totalPaidValueAllTime)}
@@ -269,7 +267,6 @@ export default function DashboardView({
           progress={totals.totalContractValueAfterVAT > 0 ? Math.round((totals.totalPaidAfterVAT / totals.totalContractValueAfterVAT) * 100) : 0}
         />
 
-        {/* Card 6: Total Remaining (3-Tier) */}
         <StatCard
           title="Còn Lại Chưa Chi (Sau VAT)"
           value={formatVNDCompact(totals.totalRemainingAfterVAT || totals.totalRemainingValue)}
@@ -283,21 +280,21 @@ export default function DashboardView({
       {/* Analytics Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Monthly Cash Flow Chart in Selected Period & Scope */}
-        <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-800/80 border border-slate-700/70 shadow-lg space-y-4">
-          <div className="flex items-center justify-between">
+        {/* Monthly Cash Flow Chart */}
+        <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-emerald-400" />
                 Dòng Tiền Giải Ngân Theo Thời Gian ({periodLabel})
               </h3>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Tổng chi trả thực tế theo từng tháng cho <strong className="text-emerald-300">{selectedProjectObj ? selectedProjectObj.name : 'Tất cả dự án'}</strong> trong {periodLabel} (Tỷ VNĐ)
               </p>
             </div>
           </div>
 
-          <div className="h-72 w-full pt-4">
+          <div className="h-64 w-full pt-2">
             {monthlyCashFlowData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyCashFlowData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
@@ -316,53 +313,65 @@ export default function DashboardView({
           </div>
         </div>
 
-        {/* Disbursement Allocation Pie Chart (By Project or By Contractor) */}
-        <div className="p-5 rounded-2xl bg-slate-800/80 border border-slate-700/70 shadow-lg space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <PieIcon className="w-5 h-5 text-purple-400" />
-                {selectedProjectObj ? `Phân Bổ Chi Trả Theo Nhà Thầu` : `Phân Bổ Chi Trả Trong Kỳ`}
-              </h3>
-              <p className="text-xs text-slate-400">
-                {selectedProjectObj 
-                  ? `Tỷ trọng giải ngân từng nhà thầu thuộc ${selectedProjectObj.name}`
-                  : `Tỷ trọng giải ngân từng dự án trong ${periodLabel}`}
-              </p>
-            </div>
-          </div>
-
-          <div className="h-72 w-full flex items-center justify-center">
-            {projectAllocationData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={projectAllocationData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {projectAllocationData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip formatter={(val) => [`${val} Tỷ VNĐ`, 'Chi trong kỳ']} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} layout="horizontal" verticalAlign="bottom" align="center" />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="text-xs text-slate-400 italic">Chưa có phát sinh chi trong kỳ này</div>
-            )}
-          </div>
+        {/* NEW: Giá Trị Hợp Đồng Theo Nhóm Chi Phí Doughnut Chart */}
+        <div className="lg:col-span-1">
+          <ContractCostGroupChart
+            contracts={activeContractsList}
+            title="Giá trị hợp đồng theo nhóm chi phí"
+            subtitle={selectedProjectObj ? `Dự án: ${selectedProjectObj.name}` : "Tất cả hợp đồng đã ký trong hệ thống"}
+            onSelectCostGroup={(costGroup) => {
+              if (onSelectCostGroup) onSelectCostGroup(costGroup);
+            }}
+          />
         </div>
 
       </div>
 
+      {/* Row 2: Disbursement Allocation Chart */}
+      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <PieIcon className="w-5 h-5 text-purple-400" />
+              {selectedProjectObj ? `Phân Bổ Chi Trả Theo Nhà Thầu` : `Phân Bổ Chi Trả Trong Kỳ`}
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {selectedProjectObj 
+                ? `Tỷ trọng giải ngân từng nhà thầu thuộc ${selectedProjectObj.name}`
+                : `Tỷ trọng giải ngân từng dự án trong ${periodLabel}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="h-64 w-full flex items-center justify-center">
+          {projectAllocationData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={projectAllocationData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {projectAllocationData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip formatter={(val) => [`${val} Tỷ VNĐ`, 'Chi trong kỳ']} />
+                <Legend wrapperStyle={{ fontSize: 11 }} layout="horizontal" verticalAlign="bottom" align="center" />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-xs text-slate-400 italic">Chưa có phát sinh chi trong kỳ này</div>
+          )}
+        </div>
+      </div>
+
       {/* Projects Progress Table */}
-      <div className="p-6 rounded-2xl bg-slate-800/80 border border-slate-700/70 shadow-lg space-y-5">
+      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -384,7 +393,7 @@ export default function DashboardView({
 
         <div className="overflow-x-auto w-full">
           <table className="w-full text-left text-xs text-slate-300 min-w-[800px]">
-            <thead className="bg-slate-900/90 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-700">
+            <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
               <tr>
                 <th className="py-3 px-4">Tên Dự Án</th>
                 <th className="py-3 px-4 text-center">Số HĐ</th>
@@ -396,13 +405,13 @@ export default function DashboardView({
                 <th className="py-3 px-4 text-center">Thao Tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/60">
+            <tbody className="divide-y divide-slate-800/80">
               {displayProjectsList.map((proj) => {
                 const isSelected = selectedProjectId && String(proj.id) === String(selectedProjectId);
                 return (
                   <tr 
                     key={proj.id} 
-                    className={`transition ${isSelected ? 'bg-emerald-950/30 border-l-4 border-emerald-500' : 'hover:bg-slate-700/40'}`}
+                    className={`transition ${isSelected ? 'bg-emerald-950/30 border-l-4 border-emerald-500' : 'hover:bg-slate-800/50'}`}
                   >
                     <td className="py-3.5 px-4 font-semibold text-white">
                       <div className="flex items-center gap-2">
@@ -449,7 +458,7 @@ export default function DashboardView({
                           <span className="text-slate-400">Đã chi</span>
                           <span className="font-bold text-slate-200">{proj.paidPercentage}%</span>
                         </div>
-                        <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
                           <div
                             className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 rounded-full transition-all duration-300"
                             style={{ width: `${proj.paidPercentage}%` }}
@@ -464,7 +473,7 @@ export default function DashboardView({
                           if (setSelectedProjectId) setSelectedProjectId(proj.id);
                           setActiveTab('contracts');
                         }}
-                        className="px-2.5 py-1 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-[11px] font-medium transition cursor-pointer"
+                        className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium border border-slate-700 transition cursor-pointer"
                       >
                         Xem Hợp Đồng
                       </button>
