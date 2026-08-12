@@ -13,7 +13,8 @@ import {
   Layers,
   ArrowUpRight,
   ArrowDownRight,
-  X
+  X,
+  Percent
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -103,13 +104,28 @@ export default function DashboardView({
     });
 
     return Object.keys(allocationMap).map(name => ({
-      name: name.length > 18 ? name.substring(0, 16) + '...' : name,
+      name: name,
       fullName: name,
       value: Math.round((allocationMap[name] / 1_000_000_000) * 100) / 100,
     }));
   }, [activePaymentsForScope, contracts, selectedProjectId]);
 
-  const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1', '#14b8a6'];
+  // Calculate total allocation sum in billions for inner text and percentage
+  const totalAllocationValue = useMemo(() => {
+    const sum = projectAllocationData.reduce((acc, item) => acc + (Number(item.value) || 0), 0);
+    return (Math.round(sum * 100) / 100).toFixed(2);
+  }, [projectAllocationData]);
+
+  // Calculate overall disbursement ratio (%) for KPI Card
+  const disbursementRatio = useMemo(() => {
+    const totalContract = totals.totalContractValueAfterVAT || totals.totalContractValue || 0;
+    const totalPaid = totals.totalPaidAfterVAT || totals.totalPaidValueAllTime || 0;
+    if (totalContract <= 0) return 0;
+    const pct = (totalPaid / totalContract) * 100;
+    return Math.min(100, Math.round(pct * 10) / 10);
+  }, [totals]);
+
+  const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#6366f1', '#14b8a6'];
 
   // Projects list: use filteredProjects from Single Source of Truth
   const displayProjectsList = useMemo(() => {
@@ -118,10 +134,10 @@ export default function DashboardView({
   }, [filteredProjects, projects]);
 
   return (
-    <div className="space-y-8 animate-fade-in pb-12">
+    <div className="space-y-6 animate-fade-in pb-12">
       
       {/* Time & Project Analytics Scope Banner */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950/80 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950/80 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold font-mono">
@@ -190,8 +206,8 @@ export default function DashboardView({
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* KPI CARDS (COMPACT FLEX/GRID) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         
         <StatCard
           title={`Chi Trả Trong Kỳ`}
@@ -200,7 +216,7 @@ export default function DashboardView({
           icon={Calendar}
           color="emerald"
           badge={
-            <div className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+            <div className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
               {periodLabel || 'Tất cả thời gian'}
             </div>
           }
@@ -227,7 +243,7 @@ export default function DashboardView({
             subtext={
               totals.prevPeriodPaid > 0
                 ? `Kỳ trước: ${formatVNDCompact(totals.prevPeriodPaid)}`
-                : `Kỳ trước: 0 VNĐ (Không có dữ liệu so sánh)`
+                : `Kỳ trước: 0 VNĐ`
             }
             icon={
               totals.periodGrowthPct !== null && totals.periodGrowthPct < 0
@@ -242,11 +258,12 @@ export default function DashboardView({
           />
         ) : (
           <StatCard
-            title="Phạm Vi Phân Tích"
-            value="Tất Cả Thời Gian"
-            subtext="Tổng lũy kế từ trước đến nay"
-            icon={Calendar}
+            title="TỶ LỆ GIẢI NGÂN"
+            value={`${disbursementRatio.toFixed(1)}%`}
+            subtext={`Lũy kế: ${formatVNDCompact(totals.totalPaidAfterVAT || totals.totalPaidValueAllTime || 0)} / ${formatVNDCompact(totals.totalContractValueAfterVAT || totals.totalContractValue || 0)}`}
+            icon={Percent}
             color="purple"
+            progress={disbursementRatio}
           />
         )}
 
@@ -277,44 +294,11 @@ export default function DashboardView({
 
       </div>
 
-      {/* Analytics Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* ROW 1 (TOP): 2 DONUT CHARTS (50% / 50%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         
-        {/* Monthly Cash Flow Chart */}
-        <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-emerald-400" />
-                Dòng Tiền Giải Ngân Theo Thời Gian ({periodLabel})
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Tổng chi trả thực tế theo từng tháng cho <strong className="text-emerald-300">{selectedProjectObj ? selectedProjectObj.name : 'Tất cả dự án'}</strong> trong {periodLabel} (Tỷ VNĐ)
-              </p>
-            </div>
-          </div>
-
-          <div className="h-64 w-full pt-2">
-            {monthlyCashFlowData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyCashFlowData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
-                  <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                  <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                  <RechartsTooltip formatter={(val) => [`${val} Tỷ VNĐ`, 'Giải ngân']} />
-                  <Bar dataKey="Giải ngân (Tỷ VNĐ)" fill="#10b981" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
-                Không có phát sinh chi cho {selectedProjectObj ? selectedProjectObj.name : 'phạm vi này'} trong {periodLabel}.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* NEW: Giá Trị Hợp Đồng Theo Nhóm Chi Phí Doughnut Chart */}
-        <div className="lg:col-span-1">
+        {/* Row 1 - Left Chart (50% Width): "Giá trị hợp đồng theo nhóm chi phí" */}
+        <div className="h-full">
           <ContractCostGroupChart
             contracts={activeContractsList}
             title="Giá trị hợp đồng theo nhóm chi phí"
@@ -325,47 +309,139 @@ export default function DashboardView({
           />
         </div>
 
+        {/* Row 1 - Right Chart (50% Width): "Phân bổ chi trả trong kỳ" */}
+        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between h-full">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <PieIcon className="w-5 h-5 text-purple-400" />
+                {selectedProjectObj ? `Phân Bổ Chi Trả Theo Nhà Thầu` : `Phân Bổ Chi Trả Trong Kỳ`}
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {selectedProjectObj 
+                  ? `Tỷ trọng giải ngân từng nhà thầu thuộc ${selectedProjectObj.name}`
+                  : `Tỷ trọng giải ngân từng dự án trong ${periodLabel}`}
+              </p>
+            </div>
+          </div>
+
+          {/* Container Flexbox: 45% Donut Graphic (Left) | 55% Legend (Right) */}
+          {projectAllocationData.length > 0 ? (
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 flex-1 w-full">
+              
+              {/* Left Side (~45% Width): Centered Donut Graphic with Overlay Text */}
+              <div className="w-full md:w-[45%] shrink-0 relative h-56 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={projectAllocationData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={82}
+                      paddingAngle={3}
+                      dataKey="value"
+                      className="outline-none"
+                    >
+                      {projectAllocationData.map((entry, index) => (
+                        <Cell key={`alloc-cell-${index}`} fill={COLORS[index % COLORS.length]} className="hover:opacity-80 transition cursor-pointer" />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip formatter={(val) => [`${val} Tỷ VNĐ`, 'Chi trong kỳ']} />
+                  </PieChart>
+                </ResponsiveContainer>
+
+                {/* Perfect Center Inner Text (Centered Vertically & Horizontally) */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-2 select-none">
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">
+                    TỔNG CHI
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-white font-mono leading-tight mt-0.5">
+                    {totalAllocationValue} Tỷ
+                  </span>
+                </div>
+              </div>
+
+              {/* Right Side (~55% Width): Legend List without Text Truncation */}
+              <div className="w-full md:w-[55%] flex-1 flex flex-col justify-center gap-1.5 max-h-60 overflow-y-auto pl-1 pr-1">
+                {projectAllocationData.map((item, idx) => {
+                  const numVal = Number(item.value) || 0;
+                  const totalSum = Number(totalAllocationValue) || 1;
+                  const pct = totalSum > 0 ? (numVal / totalSum) * 100 : 0;
+                  const itemColor = COLORS[idx % COLORS.length];
+
+                  return (
+                    <div
+                      key={item.name}
+                      title={`${item.fullName} - ${item.value} Tỷ VNĐ (${pct.toFixed(1)}%)`}
+                      className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-purple-500/50 hover:bg-slate-800/50 transition cursor-pointer flex items-center justify-between gap-2 group"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span 
+                          className="w-3 h-3 rounded-md shrink-0 shadow-sm mt-0.5" 
+                          style={{ backgroundColor: itemColor }} 
+                        />
+                        <span className="text-xs font-semibold text-slate-200 whitespace-normal break-words leading-snug group-hover:text-purple-300 transition">
+                          {item.fullName}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 text-xs font-mono">
+                        <span className="font-bold text-white">
+                          {item.value} Tỷ
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-purple-300 border border-slate-700 min-w-[44px] text-right">
+                          {pct.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+            </div>
+          ) : (
+            <div className="h-56 w-full flex items-center justify-center text-xs text-slate-400 italic">
+              Chưa có phát sinh chi trong kỳ này
+            </div>
+          )}
+        </div>
+
       </div>
 
-      {/* Row 2: Disbursement Allocation Chart */}
-      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+      {/* ROW 2 (BOTTOM): 100% WIDTH BARCHART */}
+      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 w-full">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <PieIcon className="w-5 h-5 text-purple-400" />
-              {selectedProjectObj ? `Phân Bổ Chi Trả Theo Nhà Thầu` : `Phân Bổ Chi Trả Trong Kỳ`}
+              <BarChart3 className="w-5 h-5 text-emerald-400" />
+              Dòng Tiền Giải Ngân Theo Thời Gian ({periodLabel})
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              {selectedProjectObj 
-                ? `Tỷ trọng giải ngân từng nhà thầu thuộc ${selectedProjectObj.name}`
-                : `Tỷ trọng giải ngân từng dự án trong ${periodLabel}`}
+              Tổng chi trả thực tế theo từng tháng cho <strong className="text-emerald-300">{selectedProjectObj ? selectedProjectObj.name : 'Tất cả dự án'}</strong> trong {periodLabel} (Tỷ VNĐ)
             </p>
           </div>
         </div>
 
-        <div className="h-64 w-full flex items-center justify-center">
-          {projectAllocationData.length > 0 ? (
+        <div className="h-72 w-full pt-2">
+          {monthlyCashFlowData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={projectAllocationData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {projectAllocationData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <RechartsTooltip formatter={(val) => [`${val} Tỷ VNĐ`, 'Chi trong kỳ']} />
-                <Legend wrapperStyle={{ fontSize: 11 }} layout="horizontal" verticalAlign="bottom" align="center" />
-              </PieChart>
+              <BarChart data={monthlyCashFlowData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
+                <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                <YAxis 
+                  stroke="#94a3b8" 
+                  tick={{ fontSize: 11 }} 
+                  tickFormatter={(val) => `${val} Tỷ`}
+                />
+                <RechartsTooltip formatter={(val) => [`${val} Tỷ VNĐ`, 'Giải ngân']} />
+                <Bar dataKey="Giải ngân (Tỷ VNĐ)" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="text-xs text-slate-400 italic">Chưa có phát sinh chi trong kỳ này</div>
+            <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
+              Không có phát sinh chi cho {selectedProjectObj ? selectedProjectObj.name : 'phạm vi này'} trong {periodLabel}.
+            </div>
           )}
         </div>
       </div>
@@ -392,15 +468,15 @@ export default function DashboardView({
         </div>
 
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left text-xs text-slate-300 min-w-[800px]">
+          <table className="w-full text-left text-xs text-slate-300 min-w-[850px]">
             <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
               <tr>
                 <th className="py-3 px-4">Tên Dự Án</th>
                 <th className="py-3 px-4 text-center">Số HĐ</th>
-                <th className="py-3 px-4 text-right">Giá Trị Ký</th>
-                <th className="py-3 px-4 text-right">Chi Trả Trong Kỳ</th>
-                <th className="py-3 px-4 text-right">Lũy Kế Đã Chi</th>
-                <th className="py-3 px-4 text-right">Còn Lại</th>
+                <th className="py-3 px-4 text-right">GIÁ TRỊ KÝ (Tỷ VNĐ)</th>
+                <th className="py-3 px-4 text-right">CHI TRẢ TRONG KỲ (Tỷ VNĐ)</th>
+                <th className="py-3 px-4 text-right">LŨY KẾ ĐÃ CHI (Tỷ VNĐ)</th>
+                <th className="py-3 px-4 text-right">CÒN LẠI (Tỷ VNĐ)</th>
                 <th className="py-3 px-4 w-44">Tiến Độ Lũy Kế</th>
                 <th className="py-3 px-4 text-center">Thao Tác</th>
               </tr>
@@ -436,20 +512,24 @@ export default function DashboardView({
                       </span>
                     </td>
 
+                    {/* GIÁ TRỊ KÝ (Tỷ VNĐ) */}
                     <td className="py-3.5 px-4 text-right font-mono font-bold text-white">
-                      {formatVND(proj.totalContractValue)}
+                      {((Number(proj.totalContractValue) || 0) / 1_000_000_000).toFixed(2)}
                     </td>
 
+                    {/* CHI TRẢ TRONG KỲ (Tỷ VNĐ) */}
                     <td className="py-3.5 px-4 text-right font-mono text-emerald-400 font-bold bg-emerald-500/5">
-                      {formatVND(proj.totalPaidInPeriod)}
+                      {((Number(proj.totalPaidInPeriod) || 0) / 1_000_000_000).toFixed(2)}
                     </td>
 
+                    {/* LŨY KẾ ĐÃ CHI (Tỷ VNĐ) */}
                     <td className="py-3.5 px-4 text-right font-mono text-blue-300 font-semibold">
-                      {formatVND(proj.totalPaid)}
+                      {((Number(proj.totalPaid) || 0) / 1_000_000_000).toFixed(2)}
                     </td>
 
+                    {/* CÒN LẠI (Tỷ VNĐ) */}
                     <td className="py-3.5 px-4 text-right font-mono text-amber-400 font-medium">
-                      {formatVND(proj.totalRemaining)}
+                      {((Number(proj.totalRemaining) || 0) / 1_000_000_000).toFixed(2)}
                     </td>
 
                     <td className="py-3.5 px-4">

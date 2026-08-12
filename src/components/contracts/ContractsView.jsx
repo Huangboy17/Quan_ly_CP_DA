@@ -69,6 +69,14 @@ export default function ContractsView({
 
   const isLocalFiltered = Boolean(contractorFilter || costGroupFilter || localSearch);
 
+  const handleRowClick = (contractId) => {
+    if (onViewContractDossier) {
+      onViewContractDossier(contractId);
+    } else if (onViewContractDetail) {
+      onViewContractDetail(contractId);
+    }
+  };
+
   return (
     <div className="space-y-4 animate-fade-in pb-12">
       
@@ -80,7 +88,7 @@ export default function ContractsView({
             Quản Lý Hợp Đồng & Nhập Liệu
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Quản lý hợp đồng thi công, phân loại Nhóm chi phí, theo dõi giá trị giải ngân lũy kế và phát sinh chi trong kỳ <span className="text-emerald-400 font-semibold">{periodLabel}</span>.
+            Nhấn vào bất kỳ dòng hợp đồng nào để mở <strong className="text-blue-300">Chi tiết hợp đồng</strong>. Thống kê chi trả trong kỳ <span className="text-emerald-400 font-semibold">{periodLabel}</span>.
           </p>
         </div>
 
@@ -187,11 +195,16 @@ export default function ContractsView({
               {filteredContracts.map((c) => {
                 const appendicesCount = Array.isArray(c.appendices) ? c.appendices.length : 0;
                 return (
-                  <tr key={c.id} className="hover:bg-slate-800/50 transition">
+                  <tr 
+                    key={c.id} 
+                    onClick={() => handleRowClick(c.id)}
+                    className="hover:bg-slate-800/70 transition cursor-pointer group"
+                    title="Click để xem chi tiết hợp đồng"
+                  >
                     
                     {/* Số HĐ / Ngày Ký */}
                     <td className="py-3.5 px-4 font-mono">
-                      <div className="font-bold text-white text-xs">{c.contract_number}</div>
+                      <div className="font-bold text-white text-xs group-hover:text-blue-300 transition">{c.contract_number}</div>
                       <div className="text-[11px] text-slate-400 mt-0.5">{formatDisplayDate(c.signing_date)}</div>
                       {appendicesCount > 0 && (
                         <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-semibold">
@@ -202,7 +215,7 @@ export default function ContractsView({
 
                     {/* Tên HĐ & Nhà Thầu */}
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-100 text-xs line-clamp-1">{c.content}</div>
+                      <div className="font-bold text-slate-100 text-xs line-clamp-1 group-hover:text-blue-300 transition">{c.content}</div>
                       <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
                         <span className="text-slate-300 font-medium">{c.contractor || 'Chưa cập nhật'}</span>
                         <span className="text-slate-500">•</span>
@@ -262,24 +275,30 @@ export default function ContractsView({
                     </td>
 
                     {/* Thao tác */}
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center gap-1.5">
                         <button
-                          onClick={() => onViewContractDossier(c.id)}
+                          onClick={() => handleRowClick(c.id)}
                           className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 text-[11px] font-semibold border border-blue-500/30 transition cursor-pointer flex items-center gap-1"
-                          title="Xem Hồ Sơ Hợp Đồng"
+                          title="Xem Chi Tiết Hợp Đồng"
                         >
-                          <Eye className="w-3.5 h-3.5" /> Hồ Sơ
+                          <Eye className="w-3.5 h-3.5" /> Chi tiết
                         </button>
                         <button
-                          onClick={() => onEditContract(c)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditContract(c);
+                          }}
                           className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition cursor-pointer"
                           title="Sửa hợp đồng"
                         >
                           <Edit className="w-3.5 h-3.5 text-blue-400" />
                         </button>
                         <button
-                          onClick={() => onDeleteContract(c.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteContract(c.id);
+                          }}
                           className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition cursor-pointer"
                           title="Xóa hợp đồng"
                         >

@@ -110,7 +110,7 @@ export default function App() {
   // Keep viewingContract updated if data changes
   useEffect(() => {
     if (viewingContract) {
-      const updated = data.contracts.find(c => c.id === viewingContract.id);
+      const updated = data.contracts.find(c => String(c.id) === String(viewingContract.id));
       if (updated) setViewingContract(updated);
     }
   }, [data, viewingContract]);
@@ -133,22 +133,25 @@ export default function App() {
 
   const handleDeleteContract = (contractId) => {
     deleteContract(contractId);
-    if (viewingContract && viewingContract.id === contractId) {
-      setIsContractDetailModalOpen(false);
-      setViewingContract(null);
+    if (selectedContractId && String(selectedContractId) === String(contractId)) {
+      setSelectedContractId('');
+      if (activeTab === 'contract-dossier') {
+        setActiveTab('contracts');
+      }
     }
     refreshData();
   };
 
-  const handleViewContractDetail = (contract) => {
-    setViewingContract(contract);
-    setIsContractDetailModalOpen(true);
+  // Standardized Contract Detail Navigation across entire App
+  const handleViewContractDossier = (contractOrId) => {
+    const cId = typeof contractOrId === 'object' && contractOrId !== null ? contractOrId.id : contractOrId;
+    if (cId) {
+      setSelectedContractId(cId);
+      setActiveTab('contract-dossier');
+    }
   };
 
-  const handleViewContractDossier = (contractId) => {
-    setSelectedContractId(contractId);
-    setActiveTab('contract-dossier');
-  };
+  const handleViewContractDetail = handleViewContractDossier;
 
   // Handlers for Contract Appendices (Phụ Lục Hợp Đồng)
   const handleOpenAppendixModal = (cId = '') => {

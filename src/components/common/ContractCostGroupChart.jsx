@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { PieChart as PieIcon, ArrowRight, Tag } from 'lucide-react';
+import { PieChart as PieIcon, ArrowRight } from 'lucide-react';
 import { 
   ResponsiveContainer, 
   PieChart, 
@@ -78,7 +78,7 @@ export default function ContractCostGroupChart({
   // EMPTY STATE
   if (!contracts || contracts.length === 0 || chartData.length === 0 || grandTotalValue === 0) {
     return (
-      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
+      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between h-full">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
@@ -105,7 +105,7 @@ export default function ContractCostGroupChart({
   }
 
   return (
-    <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+    <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between h-full">
       
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -119,15 +119,15 @@ export default function ContractCostGroupChart({
           </p>
         </div>
         <span className="text-[10px] text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded font-mono">
-          Click để xem chi tiết
+          Click xem HĐ
         </span>
       </div>
 
-      {/* Doughnut Chart & Side Legend Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+      {/* Container Flexbox Layout: 45% Graphic (Left) | 55% Legend (Right) */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 flex-1 w-full">
         
-        {/* Doughnut Graphic (Center Text Overlay) */}
-        <div className="md:col-span-5 relative h-56 w-full flex items-center justify-center">
+        {/* Left Side (~45% Width): Centered Donut Graphic with Overlay Text */}
+        <div className="w-full md:w-[45%] shrink-0 relative h-56 flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -172,43 +172,44 @@ export default function ContractCostGroupChart({
             </PieChart>
           </ResponsiveContainer>
 
-          {/* Center Overlay Text */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-2">
-            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
-              Tổng giá trị HĐ
+          {/* Perfect Center Inner Text (Centered Vertically & Horizontally) */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-2 select-none">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">
+              TỔNG GIÁ TRỊ
             </span>
-            <span className="text-xs font-black text-white font-mono mt-0.5">
+            <span className="text-xs sm:text-sm font-bold text-white font-mono leading-tight mt-0.5">
               {formatVNDCompact(grandTotalValue)}
             </span>
           </div>
         </div>
 
-        {/* Legend Panel beside Doughnut Chart */}
-        <div className="md:col-span-7 space-y-1.5 max-h-56 overflow-y-auto pr-1">
+        {/* Right Side (~55% Width): Legend List without Text Truncation */}
+        <div className="w-full md:w-[55%] flex-1 flex flex-col justify-center gap-1.5 max-h-60 overflow-y-auto pl-1 pr-1">
           {chartData.map((item) => (
             <div
               key={item.name}
               onClick={() => handleItemClick(item.name)}
-              className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-cyan-500/50 hover:bg-slate-800/50 transition cursor-pointer flex items-center justify-between group"
+              title={`${item.name} - ${formatVND(item.value)} (${item.pct.toFixed(2)}%)`}
+              className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-cyan-500/50 hover:bg-slate-800/50 transition cursor-pointer flex items-center justify-between gap-2 group"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <span 
-                  className="w-3 h-3 rounded-md shrink-0 shadow-sm" 
+                  className="w-3 h-3 rounded-md shrink-0 shadow-sm mt-0.5" 
                   style={{ backgroundColor: item.color }} 
                 />
-                <span className="text-xs font-semibold text-slate-200 truncate group-hover:text-cyan-300 transition">
+                <span className="text-xs font-semibold text-slate-200 whitespace-normal break-words leading-snug group-hover:text-cyan-300 transition">
                   {item.name}
                 </span>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0 text-xs font-mono">
+              <div className="flex items-center gap-2.5 shrink-0 text-xs font-mono">
                 <span className="font-bold text-white">
                   {formatVNDCompact(item.value)}
                 </span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-cyan-300 border border-slate-700 min-w-[48px] text-right">
                   {item.pct.toFixed(1)}%
                 </span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition" />
+                <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition shrink-0" />
               </div>
             </div>
           ))}
