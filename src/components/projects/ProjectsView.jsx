@@ -26,12 +26,16 @@ import {
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
+  ComposedChart,
+  Bar,
+  Line,
   AreaChart, 
   Area, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
+  Legend,
   PieChart, 
   Pie, 
   Cell
@@ -854,45 +858,103 @@ export default function ProjectsView({
         </div>
 
         {cashflowChartData.length > 0 ? (
-          <div className="h-64 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart 
+              <ComposedChart 
                 data={cashflowChartData} 
-                margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
+                margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
                 onClick={(chartData) => {
                   if (chartData && chartData.activePayload && chartData.activePayload.length > 0) {
                     navigateToPaymentsWithFilter();
                   }
                 }}
               >
-                <defs>
-                  <linearGradient id="colorCashflowCumulative" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorCashflowPeriod" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
                 <XAxis dataKey="label" stroke="#94a3b8" fontSize={11} />
+                
+                {/* Left Y-Axis for Thanh toán trong kỳ (Bar Chart) */}
                 <YAxis 
+                  yAxisId="left"
                   stroke="#94a3b8" 
                   fontSize={11}
-                  tickFormatter={(v) => `${(v / 1_000_000_000).toFixed(1)}B`}
+                  tickFormatter={(v) => `${(v / 1_000_000_000).toFixed(0)} Tỷ`}
                 />
+
+                {/* Right Y-Axis for Lũy kế giải ngân (Line Chart) */}
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="#10b981" 
+                  fontSize={11}
+                  tickFormatter={(v) => `${(v / 1_000_000_000).toFixed(0)} Tỷ`}
+                />
+
+                <Legend 
+                  verticalAlign="top" 
+                  height={36} 
+                  wrapperStyle={{ fontSize: '11px', paddingBottom: '10px' }}
+                />
+
+                {/* Multi-layer Tooltip formatted strictly as X.XX Tỷ VNĐ */}
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '12px' }}
-                  formatter={(value, name) => [
-                    formatVND(value), 
-                    name === 'cumulativeVal' ? 'Lũy kế giải ngân' : 'Thanh toán trong kỳ'
-                  ]}
-                  labelFormatter={(label) => `${label}`}
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    const pVal = payload.find(p => p.dataKey === 'periodVal')?.value || 0;
+                    const cVal = payload.find(p => p.dataKey === 'cumulativeVal')?.value || 0;
+
+                    return (
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-700 shadow-2xl text-xs space-y-1.5 z-50 font-sans">
+                        <div className="font-bold text-white border-b border-slate-800 pb-1.5 flex items-center justify-between gap-4">
+                          <span>📅 {label}</span>
+                          <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 font-mono">
+                            Dòng tiền dự án
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 pt-0.5">
+                          <span className="text-slate-300 flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />
+                            Thanh toán trong kỳ:
+                          </span>
+                          <strong className="text-blue-400 font-mono">
+                            {((Number(pVal) || 0) / 1_000_000_000).toFixed(2)} Tỷ VNĐ
+                          </strong>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-slate-300 flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                            Lũy kế giải ngân:
+                          </span>
+                          <strong className="text-emerald-400 font-mono">
+                            {((Number(cVal) || 0) / 1_000_000_000).toFixed(2)} Tỷ VNĐ
+                          </strong>
+                        </div>
+                      </div>
+                    );
+                  }}
                 />
-                <Area type="monotone" dataKey="cumulativeVal" name="cumulativeVal" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorCashflowCumulative)" />
-                <Area type="monotone" dataKey="periodVal" name="periodVal" stroke="#3b82f6" strokeWidth={2} fillOpacity={0.5} fill="url(#colorCashflowPeriod)" />
-              </AreaChart>
+
+                {/* Series 1: Thanh toán trong kỳ (Bar Chart - Blue) */}
+                <Bar 
+                  yAxisId="left"
+                  dataKey="periodVal" 
+                  name="Thanh toán trong kỳ" 
+                  fill="#3b82f6" 
+                  radius={[4, 4, 0, 0]} 
+                  maxBarSize={36}
+                />
+
+                {/* Series 2: Lũy kế giải ngân (Line Chart - Green) */}
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="cumulativeVal" 
+                  name="Lũy kế giải ngân" 
+                  stroke="#10b981" 
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: '#10b981', stroke: '#0f172a', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: '#34d399' }}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         ) : (

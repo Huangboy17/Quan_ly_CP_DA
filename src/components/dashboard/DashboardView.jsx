@@ -17,8 +17,9 @@ import {
   Percent
 } from 'lucide-react';
 import { 
-  BarChart, 
+  ComposedChart, 
   Bar, 
+  Line,
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -27,7 +28,9 @@ import {
   ResponsiveContainer, 
   PieChart, 
   Pie, 
-  Cell
+  Cell,
+  LabelList,
+  ReferenceLine
 } from 'recharts';
 import StatCard from '../common/StatCard';
 import { formatVND, formatVNDCompact } from '../../utils/formatters';
@@ -67,8 +70,8 @@ export default function DashboardView({
     return projects.find(p => String(p.id) === String(selectedProjectId)) || null;
   }, [projects, selectedProjectId]);
 
-  // 1. Prepare Monthly Cash Flow Chart for the selected time scope & project
-  const monthlyCashFlowData = useMemo(() => {
+  // 1. Prepare Combo Chart Data (Bar for Monthly Disbursement + Line for Cumulative + Reference Line Average)
+  const { comboCashFlowData, avgMonthlyDisbursement } = useMemo(() => {
     const monthlyMap = {};
     activePaymentsForScope.forEach(pm => {
       if (!pm.payment_date) return;
@@ -77,13 +80,27 @@ export default function DashboardView({
     });
 
     const sortedMonths = Object.keys(monthlyMap).sort();
-    return sortedMonths.map(m => {
+    let runningSum = 0;
+    let totalDisbursedInBillions = 0;
+
+    const result = sortedMonths.map(m => {
       const parts = m.split('-');
+      const valInBillions = Math.round((monthlyMap[m] / 1_000_000_000) * 100) / 100;
+      runningSum = Math.round((runningSum + valInBillions) * 100) / 100;
+      totalDisbursedInBillions += valInBillions;
+
       return {
         month: `Thg ${parts[1]}/${parts[0]}`,
-        'Giải ngân (Tỷ VNĐ)': Math.round((monthlyMap[m] / 1_000_000_000) * 100) / 100,
+        'Giải ngân (Tỷ VNĐ)': valInBillions,
+        'Lũy kế (Tỷ VNĐ)': runningSum,
       };
     });
+
+    const avg = sortedMonths.length > 0 
+      ? Math.round((totalDisbursedInBillions / sortedMonths.length) * 100) / 100 
+      : 0;
+
+    return { comboCashFlowData: result, avgMonthlyDisbursement: avg };
   }, [activePaymentsForScope]);
 
   // 2. Prepare Allocation Chart (By Project if all projects, or by Contractor if specific project selected)
@@ -386,7 +403,7 @@ export default function DashboardView({
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0 text-xs font-mono">
+                      <div className="flex items-center gap-3 shrink-0 text-xs font-mono">
                         <span className="font-bold text-white">
                           {item.value} Tỷ
                         </span>
@@ -409,34 +426,146 @@ export default function DashboardView({
 
       </div>
 
-      {/* ROW 2 (BOTTOM): 100% WIDTH BARCHART */}
+      {/* ROW 2 (BOTTOM): 100% WIDTH COMBO CHART (BAR + LINE + DATA LABELS + MULTI-LAYER TOOLTIP + REF LINE) */}
       <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 w-full">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-3 gap-2">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-emerald-400" />
               Dòng Tiền Giải Ngân Theo Thời Gian ({periodLabel})
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Tổng chi trả thực tế theo từng tháng cho <strong className="text-emerald-300">{selectedProjectObj ? selectedProjectObj.name : 'Tất cả dự án'}</strong> trong {periodLabel} (Tỷ VNĐ)
+              Biểu đồ kết hợp Chi trả hàng tháng (Cột) & Giá trị Lũy kế cộng dồn (Đường) cho <strong className="text-emerald-300">{selectedProjectObj ? selectedProjectObj.name : 'Tất cả dự án'}</strong> (Tỷ VNĐ)
             </p>
           </div>
+
+          {avgMonthlyDisbursement > 0 && (
+            <div className="flex items-center gap-2 text-xs font-mono self-start md:self-auto">
+              <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-semibold">
+                📊 Trung bình tháng: <strong className="text-emerald-400">{avgMonthlyDisbursement} Tỷ</strong>
+              </span>
+            </div>
+          )}
         </div>
 
-        <div className="h-72 w-full pt-2">
-          {monthlyCashFlowData.length > 0 ? (
+        <div className="h-80 w-full pt-2">
+          {comboCashFlowData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyCashFlowData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.6} />
+              <ComposedChart data={comboCashFlowData} margin={{ top: 25, right: 20, left: 0, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                
+                {/* X-Axis */}
                 <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                
+                {/* Left Y-Axis for Monthly Disbursement Bars */}
                 <YAxis 
+                  yAxisId="left"
                   stroke="#94a3b8" 
                   tick={{ fontSize: 11 }} 
                   tickFormatter={(val) => `${val} Tỷ`}
                 />
-                <RechartsTooltip formatter={(val) => [`${val} Tỷ VNĐ`, 'Giải ngân']} />
-                <Bar dataKey="Giải ngân (Tỷ VNĐ)" fill="#10b981" radius={[4, 4, 0, 0]} />
-              </BarChart>
+
+                {/* Right Y-Axis for Cumulative Line */}
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="#f59e0b" 
+                  tick={{ fontSize: 11 }} 
+                  tickFormatter={(val) => `${val} Tỷ`}
+                />
+
+                {/* Multi-Layer Tooltip */}
+                <RechartsTooltip 
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    const monthVal = payload.find(p => p.dataKey === 'Giải ngân (Tỷ VNĐ)')?.value || 0;
+                    const cumulativeVal = payload.find(p => p.dataKey === 'Lũy kế (Tỷ VNĐ)')?.value || 0;
+
+                    return (
+                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-700 shadow-2xl text-xs space-y-1.5 z-50">
+                        <div className="font-bold text-white flex items-center justify-between border-b border-slate-800 pb-1.5 gap-4">
+                          <span>📅 {label}</span>
+                          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 font-mono">
+                            Kỳ thanh toán
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-4 pt-0.5">
+                          <span className="text-slate-300 flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />
+                            Chi trả trong tháng:
+                          </span>
+                          <strong className="text-emerald-400 font-mono">{monthVal} Tỷ VNĐ</strong>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <span className="text-slate-300 flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                            Giá trị Lũy kế cộng dồn:
+                          </span>
+                          <strong className="text-amber-400 font-mono">{cumulativeVal} Tỷ VNĐ</strong>
+                        </div>
+                        {avgMonthlyDisbursement > 0 && (
+                          <div className="flex items-center justify-between gap-4 pt-1 border-t border-slate-800 text-[11px] text-slate-400">
+                            <span>Mức chi trung bình tháng:</span>
+                            <span className="font-mono text-slate-200">{avgMonthlyDisbursement} Tỷ VNĐ</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }}
+                />
+
+                <Legend 
+                  verticalAlign="top" 
+                  height={36} 
+                  wrapperStyle={{ fontSize: '11px', paddingBottom: '10px' }}
+                />
+
+                {/* Reference Line for Average Monthly Disbursement */}
+                {avgMonthlyDisbursement > 0 && (
+                  <ReferenceLine 
+                    yAxisId="left"
+                    y={avgMonthlyDisbursement} 
+                    stroke="#cbd5e1" 
+                    strokeDasharray="4 4" 
+                    label={{ 
+                      value: `Trung bình: ${avgMonthlyDisbursement} Tỷ`, 
+                      fill: '#cbd5e1', 
+                      fontSize: 10, 
+                      position: 'insideTopRight',
+                      fontWeight: 'bold'
+                    }} 
+                  />
+                )}
+
+                {/* Series 1: Emerald Bars with Top Data Labels */}
+                <Bar 
+                  yAxisId="left"
+                  dataKey="Giải ngân (Tỷ VNĐ)" 
+                  name="Chi trả trong tháng"
+                  fill="#10b981" 
+                  radius={[4, 4, 0, 0]} 
+                  maxBarSize={36}
+                >
+                  <LabelList 
+                    dataKey="Giải ngân (Tỷ VNĐ)" 
+                    position="top" 
+                    formatter={(val) => `${val} Tỷ`} 
+                    style={{ fontSize: '10px', fill: '#6ee7b7', fontWeight: 'bold' }} 
+                  />
+                </Bar>
+
+                {/* Series 2: Amber Line for Cumulative Sum with Point Markers */}
+                <Line 
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="Lũy kế (Tỷ VNĐ)" 
+                  name="Giá trị Lũy kế"
+                  stroke="#f59e0b" 
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: '#f59e0b', stroke: '#0f172a', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: '#facc15' }}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           ) : (
             <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">

@@ -33,15 +33,20 @@ import {
   Area, 
   XAxis, 
   YAxis, 
-  Tooltip, 
+  Tooltip as RechartsTooltip, 
   CartesianGrid, 
   PieChart, 
   Pie, 
   Cell,
   BarChart,
-  Bar
+  Bar,
+  ComposedChart,
+  Line,
+  LabelList,
+  ReferenceLine,
+  Legend
 } from 'recharts';
-import { formatVND, formatDisplayDate, cleanVND, calcEndDate, calcDaysBetween } from '../../utils/formatters';
+import { formatVND, formatVNDCompact, formatDisplayDate, cleanVND, calcEndDate, calcDaysBetween } from '../../utils/formatters';
 
 export default function PaymentsView({ 
   data, 
@@ -238,8 +243,8 @@ export default function PaymentsView({
     };
   }, [sortedPayments]);
 
-  // RECHARTS DATA PREPARATION
-  const monthlyBarData = useMemo(() => {
+  // RECHARTS COMBO DATA PREPARATION (Bar for Monthly Disbursement + Line for Cumulative + Avg Reference Line)
+  const { comboMonthlyBarData, avgMonthlyDisbursementInPayments } = useMemo(() => {
     const monthlyMap = {};
     sortedPayments.forEach(pm => {
       if (!pm.payment_date) return;
@@ -248,13 +253,25 @@ export default function PaymentsView({
     });
 
     const sortedKeys = Object.keys(monthlyMap).sort();
-    return sortedKeys.map(k => {
+    let runningSum = 0;
+    let totalSumInBillions = 0;
+
+    const result = sortedKeys.map(k => {
       const [y, m] = k.split('-');
+      const valInBillions = Math.round((monthlyMap[k] / 1_000_000_000) * 100) / 100;
+      runningSum = Math.round((runningSum + valInBillions) * 100) / 100;
+      totalSumInBillions += valInBillions;
+
       return {
         month: `Thg ${m}/${y}`,
-        'Giải ngân (Tỷ VNĐ)': Math.round((monthlyMap[k] / 1_000_000_000) * 100) / 100,
+        'Giải ngân (Tỷ VNĐ)': valInBillions,
+        'Lũy kế (Tỷ VNĐ)': runningSum,
       };
     });
+
+    const avg = sortedKeys.length > 0 ? Math.round((totalSumInBillions / sortedKeys.length) * 100) / 100 : 0;
+
+    return { comboMonthlyBarData: result, avgMonthlyDisbursementInPayments: avg };
   }, [sortedPayments]);
 
   const contractorDonutData = useMemo(() => {
@@ -265,11 +282,17 @@ export default function PaymentsView({
     });
 
     return Object.keys(map).map(cName => ({
-      name: cName.length > 20 ? cName.substring(0, 18) + '...' : cName,
+      name: cName,
       fullName: cName,
       value: Math.round((map[cName] / 1_000_000_000) * 100) / 100,
-    }));
+      rawVal: map[cName]
+    })).sort((a, b) => b.value - a.value);
   }, [sortedPayments]);
+
+  const totalContractorPaidSum = useMemo(() => {
+    const sum = contractorDonutData.reduce((acc, item) => acc + (Number(item.value) || 0), 0);
+    return (Math.round(sum * 100) / 100).toFixed(2);
+  }, [contractorDonutData]);
 
   const DONUT_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#6366f1', '#14b8a6'];
 
@@ -695,22 +718,138 @@ export default function PaymentsView({
       </div>
 
       {/* ANALYTICS CHARTS GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-emerald-400" />
-            Biểu Đồ Giải Ngân Theo Tháng Trong Kỳ ({periodLabel})
-          </h3>
-          <div className="h-60 w-full pt-2">
-            {monthlyBarData.length > 0 ? (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        
+        {/* Left (7 Cols): Monthly Combo Chart (Bar + Line + Data Labels + Multi-layer Tooltip + Ref Line) */}
+        <div className="lg:col-span-7 p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3 flex flex-col justify-between h-full">
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-emerald-400" />
+              Biểu Đồ Giải Ngân Theo Tháng Trong Kỳ ({periodLabel})
+            </h3>
+            {avgMonthlyDisbursementInPayments > 0 && (
+              <span className="text-[11px] text-slate-300 font-mono bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-700">
+                TB tháng: <strong className="text-emerald-400">{avgMonthlyDisbursementInPayments} Tỷ</strong>
+              </span>
+            )}
+          </div>
+
+          <div className="h-64 w-full pt-2 flex-1">
+            {comboMonthlyBarData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyBarData}>
+                <ComposedChart data={comboMonthlyBarData} margin={{ top: 25, right: 15, left: -5, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
                   <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                  <YAxis stroke="#94a3b8" tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(val) => [`${val} Tỷ VNĐ`, 'Giải ngân']} />
-                  <Bar dataKey="Giải ngân (Tỷ VNĐ)" fill="#10b981" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                  
+                  {/* Left Y-Axis for Monthly Disbursement Bars */}
+                  <YAxis 
+                    yAxisId="left"
+                    stroke="#94a3b8" 
+                    tick={{ fontSize: 11 }} 
+                    tickFormatter={(val) => `${val} Tỷ`}
+                  />
+
+                  {/* Right Y-Axis for Cumulative Line */}
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="#f59e0b" 
+                    tick={{ fontSize: 11 }} 
+                    tickFormatter={(val) => `${val} Tỷ`}
+                  />
+
+                  {/* Multi-Layer Tooltip */}
+                  <RechartsTooltip 
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload || !payload.length) return null;
+                      const monthVal = payload.find(p => p.dataKey === 'Giải ngân (Tỷ VNĐ)')?.value || 0;
+                      const cumulativeVal = payload.find(p => p.dataKey === 'Lũy kế (Tỷ VNĐ)')?.value || 0;
+
+                      return (
+                        <div className="p-3 rounded-xl bg-slate-950 border border-slate-700 shadow-2xl text-xs space-y-1.5 z-50">
+                          <div className="font-bold text-white flex items-center justify-between border-b border-slate-800 pb-1.5 gap-4">
+                            <span>📅 {label}</span>
+                            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 font-mono">
+                              Kỳ thanh toán
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-4 pt-0.5">
+                            <span className="text-slate-300 flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />
+                              Chi trả trong tháng:
+                            </span>
+                            <strong className="text-emerald-400 font-mono">{monthVal} Tỷ VNĐ</strong>
+                          </div>
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-slate-300 flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                              Giá trị Lũy kế cộng dồn:
+                            </span>
+                            <strong className="text-amber-400 font-mono">{cumulativeVal} Tỷ VNĐ</strong>
+                          </div>
+                          {avgMonthlyDisbursementInPayments > 0 && (
+                            <div className="flex items-center justify-between gap-4 pt-1 border-t border-slate-800 text-[11px] text-slate-400">
+                              <span>Mức chi trung bình tháng:</span>
+                              <span className="font-mono text-slate-200">{avgMonthlyDisbursementInPayments} Tỷ VNĐ</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }}
+                  />
+
+                  <Legend 
+                    verticalAlign="top" 
+                    height={36} 
+                    wrapperStyle={{ fontSize: '11px', paddingBottom: '10px' }}
+                  />
+
+                  {/* Reference Line for Average Monthly Disbursement */}
+                  {avgMonthlyDisbursementInPayments > 0 && (
+                    <ReferenceLine 
+                      yAxisId="left"
+                      y={avgMonthlyDisbursementInPayments} 
+                      stroke="#cbd5e1" 
+                      strokeDasharray="4 4" 
+                      label={{ 
+                        value: `TB: ${avgMonthlyDisbursementInPayments} Tỷ`, 
+                        fill: '#cbd5e1', 
+                        fontSize: 10, 
+                        position: 'insideTopRight',
+                        fontWeight: 'bold'
+                      }} 
+                    />
+                  )}
+
+                  {/* Series 1: Emerald Bars with Top Data Labels */}
+                  <Bar 
+                    yAxisId="left"
+                    dataKey="Giải ngân (Tỷ VNĐ)" 
+                    name="Chi trả trong tháng"
+                    fill="#10b981" 
+                    radius={[4, 4, 0, 0]} 
+                    maxBarSize={32}
+                  >
+                    <LabelList 
+                      dataKey="Giải ngân (Tỷ VNĐ)" 
+                      position="top" 
+                      formatter={(val) => `${val} Tỷ`} 
+                      style={{ fontSize: '10px', fill: '#6ee7b7', fontWeight: 'bold' }} 
+                    />
+                  </Bar>
+
+                  {/* Series 2: Amber Line for Cumulative Sum with Point Markers */}
+                  <Line 
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="Lũy kế (Tỷ VNĐ)" 
+                    name="Giá trị Lũy kế"
+                    stroke="#f59e0b" 
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#f59e0b', stroke: '#0f172a', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: '#facc15' }}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             ) : (
               <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
@@ -720,36 +859,99 @@ export default function PaymentsView({
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-          <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-            <PieIcon className="w-4 h-4 text-purple-400" />
-            Phân Bổ Tỷ Trọng Theo Nhà Thầu
-          </h3>
-          <div className="h-60 w-full flex items-center justify-center">
-            {contractorDonutData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={contractorDonutData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={45}
-                    outerRadius={75}
-                    paddingAngle={4}
-                    dataKey="value"
-                  >
-                    {contractorDonutData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={DONUT_COLORS[index % DONUT_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(val) => [`${val} Tỷ VNĐ`, 'Tổng giải ngân']} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="text-xs text-slate-400 italic">Chưa có dữ liệu nhà thầu</div>
-            )}
+        {/* Right (5 Cols): Contractor Donut Chart with Flexbox 2-part Layout (40% Graphic | 60% Legend) */}
+        <div className="lg:col-span-5 p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3 flex flex-col justify-between h-full">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <PieIcon className="w-4 h-4 text-purple-400" />
+              PHÂN BỔ TỶ TRỌNG THEO NHÀ THẦU
+            </h3>
+            <span className="text-[10px] text-purple-300 bg-purple-500/10 border border-purple-500/30 px-2 py-0.5 rounded font-mono">
+              {contractorDonutData.length} Nhà thầu
+            </span>
           </div>
+
+          {contractorDonutData.length > 0 ? (
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3 flex-1 w-full">
+              
+              {/* Left Side (~40% Width): Centered Donut Graphic with Donut Inner Text */}
+              <div className="w-full md:w-[40%] shrink-0 relative h-56 flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={contractorDonutData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={52}
+                      outerRadius={78}
+                      paddingAngle={3}
+                      dataKey="value"
+                      className="outline-none"
+                    >
+                      {contractorDonutData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={DONUT_COLORS[index % DONUT_COLORS.length]} className="hover:opacity-80 transition cursor-pointer" />
+                      ))}
+                    </Pie>
+                    <RechartsTooltip formatter={(val) => [`${val} Tỷ VNĐ`, 'Tổng giải ngân']} />
+                  </PieChart>
+                </ResponsiveContainer>
+
+                {/* Donut Inner Center Text: TỔNG & Value */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-2 select-none">
+                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">
+                    TỔNG CHI
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-white font-mono leading-tight mt-0.5">
+                    {totalContractorPaidSum} Tỷ
+                  </span>
+                </div>
+              </div>
+
+              {/* Right Side (~60% Width): Legend Panel with Full Name, Percentage & Value without Text Truncation */}
+              <div className="w-full md:w-[60%] flex-1 flex flex-col justify-center gap-1.5 max-h-56 overflow-y-auto pl-1 pr-1">
+                {contractorDonutData.map((item, idx) => {
+                  const numVal = Number(item.value) || 0;
+                  const totalSum = Number(totalContractorPaidSum) || 1;
+                  const pct = totalSum > 0 ? (numVal / totalSum) * 100 : 0;
+                  const itemColor = DONUT_COLORS[idx % DONUT_COLORS.length];
+
+                  return (
+                    <div
+                      key={item.name}
+                      title={`${item.fullName} - ${item.value} Tỷ VNĐ (${pct.toFixed(1)}%)`}
+                      className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-purple-500/50 hover:bg-slate-800/50 transition cursor-pointer flex items-center justify-between gap-2 group"
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <span 
+                          className="w-3 h-3 rounded-md shrink-0 shadow-sm mt-0.5" 
+                          style={{ backgroundColor: itemColor }} 
+                        />
+                        <span className="text-xs font-semibold text-slate-200 whitespace-normal break-words leading-snug group-hover:text-purple-300 transition">
+                          {item.fullName}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 text-xs font-mono">
+                        <span className="font-bold text-white">
+                          {item.value} Tỷ
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-purple-300 border border-slate-700 min-w-[44px] text-right">
+                          {pct.toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+            </div>
+          ) : (
+            <div className="h-56 flex items-center justify-center text-xs text-slate-400 italic">
+              Chưa có dữ liệu nhà thầu trong phạm vi chọn.
+            </div>
+          )}
         </div>
+
       </div>
 
       {/* RISK CONTROL MODAL DRAWER */}
@@ -798,26 +1000,31 @@ export default function PaymentsView({
                 {allAlertItems
                   .filter(a => alertDrawerTab === 'ALL' || a.type === alertDrawerTab)
                   .map(alt => (
-                    <div
+                    <div 
                       key={alt.id}
-                      className={`p-3.5 rounded-xl border space-y-1 ${
+                      className={`p-3.5 rounded-xl border space-y-1 transition ${
                         alt.level === 'danger'
                           ? 'bg-rose-950/30 border-rose-500/40 text-rose-200'
-                          : 'bg-amber-950/30 border-amber-500/40 text-amber-200'
+                          : alt.level === 'warning'
+                          ? 'bg-amber-950/30 border-amber-500/40 text-amber-200'
+                          : 'bg-blue-950/30 border-blue-500/40 text-blue-200'
                       }`}
                     >
-                      <div className="font-bold text-white text-sm">{alt.title}</div>
-                      <p className="text-slate-300">{alt.desc}</p>
+                      <div className="font-bold text-white text-xs">{alt.title}</div>
+                      <div className="text-slate-300 leading-relaxed text-[11px]">{alt.desc}</div>
                     </div>
                   ))}
 
                 {allAlertItems.length === 0 && (
-                  <div className="py-8 text-center text-slate-400">Không ghi nhận bất thường nào.</div>
+                  <div className="py-8 text-center text-slate-400">
+                    Không ghi nhận rủi ro nào trong hệ thống.
+                  </div>
                 )}
               </div>
             </div>
 
-            <div className="px-6 py-3 bg-slate-800/90 border-t border-slate-700/80 flex justify-end">
+            <div className="px-6 py-3 bg-slate-800/90 border-t border-slate-700/80 flex items-center justify-between">
+              <span className="text-xs text-slate-400 font-mono">Tổng số: {allAlertItems.length} ghi nhận</span>
               <button
                 onClick={() => setIsAlertDrawerOpen(false)}
                 className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition cursor-pointer"

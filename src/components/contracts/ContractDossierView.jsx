@@ -22,12 +22,14 @@ import {
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
-  AreaChart, 
-  Area, 
+  ComposedChart,
+  Bar,
+  Line,
   XAxis, 
   YAxis, 
   Tooltip, 
-  CartesianGrid 
+  CartesianGrid,
+  Legend
 } from 'recharts';
 import { formatVND, formatDisplayDate, calcEndDate, calcDaysBetween, cleanVND } from '../../utils/formatters';
 
@@ -540,40 +542,106 @@ export default function ContractDossierView({
       {showCharts && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 items-stretch animate-fade-in pt-1">
           
-          {/* Cumulative Growth Chart (2 Cols) */}
+          {/* Cumulative Growth Chart (2 Cols) - Combo Chart Bar + Line */}
           <div className="lg:col-span-2 p-3.5 rounded-xl bg-slate-900 border border-slate-800 shadow-md space-y-2 flex flex-col justify-between">
             <div className="flex items-center justify-between border-b border-slate-800 pb-2">
               <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                 <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
                 BIỂU ĐỒ TĂNG TRƯỞNG LŨY KẾ THANH TOÁN
               </h3>
-              <span className="text-[10px] text-slate-400 font-mono">Theo ngày phát sinh</span>
+              <span className="text-[10px] text-slate-400 font-mono">Theo đợt & ngày phát sinh</span>
             </div>
 
             {chartData.length > 0 ? (
-              <div className="h-44 w-full pt-1 flex-1">
+              <div className="h-48 w-full pt-1 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorCumulativeDossierV4" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                  <ComposedChart data={chartData} margin={{ top: 15, right: 15, left: -5, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} />
+                    
+                    {/* Left Y-Axis for Thanh toán trong kỳ */}
                     <YAxis 
+                      yAxisId="left"
                       stroke="#94a3b8" 
                       fontSize={10}
-                      tickFormatter={(v) => `${(v / 1_000_000_000).toFixed(1)}B`}
+                      tickFormatter={(v) => `${(v / 1_000_000_000).toFixed(1)} Tỷ`}
                     />
+
+                    {/* Right Y-Axis for Lũy kế giải ngân */}
+                    <YAxis 
+                      yAxisId="right"
+                      orientation="right"
+                      stroke="#10b981" 
+                      fontSize={10}
+                      tickFormatter={(v) => `${(v / 1_000_000_000).toFixed(1)} Tỷ`}
+                    />
+
+                    <Legend 
+                      verticalAlign="top" 
+                      height={32} 
+                      wrapperStyle={{ fontSize: '10px', paddingBottom: '5px' }}
+                    />
+
                     <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '0.75rem', fontSize: '11px' }}
-                      formatter={(value) => [formatVND(value), 'Lũy kế sau VAT']}
-                      labelFormatter={(label, items) => `${label} - Ngày ${items[0]?.payload?.date || ''}`}
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload || !payload.length) return null;
+                        const itemAmt = payload.find(p => p.dataKey === 'amount')?.value || 0;
+                        const itemCum = payload.find(p => p.dataKey === 'cumulative')?.value || 0;
+                        const dateStr = payload[0]?.payload?.date || '';
+
+                        return (
+                          <div className="p-3 rounded-xl bg-slate-950 border border-slate-700 shadow-2xl text-xs space-y-1.5 z-50 font-sans">
+                            <div className="font-bold text-white border-b border-slate-800 pb-1 flex items-center justify-between gap-4">
+                              <span>📅 {label} (Ngày {dateStr})</span>
+                              <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 font-mono">
+                                Hồ sơ đợt
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-4 pt-0.5">
+                              <span className="text-slate-300 flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />
+                                Thanh toán đợt này:
+                              </span>
+                              <strong className="text-blue-400 font-mono">
+                                {((Number(itemAmt) || 0) / 1_000_000_000).toFixed(2)} Tỷ VNĐ
+                              </strong>
+                            </div>
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-slate-300 flex items-center gap-1.5">
+                                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                                Lũy kế giải ngân:
+                              </span>
+                              <strong className="text-emerald-400 font-mono">
+                                {((Number(itemCum) || 0) / 1_000_000_000).toFixed(2)} Tỷ VNĐ
+                              </strong>
+                            </div>
+                          </div>
+                        );
+                      }}
                     />
-                    <Area type="monotone" dataKey="cumulative" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorCumulativeDossierV4)" />
-                  </AreaChart>
+
+                    {/* Series 1: Thanh toán trong đợt (Bar - Blue) */}
+                    <Bar 
+                      yAxisId="left"
+                      dataKey="amount" 
+                      name="Thanh toán trong kỳ" 
+                      fill="#3b82f6" 
+                      radius={[4, 4, 0, 0]} 
+                      maxBarSize={32}
+                    />
+
+                    {/* Series 2: Lũy kế giải ngân (Line - Green) */}
+                    <Line 
+                      yAxisId="right"
+                      type="monotone" 
+                      dataKey="cumulative" 
+                      name="Lũy kế giải ngân" 
+                      stroke="#10b981" 
+                      strokeWidth={2.5}
+                      dot={{ r: 3.5, fill: '#10b981', stroke: '#0f172a', strokeWidth: 2 }}
+                      activeDot={{ r: 5.5, fill: '#34d399' }}
+                    />
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
             ) : (
