@@ -545,178 +545,6 @@ export default function PaymentsView({
         </div>
       </div>
 
-      {/* DENSE & READABLE PAYMENTS TABLE */}
-      <div className="rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-hidden">
-        <div className="overflow-x-auto w-full">
-          <table className="w-full text-left text-xs text-slate-300 min-w-[1050px]">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
-              <tr>
-                <th className="py-3 px-3.5 text-center w-14">STT</th>
-                <th className="py-3 px-3.5 w-32 cursor-pointer hover:text-white" onClick={() => handleSort('payment_date')}>
-                  <div className="flex items-center gap-1">
-                    Ngày Thanh Toán
-                    {sortColumn === 'payment_date' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-emerald-400" /> : <ArrowDown className="w-3 h-3 text-emerald-400" />)}
-                  </div>
-                </th>
-                <th className="py-3 px-3.5 w-36">Dự Án</th>
-                <th className="py-3 px-3.5 w-40">Số HĐ / Nhà Thầu</th>
-                <th className="py-3 px-3.5 text-center w-20">Đợt TT</th>
-                <th className="py-3 px-3.5 text-right w-36">Trước VAT</th>
-                <th className="py-3 px-3.5 text-center w-20">VAT (%)</th>
-                <th className="py-3 px-3.5 text-right w-36">Thuế VAT</th>
-                <th className="py-3 px-3.5 text-right w-36 font-bold text-emerald-400">Sau VAT</th>
-                <th className="py-3 px-3.5 text-right w-40 font-bold text-blue-300">Lũy Kế HĐ</th>
-                <th className="py-3 px-3.5 text-center w-24">Thao Tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/80">
-              {paginatedPayments.map((pm, idx) => {
-                const globalIndex = (currentPage - 1) * pageSize + idx + 1;
-                return (
-                  <tr key={pm.id} className="hover:bg-slate-800/50 transition">
-                    <td className="py-3 px-3.5 text-center font-mono text-slate-400">{globalIndex}</td>
-                    
-                    <td className="py-3 px-3.5 font-mono text-slate-200 font-semibold">
-                      {formatDisplayDate(pm.payment_date)}
-                    </td>
-
-                    <td className="py-3 px-3.5 font-semibold text-slate-200">
-                      <div className="line-clamp-1">{pm.projectName}</div>
-                    </td>
-
-                    <td className="py-3 px-3.5 font-mono">
-                      <div className="font-bold text-white">{pm.contractNumber}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{pm.contractor}</div>
-                      {pm.costGroup && (
-                        <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-sans">
-                          {pm.costGroup} {pm.costGroup === 'Khác' && pm.costGroupNote ? `(${pm.costGroupNote})` : ''}
-                        </span>
-                      )}
-                    </td>
-
-                    <td className="py-3 px-3.5 text-center font-mono">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-bold border border-slate-700">
-                        Đợt {pm.payment_phase || 1}
-                      </span>
-                    </td>
-
-                    <td className="py-3 px-3.5 text-right font-mono text-slate-300 font-medium">
-                      {formatVND(pm.amount_before_vat)}
-                    </td>
-
-                    <td className="py-3 px-3.5 text-center font-mono text-slate-400">
-                      {pm.vat_rate}%
-                    </td>
-
-                    <td className="py-3 px-3.5 text-right font-mono text-amber-400/90 font-medium">
-                      {formatVND(pm.vat_amount)}
-                    </td>
-
-                    <td className="py-3 px-3.5 text-right font-mono font-extrabold text-emerald-400 bg-emerald-500/5">
-                      {formatVND(pm.amount_after_vat)}
-                    </td>
-
-                    <td className="py-3 px-3.5 text-right font-mono font-bold text-blue-300">
-                      {formatVND(pm.cumulativeAfterVat)}
-                    </td>
-
-                    <td className="py-3 px-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => onEditPayment(pm)}
-                          className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition cursor-pointer"
-                          title="Chỉnh sửa đợt thanh toán"
-                        >
-                          <Edit className="w-3.5 h-3.5 text-blue-400" />
-                        </button>
-                        <button
-                          onClick={() => onDeletePayment(pm.id)}
-                          className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition cursor-pointer"
-                          title="Xóa đợt thanh toán"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-
-              {paginatedPayments.length === 0 && (
-                <tr>
-                  <td colSpan="11" className="py-10 text-center text-slate-400">
-                    Không tìm thấy đợt thanh toán nào thỏa mãn điều kiện lọc.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* PAGINATION BAR */}
-        <div className="p-3 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-3 text-slate-400">
-            <span>Hiển thị trang {currentPage} / {totalPages} (Tổng {sortedPayments.length} bản ghi)</span>
-            <div className="flex items-center gap-1">
-              <span>Hiển thị</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 text-xs cursor-pointer font-mono"
-              >
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-                <option value={200}>200</option>
-              </select>
-              <span>dòng / trang</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 self-end sm:self-auto">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 transition cursor-pointer"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pNum = i + 1;
-              if (totalPages > 5 && currentPage > 3) {
-                pNum = currentPage - 2 + i;
-                if (pNum > totalPages) pNum = totalPages - (4 - i);
-              }
-              return (
-                <button
-                  key={pNum}
-                  onClick={() => setCurrentPage(pNum)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold font-mono transition cursor-pointer ${
-                    currentPage === pNum
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                  }`}
-                >
-                  {pNum}
-                </button>
-              );
-            })}
-
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 transition cursor-pointer"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* ANALYTICS CHARTS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         
@@ -952,6 +780,179 @@ export default function PaymentsView({
           )}
         </div>
 
+      </div>
+
+
+      {/* DENSE & READABLE PAYMENTS TABLE */}
+      <div className="rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-hidden">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left text-xs text-slate-300 min-w-[1050px]">
+            <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
+              <tr>
+                <th className="py-3 px-3.5 text-center w-14">STT</th>
+                <th className="py-3 px-3.5 w-32 cursor-pointer hover:text-white" onClick={() => handleSort('payment_date')}>
+                  <div className="flex items-center gap-1">
+                    Ngày Thanh Toán
+                    {sortColumn === 'payment_date' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-emerald-400" /> : <ArrowDown className="w-3 h-3 text-emerald-400" />)}
+                  </div>
+                </th>
+                <th className="py-3 px-3.5 w-36">Dự Án</th>
+                <th className="py-3 px-3.5 w-40">Số HĐ / Nhà Thầu</th>
+                <th className="py-3 px-3.5 text-center w-20">Đợt TT</th>
+                <th className="py-3 px-3.5 text-right w-36">Trước VAT</th>
+                <th className="py-3 px-3.5 text-center w-20">VAT (%)</th>
+                <th className="py-3 px-3.5 text-right w-36">Thuế VAT</th>
+                <th className="py-3 px-3.5 text-right w-36 font-bold text-emerald-400">Sau VAT</th>
+                <th className="py-3 px-3.5 text-right w-40 font-bold text-blue-300">Lũy Kế HĐ</th>
+                <th className="py-3 px-3.5 text-center w-24">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/80">
+              {paginatedPayments.map((pm, idx) => {
+                const globalIndex = (currentPage - 1) * pageSize + idx + 1;
+                return (
+                  <tr key={pm.id} className="hover:bg-slate-800/50 transition">
+                    <td className="py-3 px-3.5 text-center font-mono text-slate-400">{globalIndex}</td>
+                    
+                    <td className="py-3 px-3.5 font-mono text-slate-200 font-semibold">
+                      {formatDisplayDate(pm.payment_date)}
+                    </td>
+
+                    <td className="py-3 px-3.5 font-semibold text-slate-200">
+                      <div className="line-clamp-1">{pm.projectName}</div>
+                    </td>
+
+                    <td className="py-3 px-3.5 font-mono">
+                      <div className="font-bold text-white">{pm.contractNumber}</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{pm.contractor}</div>
+                      {pm.costGroup && (
+                        <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-sans">
+                          {pm.costGroup} {pm.costGroup === 'Khác' && pm.costGroupNote ? `(${pm.costGroupNote})` : ''}
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="py-3 px-3.5 text-center font-mono">
+                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-bold border border-slate-700">
+                        Đợt {pm.payment_phase || 1}
+                      </span>
+                    </td>
+
+                    <td className="py-3 px-3.5 text-right font-mono text-slate-300 font-medium">
+                      {formatVND(pm.amount_before_vat)}
+                    </td>
+
+                    <td className="py-3 px-3.5 text-center font-mono text-slate-400">
+                      {pm.vat_rate}%
+                    </td>
+
+                    <td className="py-3 px-3.5 text-right font-mono text-amber-400/90 font-medium">
+                      {formatVND(pm.vat_amount)}
+                    </td>
+
+                    <td className="py-3 px-3.5 text-right font-mono font-extrabold text-emerald-400 bg-emerald-500/5">
+                      {formatVND(pm.amount_after_vat)}
+                    </td>
+
+                    <td className="py-3 px-3.5 text-right font-mono font-bold text-blue-300">
+                      {formatVND(pm.cumulativeAfterVat)}
+                    </td>
+
+                    <td className="py-3 px-3.5 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => onEditPayment(pm)}
+                          className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition cursor-pointer"
+                          title="Chỉnh sửa đợt thanh toán"
+                        >
+                          <Edit className="w-3.5 h-3.5 text-blue-400" />
+                        </button>
+                        <button
+                          onClick={() => onDeletePayment(pm.id)}
+                          className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition cursor-pointer"
+                          title="Xóa đợt thanh toán"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {paginatedPayments.length === 0 && (
+                <tr>
+                  <td colSpan="11" className="py-10 text-center text-slate-400">
+                    Không tìm thấy đợt thanh toán nào thỏa mãn điều kiện lọc.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* PAGINATION BAR */}
+        <div className="p-3 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3 text-slate-400">
+            <span>Hiển thị trang {currentPage} / {totalPages} (Tổng {sortedPayments.length} bản ghi)</span>
+            <div className="flex items-center gap-1">
+              <span>Hiển thị</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 text-xs cursor-pointer font-mono"
+              >
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={200}>200</option>
+              </select>
+              <span>dòng / trang</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 self-end sm:self-auto">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 transition cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pNum = i + 1;
+              if (totalPages > 5 && currentPage > 3) {
+                pNum = currentPage - 2 + i;
+                if (pNum > totalPages) pNum = totalPages - (4 - i);
+              }
+              return (
+                <button
+                  key={pNum}
+                  onClick={() => setCurrentPage(pNum)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold font-mono transition cursor-pointer ${
+                    currentPage === pNum
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {pNum}
+                </button>
+              );
+            })}
+
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 transition cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* RISK CONTROL MODAL DRAWER */}
