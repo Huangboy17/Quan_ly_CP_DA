@@ -30,6 +30,7 @@ export default function PaymentModal({
     payment_phase: 1,
     payment_date: new Date().toISOString().split('T')[0],
     amount_before_vat: '',
+    vat_rate: 10,
     note: '',
   });
 
@@ -94,6 +95,8 @@ export default function PaymentModal({
       setFormData({
         ...editingPayment,
         amount_before_vat: editingPayment.amount_before_vat || '',
+        // Load the payment's own saved vat_rate; fallback to 10 if old data has none
+        vat_rate: editingPayment.vat_rate !== undefined ? Number(editingPayment.vat_rate) : 10,
       });
     } else {
       const initialContract = contracts.find(c => c.id === initialContractId);
@@ -112,6 +115,7 @@ export default function PaymentModal({
         payment_phase: nextPhase,
         payment_date: new Date().toISOString().split('T')[0],
         amount_before_vat: '',
+        vat_rate: 10,   // Always default 10% for new payments — independent of contract VAT
         note: targetContractId ? `Thanh toán đợt ${nextPhase}` : '',
       });
 
@@ -164,11 +168,14 @@ export default function PaymentModal({
     }
   };
 
-  // Inherited VAT Rate from Selected Contract
+  // Contract VAT rate — for reference display only, does NOT control payment VAT
   const contractVatRate = selectedContract ? (selectedContract.vatRate !== undefined ? Number(selectedContract.vatRate) : 10) : 10;
 
-  // Real-time 3-value VAT calculation for phase payment
-  const phaseVATValues = calculateVATValues(formData.amount_before_vat, contractVatRate);
+  // Payment-specific VAT rate — user-controlled, defaults to 10% for new payments
+  const paymentVatRate = Number(formData.vat_rate !== undefined ? formData.vat_rate : 10);
+
+  // Real-time 3-value VAT calculation using payment's own vat_rate
+  const phaseVATValues = calculateVATValues(formData.amount_before_vat, paymentVatRate);
 
   // Cumulative paid sums before this payment
   const paidBeforeVAT = selectedContract ? (selectedContract.totalPaidBeforeVAT || 0) : 0;
@@ -244,7 +251,7 @@ export default function PaymentModal({
         ...formData,
         payment_phase: Number(formData.payment_phase),
         amount_before_vat: Number(formData.amount_before_vat),
-        vat_rate: contractVatRate,
+        vat_rate: paymentVatRate,          // payment's own VAT rate (user-set)
         vat_amount: phaseVATValues.vatAmount,
         amount_after_vat: phaseVATValues.amountAfterVAT,
       });
@@ -516,6 +523,44 @@ export default function PaymentModal({
                   ))}
                 </div>
 
+                {/* VAT RATE INPUT — payment-specific, independent of contract VAT */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold text-slate-300">Thuế VAT của đợt thanh toán này</label>
+                    <span className="text-[11px] text-slate-500">VAT hợp đồng: {contractVatRate}% (tham khảo)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={formData.vat_rate !== undefined ? formData.vat_rate : 10}
+                        onChange={(e) => setFormData(prev => ({ ...prev, vat_rate: Number(e.target.value) }))}
+                        className="w-full pl-3.5 pr-10 py-2 bg-slate-900 border border-blue-500/40 rounded-xl text-sm font-mono font-bold text-blue-300 focus:outline-none focus:border-blue-500 transition"
+                      />
+                      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">%</span>
+                    </div>
+                    <div className="flex gap-1.5">
+                      {[0, 5, 8, 10].map(rate => (
+                        <button
+                          key={rate}
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, vat_rate: rate }))}
+                          className={`px-2.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                            Number(formData.vat_rate) === rate
+                              ? 'bg-blue-600/30 border border-blue-500 text-blue-300'
+                              : 'bg-slate-700/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-transparent'
+                          }`}
+                        >
+                          {rate}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
                 {/* READ-ONLY AUTO VAT & AFTER VAT PANEL */}
                 <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
                   <div className="flex justify-between text-slate-400">
@@ -523,7 +568,7 @@ export default function PaymentModal({
                     <span className="font-mono text-slate-200 font-bold">{formatVND(formData.amount_before_vat)}</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
-                    <span>+ Tiền VAT ({contractVatRate}%):</span>
+                    <span>+ Tiền VAT ({paymentVatRate}%):</span>
                     <span className="font-mono text-blue-300 font-bold">+{formatVND(phaseVATValues.vatAmount)}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-slate-800 text-sm font-extrabold">

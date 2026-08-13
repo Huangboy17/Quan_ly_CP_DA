@@ -84,14 +84,7 @@ export async function syncFromSupabase(userId) {
         const vatRate = Number(row.vat || 10);
         const afterVAT = Number(row.gia_tri_sau_vat || 0);
         const vatAmount = afterVAT - beforeVAT;
-        // Parse phu_luc JSONB from DB
-        let appendices = [];
-        try {
-          if (row.phu_luc) {
-            appendices = typeof row.phu_luc === 'string' ? JSON.parse(row.phu_luc) : row.phu_luc;
-            if (!Array.isArray(appendices)) appendices = [];
-          }
-        } catch (e) { appendices = []; }
+        // Appendices are loaded from phu_luc_hop_dong table below — not from hop_dong.phu_luc JSONB
         return {
           id: String(row.id),
           project_id: String(row.project_id || ''),
@@ -111,11 +104,11 @@ export async function syncFromSupabase(userId) {
           costGroupNote: '',
           estimated_settlement_value: afterVAT,
           status: 'in_progress',
-          appendices: appendices,
+          appendices: [], // Will be populated from phu_luc_hop_dong below
         };
       });
 
-      // Will attach appendices after fetching phu_luc_hop_dong below
+      // Appendices will be attached after fetching phu_luc_hop_dong below
       localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(mappedContracts));
     }
 
@@ -129,17 +122,28 @@ export async function syncFromSupabase(userId) {
       console.warn('Supabase fetch thanh_toan_chi_phi info:', pErr.message);
     } else if (Array.isArray(thanhToanRows)) {
       const mappedPayments = thanhToanRows.map(row => {
-        const amount = Number(row.so_tien || 0);
+        // so_tien_truoc_vat is the base amount (before VAT); fallback to so_tien if column not yet added
+        const amountBeforeVat = Number(row.so_tien_truoc_vat || row.so_tien || 0);
+        const amountAfterVat = Number(row.so_tien || 0);
+        // vat_rate: read from DB if column exists, fallback to deriving from amounts
+        let vatRate = 0;
+        if (row.vat_rate !== undefined && row.vat_rate !== null) {
+          vatRate = Number(row.vat_rate);
+        } else if (amountBeforeVat > 0 && amountAfterVat > amountBeforeVat) {
+          // Derive approximate vat_rate from stored amounts
+          vatRate = Math.round((amountAfterVat - amountBeforeVat) / amountBeforeVat * 100);
+        }
+        const vatAmount = amountAfterVat - amountBeforeVat;
         return {
           id: String(row.id),
           contract_id: String(row.contract_id || ''),
           project_id: String(row.project_id || ''),
           payment_phase: Number(row.dot_thanh_toan || 1),
           payment_date: row.ngay_thanh_toan || '',
-          amount_before_vat: amount,
-          vat_rate: 0,
-          vat_amount: 0,
-          amount_after_vat: amount,
+          amount_before_vat: amountBeforeVat,
+          vat_rate: vatRate,
+          vat_amount: vatAmount >= 0 ? vatAmount : 0,
+          amount_after_vat: amountAfterVat,
           note: row.noi_dung || '',
           payment_type: row.loai_thanh_toan || '',
           is_settlement: (row.loai_thanh_toan || '').includes('quyết toán') || (row.loai_thanh_toan || '').includes('Quyết toán'),
@@ -274,7 +278,8 @@ export async function asyncSaveContractToSupabase(contract, userId) {
       tien_do_hop_dong: Number(contract.execution_days || 0) || null,
       ngay_ket_thuc: contract.end_date || null,
       nhom_chi_phi: contract.costGroup || '',
-      phu_luc: Array.isArray(contract.appendices) ? contract.appendices : [],
+      // phu_luc JSONB is intentionally NOT written here.
+      // Appendices are managed exclusively in the phu_luc_hop_dong table.
     };
 
     const { data, error } = await supabase.from('hop_dong').upsert(payload);
@@ -292,7 +297,11 @@ export async function asyncSaveContractToSupabase(contract, userId) {
 async function asyncDeleteContractFromSupabase(id, userId) {
   if (!isSupabaseConfigured || !supabase || !userId) return;
   try {
+    // 1. Xóa thanh toán thuộc hợp đồng
     await supabase.from('thanh_toan_chi_phi').delete().eq('contract_id', id).eq('user_id', userId);
+    // 2. Xóa phụ lục thuộc hợp đồng (phu_luc_hop_dong là nguồn chính)
+    await supabase.from('phu_luc_hop_dong').delete().eq('contract_id', id).eq('user_id', userId);
+    // 3. Xóa hợp đồng
     const { error } = await supabase.from('hop_dong').delete().eq('id', id).eq('user_id', userId);
     if (error) throw error;
   } catch (e) {
@@ -312,6 +321,11 @@ export async function asyncSavePaymentToSupabase(payment, userId) {
       if (contract) projectId = contract.project_id;
     }
 
+    const vatRate = Number(payment.vat_rate !== undefined ? payment.vat_rate : 0);
+    const amountBeforeVat = Number(payment.amount_before_vat || 0);
+    const amountAfterVat = Number(payment.amount_after_vat || payment.amount_before_vat || 0);
+    const vatAmount = amountAfterVat - amountBeforeVat;
+
     const payload = {
       id: payment.id,
       user_id: userId,
@@ -319,7 +333,10 @@ export async function asyncSavePaymentToSupabase(payment, userId) {
       contract_id: payment.contract_id || null,
       dot_thanh_toan: Number(payment.payment_phase || 1),
       loai_thanh_toan: payment.payment_type || (payment.is_settlement ? 'Quyết toán' : 'Thanh toán'),
-      so_tien: Number(payment.amount_after_vat || payment.amount_before_vat || 0),
+      // Store both before-VAT and after-VAT amounts + rate for full persistence
+      so_tien_truoc_vat: amountBeforeVat,
+      vat_rate: vatRate,
+      so_tien: amountAfterVat,   // primary amount field (after VAT total)
       ngay_thanh_toan: payment.payment_date || null,
       noi_dung: payment.note || '',
     };
@@ -1214,7 +1231,19 @@ export async function saveContract(contract, userId) {
 
   if (contract.id) {
     targetContractToSave = { ...contractToSave };
-    updated = contracts.map(c => c.id === contract.id ? { ...c, ...targetContractToSave } : c);
+    updated = contracts.map(c => {
+      if (c.id !== contract.id) return c;
+      // IMPORTANT: Preserve appendices from the existing localStorage entry.
+      // The form (ContractModal) only carries contract fields, NOT appendices.
+      // Appendices are managed exclusively in phu_luc_hop_dong (Supabase).
+      // Spreading contractToSave would wipe out c.appendices — we must keep them.
+      const preservedAppendices = Array.isArray(c.appendices) ? c.appendices : [];
+      return {
+        ...c,
+        ...targetContractToSave,
+        appendices: preservedAppendices,
+      };
+    });
   } else {
     targetContractToSave = {
       ...contractToSave,

@@ -31,6 +31,28 @@ function parseNumber(val) {
 }
 
 /**
+ * Normalizes a VAT value from Excel to a percentage integer (e.g. 10 means 10%).
+ *
+ * Excel Percentage-formatted cells store 10% as 0.1 internally.
+ * When XLSX reads them without `raw:false`, it returns 0.1 (not 10).
+ * This function detects that pattern and converts back to the human-readable value.
+ *
+ * Rules:
+ *   val === 0            → 0%
+ *   0 < val < 1          → treat as decimal fraction → multiply by 100  (e.g. 0.1 → 10)
+ *   val >= 1 && val <=100→ treat as percentage directly                 (e.g. 10 → 10)
+ *   val > 100            → clamp to 100 (safety guard)
+ */
+function parseVatRate(val) {
+  if (!val && val !== 0) return 10; // default 10% when missing
+  const raw = parseNumber(val);
+  if (raw === 0) return 0;
+  if (raw > 0 && raw < 1) return Math.round(raw * 100); // e.g. 0.1 → 10
+  if (raw > 100) return 100;                              // safety clamp
+  return Math.round(raw);                                 // e.g. 10 → 10
+}
+
+/**
  * Formats Date object or Excel serial number into YYYY-MM-DD string
  */
 function formatDateStr(val) {
@@ -351,7 +373,7 @@ export function validateAndPrepareContractImport(rawRows, existingProjects = [],
       } else if (normKey.includes('trước vat') || normKey.includes('before_vat')) {
         beforeVat = parseNumber(val);
       } else if (normKey.includes('vat (%)') || normKey === 'vat' || normKey.includes('mức vat')) {
-        vatRate = parseNumber(val);
+        vatRate = parseVatRate(val);
       } else if (normKey.includes('sau vat') || normKey.includes('after_vat') || normKey.includes('giá trị hợp đồng')) {
         afterVat = parseNumber(val);
       } else if (normKey.includes('nhà thầu') || normKey.includes('nha thau') || normKey === 'contractor') {
@@ -604,7 +626,7 @@ export function validateAndPreparePaymentImport(rawRows, existingProjects = [], 
       } else if (normKey.includes('trước vat') || normKey.includes('before_vat')) {
         beforeVat = parseNumber(val);
       } else if (normKey.includes('vat (%)') || normKey === 'vat' || normKey.includes('mức vat')) {
-        vatRate = parseNumber(val);
+        vatRate = parseVatRate(val);
       } else if (normKey.includes('sau vat') || normKey.includes('after_vat') || normKey.includes('giá trị thanh toán')) {
         afterVat = parseNumber(val);
       }
