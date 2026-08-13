@@ -23,7 +23,8 @@ import {
   Sparkles,
   ArrowRight,
   ChevronDown,
-  Tag
+  Tag,
+  X
 } from 'lucide-react';
 import { formatVND, formatDisplayDate } from '../../utils/formatters';
 import { COST_GROUP_OPTIONS } from './ContractModal';
