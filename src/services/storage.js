@@ -153,7 +153,7 @@ export async function syncFromSupabase(userId) {
           amount_after_vat: amountAfterVat,
           note: row.noi_dung || '',
           payment_type: row.loai_thanh_toan || '',
-          is_settlement: (row.loai_thanh_toan || '').includes('quyết toán') || (row.loai_thanh_toan || '').includes('Quyết toán'),
+          is_settlement: (row.loai_thanh_toan || '').toLowerCase().includes('quyết toán') || (row.loai_thanh_toan || '') === 'FINAL_SETTLEMENT',
         };
       });
 
@@ -1330,6 +1330,7 @@ export async function settleContract(contractId, settlementData, userId) {
   const settlementPayment = {
     id: crypto.randomUUID(),
     contract_id: contractId,
+    project_id: targetContract.project_id,
     payment_phase: nextPhase,
     payment_date: settlementData.settlement_date,
     amount_before_vat: settlementPhaseBeforeVAT,
@@ -1337,7 +1338,7 @@ export async function settleContract(contractId, settlementData, userId) {
     vat_amount: settlementPhaseVAT,
     amount_after_vat: settlementPhaseAfterVAT,
     note: settlementData.note || 'Quyết toán hoàn thành hợp đồng (Đợt cuối)',
-    payment_type: 'FINAL_SETTLEMENT',
+    payment_type: 'Quyết toán',
     is_settlement: true,
   };
 
@@ -1348,7 +1349,8 @@ export async function settleContract(contractId, settlementData, userId) {
     finalSettlementAmountBeforeVAT: finalSettlementAmountBeforeVAT,
     estimated_settlement_value: finalSettlementAmountAfterVAT,
     settled_at: settlementData.settlement_date,
-    settlement_note: settlementData.note,
+    // Ensure settlement_note is never empty so Supabase persists status correctly
+    settlement_note: settlementData.note || `Quyết toán ngày ${settlementData.settlement_date}`,
   };
 
   // --- SUPABASE-FIRST STRATEGY ---

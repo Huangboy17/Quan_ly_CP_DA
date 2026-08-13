@@ -40,12 +40,13 @@ export default function ContractsView({
 
   const [contractorFilter, setContractorFilter] = useState('');
   const [costGroupFilter, setCostGroupFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [localSearch, setLocalSearch] = useState('');
 
   const contractorsList = Array.from(new Set(baseContracts.map(c => c.contractor).filter(Boolean))).sort();
   const searchQuery = (globalSearch || localSearch).toLowerCase().trim();
 
-  // Filter baseContracts by local contractor, cost group dropdown & search query
+  // Filter baseContracts by local contractor, cost group, status dropdown & search query
   const filteredContracts = baseContracts.filter(c => {
     if (contractorFilter && c.contractor !== contractorFilter) return false;
     if (costGroupFilter) {
@@ -54,6 +55,10 @@ export default function ContractsView({
       } else if (c.costGroup !== costGroupFilter) {
         return false;
       }
+    }
+    if (statusFilter) {
+      if (statusFilter === 'settled' && c.status !== 'settled') return false;
+      if (statusFilter === 'in_progress' && c.status === 'settled') return false;
     }
     if (searchQuery) {
       const matchNum = c.contract_number?.toLowerCase().includes(searchQuery);
@@ -67,7 +72,7 @@ export default function ContractsView({
     return true;
   });
 
-  const isLocalFiltered = Boolean(contractorFilter || costGroupFilter || localSearch);
+  const isLocalFiltered = Boolean(contractorFilter || costGroupFilter || statusFilter || localSearch);
 
   const handleRowClick = (contractId) => {
     if (onViewContractDossier) {
@@ -153,12 +158,26 @@ export default function ContractsView({
             </select>
           </div>
 
+          {/* Status Filter Dropdown */}
+          <div className="relative shrink-0">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
+            >
+              <option value="">-- Tất cả Trạng thái --</option>
+              <option value="in_progress">🟢 Đang thực hiện</option>
+              <option value="settled">🔵 Đã quyết toán</option>
+            </select>
+          </div>
+
           {/* Reset Local Filters */}
           {isLocalFiltered && (
             <button
               onClick={() => {
                 setContractorFilter('');
                 setCostGroupFilter('');
+                setStatusFilter('');
                 setLocalSearch('');
               }}
               className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
