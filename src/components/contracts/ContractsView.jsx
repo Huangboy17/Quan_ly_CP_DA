@@ -265,7 +265,7 @@ export default function ContractsView({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
         
         {/* Chart 1: Cost Group */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col h-72">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col min-h-[320px] h-full">
           <h3 className="text-xs font-bold text-white uppercase mb-3 flex items-center gap-2">
             <Layers className="w-4 h-4 text-purple-400" /> Cơ cấu Giá Trị / Nhóm CP
           </h3>
@@ -292,7 +292,7 @@ export default function ContractsView({
         </div>
 
         {/* Chart 2: Status */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col h-72">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col min-h-[320px] h-full">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2">
               <PieIcon className="w-4 h-4 text-cyan-400" /> Cơ Cấu Trạng Thái
@@ -304,13 +304,13 @@ export default function ContractsView({
           </div>
           <div className="flex-1 w-full flex items-center justify-between gap-2 mt-2">
             {/* Donut Graphic */}
-            <div className="w-[45%] h-full relative min-h-[140px]">
+            <div className="w-[50%] h-full relative min-h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie 
                     data={statusData} 
                     cx="50%" cy="50%" 
-                    innerRadius={35} outerRadius={55} 
+                    innerRadius={55} outerRadius={85} 
                     paddingAngle={2} 
                     dataKey={statusChartMetric}
                     onClick={(data) => setChartStatusFilter(chartStatusFilter === data.name ? '' : data.name)}
@@ -333,7 +333,7 @@ export default function ContractsView({
               </div>
             </div>
             {/* Custom Legend */}
-            <div className="w-[55%] flex flex-col gap-1.5 justify-center">
+            <div className="w-[50%] flex flex-col gap-2 justify-center pl-2">
               {statusData.map((item, idx) => {
                  const pct = kpiTotalContracts > 0 ? ((item.count / kpiTotalContracts) * 100).toFixed(1) : 0;
                  const color = item.name === 'Đã quyết toán' ? '#06b6d4' : '#3b82f6';
@@ -363,20 +363,20 @@ export default function ContractsView({
         </div>
 
         {/* Chart 3: Schedule */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col h-72">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col min-h-[320px] h-full">
           <h3 className="text-xs font-bold text-white uppercase mb-3 flex items-center gap-2">
             <ClockIcon className="w-4 h-4 text-emerald-400" /> Tình Trạng Tiến Độ
           </h3>
           <div className="flex-1 w-full flex flex-col justify-between mt-2 gap-2">
             <div className="flex-1 flex items-center justify-between gap-2">
               {/* Donut Graphic */}
-              <div className="w-[45%] h-full relative min-h-[120px]">
+              <div className="w-[50%] h-full relative min-h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie 
                       data={scheduleData} 
                       cx="50%" cy="50%" 
-                      innerRadius={30} outerRadius={48} 
+                      innerRadius={55} outerRadius={85} 
                       paddingAngle={2} 
                       dataKey="count"
                       onClick={(data) => setChartScheduleFilter(chartScheduleFilter === data.name ? '' : data.name)}
@@ -401,7 +401,7 @@ export default function ContractsView({
                 </div>
               </div>
               {/* Custom Legend */}
-              <div className="w-[55%] flex flex-col gap-1 justify-center">
+              <div className="w-[50%] flex flex-col gap-1.5 justify-center pl-2">
                 {scheduleData.map((item, idx) => {
                    const pct = kpiTotalContracts > 0 ? ((item.count / kpiTotalContracts) * 100).toFixed(1) : 0;
                    const isActive = chartScheduleFilter === item.name;
