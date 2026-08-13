@@ -102,8 +102,13 @@ export async function syncFromSupabase(userId) {
           end_date: row.ngay_ket_thuc || '',
           costGroup: row.nhom_chi_phi || '',
           costGroupNote: '',
-          estimated_settlement_value: afterVAT,
-          status: 'in_progress',
+          estimated_settlement_value: Number(row.gia_tri_quyet_toan || 0) || afterVAT,
+          // Settlement / status fields — read directly from DB
+          status: row.trang_thai || 'in_progress',
+          settled_at: row.ngay_quyet_toan || null,
+          settlement_note: row.ghi_chu_quyet_toan || '',
+          finalSettlementAmount: Number(row.gia_tri_quyet_toan || 0) || null,
+          finalSettlementAmountBeforeVAT: Number(row.gia_tri_quyet_toan_truoc_vat || 0) || null,
           appendices: [], // Will be populated from phu_luc_hop_dong below
         };
       });
@@ -249,10 +254,15 @@ async function asyncDeleteProjectFromSupabase(id, userId) {
 
     if (childContracts && childContracts.length > 0) {
       const cIds = childContracts.map(c => c.id);
+      // 1. Xoá thanh toán thuộc các hợp đồng
       await supabase.from('thanh_toan_chi_phi').delete().in('contract_id', cIds).eq('user_id', userId);
+      // 2. Xoá phụ lục thuộc các hợp đồng (P0-NEW-01)
+      await supabase.from('phu_luc_hop_dong').delete().in('contract_id', cIds).eq('user_id', userId);
     }
 
+    // 3. Xoá hợp đồng
     await supabase.from('hop_dong').delete().eq('project_id', id).eq('user_id', userId);
+    // 4. Xoá dự án
     const { error } = await supabase.from('du_an').delete().eq('id', id).eq('user_id', userId);
     if (error) throw error;
   } catch (e) {
@@ -278,6 +288,12 @@ export async function asyncSaveContractToSupabase(contract, userId) {
       tien_do_hop_dong: Number(contract.execution_days || 0) || null,
       ngay_ket_thuc: contract.end_date || null,
       nhom_chi_phi: contract.costGroup || '',
+      // Status & settlement fields
+      trang_thai: contract.status || 'in_progress',
+      ngay_quyet_toan: contract.settled_at || null,
+      ghi_chu_quyet_toan: contract.settlement_note || null,
+      gia_tri_quyet_toan: contract.finalSettlementAmount ? Number(contract.finalSettlementAmount) : null,
+      gia_tri_quyet_toan_truoc_vat: contract.finalSettlementAmountBeforeVAT ? Number(contract.finalSettlementAmountBeforeVAT) : null,
       // phu_luc JSONB is intentionally NOT written here.
       // Appendices are managed exclusively in the phu_luc_hop_dong table.
     };
@@ -1160,8 +1176,13 @@ export async function deleteProject(id, userId) {
 async function asyncDeleteAllFromSupabase(userId) {
   if (!isSupabaseConfigured || !supabase || !userId) return;
   try {
+    // 1. Xoá thanh toán
     await supabase.from('thanh_toan_chi_phi').delete().eq('user_id', userId);
+    // 2. Xoá phụ lục (P0-NEW-02)
+    await supabase.from('phu_luc_hop_dong').delete().eq('user_id', userId);
+    // 3. Xoá hợp đồng
     await supabase.from('hop_dong').delete().eq('user_id', userId);
+    // 4. Xoá dự án
     await supabase.from('du_an').delete().eq('user_id', userId);
   } catch (e) {
     console.error('Lỗi asyncDeleteAllFromSupabase:', e);
@@ -1285,41 +1306,26 @@ export async function settleContract(contractId, settlementData, userId) {
   const targetContract = contracts.find(c => c.id === contractId);
   if (!targetContract) return;
 
-  const vatRate = targetContract.vatRate !== undefined ? Number(targetContract.vatRate) : 10;
+  // Use settlement-specific VAT rate from UI (user-entered), fallback to contract's, then 10%
+  const vatRate = settlementData.vat_rate !== undefined && settlementData.vat_rate !== null
+    ? Number(settlementData.vat_rate)
+    : (targetContract.vatRate !== undefined ? Number(targetContract.vatRate) : 10);
   const settlementPhaseBeforeVAT = Number(settlementData.settlement_amount_before_vat || settlementData.settlement_amount || 0);
   const settlementPhaseVAT = Math.round(settlementPhaseBeforeVAT * (vatRate / 100));
   const settlementPhaseAfterVAT = settlementPhaseBeforeVAT + settlementPhaseVAT;
 
   const payments = getPayments(Boolean(userId));
   const contractPayments = payments.filter(p => p.contract_id === contractId);
-  
+
   const cumulativeBeforeVAT = contractPayments.reduce((sum, p) => sum + Number(p.amount_before_vat || 0), 0);
   const cumulativeAfterVAT = contractPayments.reduce((sum, p) => sum + Number(p.amount_after_vat || 0), 0);
 
   const finalSettlementAmountAfterVAT = cumulativeAfterVAT + settlementPhaseAfterVAT;
   const finalSettlementAmountBeforeVAT = cumulativeBeforeVAT + settlementPhaseBeforeVAT;
 
-  const nextPhase = contractPayments.length > 0 
-    ? Math.max(...contractPayments.map(p => Number(p.payment_phase) || 0)) + 1 
+  const nextPhase = contractPayments.length > 0
+    ? Math.max(...contractPayments.map(p => Number(p.payment_phase) || 0)) + 1
     : 1;
-
-  let settledContractObj = null;
-  const updatedContracts = contracts.map(c => {
-    if (c.id === contractId) {
-      settledContractObj = {
-        ...c,
-        status: 'settled',
-        finalSettlementAmount: finalSettlementAmountAfterVAT,
-        finalSettlementAmountBeforeVAT: finalSettlementAmountBeforeVAT,
-        estimated_settlement_value: finalSettlementAmountAfterVAT,
-        settled_at: settlementData.settlement_date,
-        settlement_note: settlementData.note,
-      };
-      return settledContractObj;
-    }
-    return c;
-  });
-  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
 
   const settlementPayment = {
     id: crypto.randomUUID(),
@@ -1335,17 +1341,67 @@ export async function settleContract(contractId, settlementData, userId) {
     is_settlement: true,
   };
 
+  const settledContractObj = {
+    ...targetContract,
+    status: 'settled',
+    finalSettlementAmount: finalSettlementAmountAfterVAT,
+    finalSettlementAmountBeforeVAT: finalSettlementAmountBeforeVAT,
+    estimated_settlement_value: finalSettlementAmountAfterVAT,
+    settled_at: settlementData.settlement_date,
+    settlement_note: settlementData.note,
+  };
+
+  // --- SUPABASE-FIRST STRATEGY ---
+  // Step 1: Insert settlement payment FIRST.
+  //   If this fails, contract status is never changed → no partial state.
+  if (userId) {
+    try {
+      await asyncSavePaymentToSupabase(settlementPayment, userId);
+    } catch (paymentErr) {
+      // Payment failed → abort entirely, nothing has been changed yet.
+      throw new Error(
+        'Không thể hoàn tất quyết toán. Đợt thanh toán quyết toán chưa được lưu. Dữ liệu chưa được cập nhật. Chi tiết: ' +
+        (paymentErr?.message || String(paymentErr))
+      );
+    }
+
+    // Step 2: Payment succeeded → now update contract status.
+    //   If THIS fails, rollback contract in Supabase (revert to original status).
+    try {
+      await asyncSaveContractToSupabase(settledContractObj, userId);
+    } catch (contractErr) {
+      // Rollback: revert contract to original state in Supabase.
+      // The payment was already saved, but we try to delete it to keep consistency.
+      try {
+        await supabase
+          .from('thanh_toan_chi_phi')
+          .delete()
+          .eq('id', settlementPayment.id)
+          .eq('user_id', userId);
+      } catch (_rollbackErr) {
+        // Rollback failed — log for investigation but don't swallow the original error.
+        console.error('Lỗi rollback payment sau khi contract update fail:', _rollbackErr);
+      }
+      throw new Error(
+        'Không thể hoàn tất quyết toán. Trạng thái hợp đồng chưa được cập nhật. Dữ liệu chưa được cập nhật. Chi tiết: ' +
+        (contractErr?.message || String(contractErr))
+      );
+    }
+  }
+
+  // Step 3: Both Supabase ops succeeded (or userId is null = offline mode).
+  //   Only NOW update localStorage and return updated state.
+  const updatedContracts = contracts.map(c =>
+    c.id === contractId ? settledContractObj : c
+  );
+  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
+
   const updatedPayments = [settlementPayment, ...payments];
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(updatedPayments));
 
-  // Sync both with Supabase
-  if (userId) {
-    if (settledContractObj) await asyncSaveContractToSupabase(settledContractObj, userId);
-    await asyncSavePaymentToSupabase(settlementPayment, userId);
-  }
-
   return { contracts: updatedContracts, payments: updatedPayments };
 }
+
 
 // --- PAYMENTS REPOSITORY ---
 export function getPayments(isLoggedIn = false) {

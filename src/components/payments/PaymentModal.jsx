@@ -41,6 +41,9 @@ export default function PaymentModal({
     note: 'Quyết toán hoàn thành & thanh lý HĐ',
   });
 
+  // Settlement VAT rate — user-controlled, independent of contract VAT, defaults to 10%
+  const [settlementVatRate, setSettlementVatRate] = useState(10);
+
   // Extract unique projects list from contracts
   const projectOptions = useMemo(() => {
     const projMap = new Map();
@@ -118,6 +121,7 @@ export default function PaymentModal({
         vat_rate: 10,   // Always default 10% for new payments — independent of contract VAT
         note: targetContractId ? `Thanh toán đợt ${nextPhase}` : '',
       });
+      setSettlementVatRate(10); // Reset settlement VAT to default 10% for new form
 
       if (initialContract) {
         setSettlementData({
@@ -160,6 +164,7 @@ export default function PaymentModal({
     }));
 
     if (targetContract) {
+      setSettlementVatRate(10); // Reset settlement VAT to 10% on new contract select
       setSettlementData({
         settlement_date: new Date().toISOString().split('T')[0],
         settlement_amount_before_vat: targetContract.remainingBeforeVAT || 0,
@@ -182,9 +187,9 @@ export default function PaymentModal({
   const paidVAT = selectedContract ? (selectedContract.totalPaidVAT || 0) : 0;
   const paidAfterVAT = selectedContract ? (selectedContract.totalPaidAfterVAT || 0) : 0;
 
-  // Real-time Settlement calculation (3-tier)
+  // Real-time Settlement calculation — uses user-controlled settlementVatRate
   const settlementPhaseBeforeVAT = Number(settlementData.settlement_amount_before_vat || 0);
-  const settlementVATValues = calculateVATValues(settlementPhaseBeforeVAT, contractVatRate);
+  const settlementVATValues = calculateVATValues(settlementPhaseBeforeVAT, settlementVatRate);
 
   const finalSettlementBeforeVAT = paidBeforeVAT + settlementPhaseBeforeVAT;
   const finalSettlementVAT = paidVAT + settlementVATValues.vatAmount;
@@ -194,7 +199,7 @@ export default function PaymentModal({
     ? (finalSettlementBeforeVAT > (selectedContract.contractValueBeforeVAT || 0)) 
     : false;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedProjectId) {
       alert('Vui lòng chọn Dự án!');
@@ -221,11 +226,20 @@ export default function PaymentModal({
       }
 
       if (onSettleContract) {
-        onSettleContract(formData.contract_id, {
-          ...settlementData,
-          settlement_amount_before_vat: settlementPhaseBeforeVAT,
-          settlement_amount: settlementVATValues.amountAfterVAT,
-        });
+        try {
+          await onSettleContract(formData.contract_id, {
+            ...settlementData,
+            settlement_amount_before_vat: settlementPhaseBeforeVAT,
+            settlement_amount: settlementVATValues.amountAfterVAT,
+            vat_rate: settlementVatRate,
+          });
+          alert(`Đã quyết toán đợt cuối & khóa hợp đồng ${selectedContract.contract_number} thành công!`);
+        } catch (err) {
+          alert(
+            `Lỗi quyết toán: ${err?.message || 'Không thể hoàn tất quyết toán. Dữ liệu chưa được cập nhật.'}`
+          );
+          return;
+        }
       } else {
         onSavePayment({
           ...formData,
@@ -238,9 +252,9 @@ export default function PaymentModal({
           payment_type: 'FINAL_SETTLEMENT',
           is_settlement: true,
         });
+        alert(`Đã quyết toán đợt cuối & khóa hợp đồng ${selectedContract.contract_number} thành công!`);
       }
 
-      alert(`Đã quyết toán đợt cuối & khóa hợp đồng ${selectedContract.contract_number} thành công!`);
     } else {
       if (!formData.amount_before_vat || Number(formData.amount_before_vat) <= 0) {
         alert('Vui lòng nhập Giá trị thanh toán trước VAT hợp lệ!');
@@ -614,7 +628,7 @@ export default function PaymentModal({
                 Quyết toán hợp đồng (Đợt thanh toán cuối cùng)
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                     Ngày Quyết Toán <span className="text-rose-400">*</span>
@@ -646,13 +660,37 @@ export default function PaymentModal({
                     </span>
                   </div>
                 </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    VAT (%) <span className="text-blue-400 font-normal text-[11px] ml-1">— của đợt quyết toán này</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      value={settlementVatRate}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        setSettlementVatRate(isNaN(v) ? 0 : Math.max(0, Math.min(100, v)));
+                      }}
+                      className="w-full pl-3.5 pr-10 py-2.5 bg-slate-900 border border-blue-700/60 rounded-xl text-sm font-mono font-bold text-blue-300 focus:outline-none focus:border-blue-500 transition"
+                    />
+                    <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+                      %
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">HĐ: {contractVatRate}% (tham khảo)</p>
+                </div>
               </div>
 
               {/* READ-ONLY 3-VALUE SETTLEMENT CALCULATION CARD */}
               <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5 text-xs">
                 <div className="font-bold text-slate-300 border-b border-slate-800 pb-1.5 flex items-center justify-between">
                   <span>CẤU TRÚC GIÁ TRỊ QUYẾT TOÁN CUỐI CÙNG</span>
-                  <span className="text-blue-400 font-mono">VAT {contractVatRate}%</span>
+                  <span className="text-blue-400 font-mono">VAT {settlementVatRate}%</span>
                 </div>
 
                 <div className="flex justify-between items-center text-slate-400">
@@ -677,7 +715,7 @@ export default function PaymentModal({
                     <span className="font-mono text-slate-100">{formatVND(finalSettlementBeforeVAT)}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs font-bold text-blue-300">
-                    <span>= Tổng VAT Quyết Toán ({contractVatRate}%):</span>
+                    <span>= Tổng VAT Quyết Toán ({settlementVatRate}%):</span>
                     <span className="font-mono text-blue-300">+{formatVND(finalSettlementVAT)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-1 text-sm font-extrabold text-purple-300 border-t border-slate-900">
