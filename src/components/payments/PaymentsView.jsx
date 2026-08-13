@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { 
   CreditCard, 
   Search, 
@@ -475,7 +476,10 @@ export default function PaymentsView({
         </div>
 
         <button
-          onClick={() => setIsAlertDrawerOpen(true)}
+          onClick={() => {
+            setAlertDrawerTab('ALL');
+            setIsAlertDrawerOpen(true);
+          }}
           className="px-3 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition shrink-0 cursor-pointer"
         >
           Chi tiết rủi ro ({allAlertItems.length})
@@ -956,7 +960,7 @@ export default function PaymentsView({
       </div>
 
       {/* RISK CONTROL MODAL DRAWER */}
-      {isAlertDrawerOpen && (
+      {isAlertDrawerOpen && ReactDOM.createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-8">
             <div className="px-6 py-4 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between">
@@ -970,7 +974,7 @@ export default function PaymentsView({
             </div>
 
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-xs">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto whitespace-nowrap">
                 <button
                   onClick={() => setAlertDrawerTab('ALL')}
                   className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
@@ -995,12 +999,37 @@ export default function PaymentsView({
                 >
                   Vượt HĐ ({allAlertItems.filter(a => a.type === 'EXCEED_VALUE').length})
                 </button>
+                <button
+                  onClick={() => setAlertDrawerTab('HIGH_FREQUENCY')}
+                  className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
+                    alertDrawerTab === 'HIGH_FREQUENCY' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  Tần suất cao ({allAlertItems.filter(a => a.type === 'HIGH_FREQUENCY').length})
+                </button>
+                <button
+                  onClick={() => setAlertDrawerTab('NO_DISBURSEMENT')}
+                  className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
+                    alertDrawerTab === 'NO_DISBURSEMENT' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  Chưa giải ngân ({allAlertItems.filter(a => a.type === 'NO_DISBURSEMENT').length})
+                </button>
               </div>
 
               <div className="space-y-2.5">
-                {allAlertItems
-                  .filter(a => alertDrawerTab === 'ALL' || a.type === alertDrawerTab)
-                  .map(alt => (
+                {(() => {
+                  const filteredAlerts = allAlertItems.filter(a => alertDrawerTab === 'ALL' || a.type === alertDrawerTab);
+                  
+                  if (filteredAlerts.length === 0) {
+                    return (
+                      <div className="py-8 text-center text-slate-400">
+                        Không ghi nhận rủi ro nào trong danh mục này.
+                      </div>
+                    );
+                  }
+
+                  return filteredAlerts.map(alt => (
                     <div 
                       key={alt.id}
                       className={`p-3.5 rounded-xl border space-y-1 transition ${
@@ -1014,13 +1043,8 @@ export default function PaymentsView({
                       <div className="font-bold text-white text-xs">{alt.title}</div>
                       <div className="text-slate-300 leading-relaxed text-[11px]">{alt.desc}</div>
                     </div>
-                  ))}
-
-                {allAlertItems.length === 0 && (
-                  <div className="py-8 text-center text-slate-400">
-                    Không ghi nhận rủi ro nào trong hệ thống.
-                  </div>
-                )}
+                  ));
+                })()}
               </div>
             </div>
 
@@ -1034,7 +1058,8 @@ export default function PaymentsView({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
