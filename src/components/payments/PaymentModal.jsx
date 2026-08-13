@@ -748,12 +748,12 @@ export default function PaymentModal({
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                   Ghi Chú Quyết Toán
                 </label>
-                <input
-                  type="text"
+                <textarea
+                  rows={3}
                   placeholder="Ghi chú hoàn thành & nghiệm thu thanh lý hợp đồng..."
                   value={settlementData.note}
                   onChange={(e) => setSettlementData({ ...settlementData, note: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition"
+                  className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition resize-none"
                 />
               </div>
 

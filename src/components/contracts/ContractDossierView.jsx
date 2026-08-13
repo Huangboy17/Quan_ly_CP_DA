@@ -424,6 +424,17 @@ export default function ContractDossierView({
         </div>
       )}
 
+      {/* SETTLEMENT NOTE — show only when settled and note exists */}
+      {isSettled && contract.settlement_note && (
+        <div className="p-3 rounded-xl bg-blue-950/30 border border-blue-700/40 flex items-start gap-2.5 text-xs">
+          <span className="text-blue-400 mt-0.5 shrink-0">📝</span>
+          <div>
+            <span className="font-bold text-blue-300 uppercase tracking-wider text-[10px] block mb-0.5">Ghi chú quyết toán</span>
+            <span className="text-slate-200 whitespace-pre-wrap">{contract.settlement_note}</span>
+          </div>
+        </div>
+      )}
+
       {/* 5. NHÓM 4: BẢNG CHI TIẾT CÁC LẦN THANH TOÁN (COMPACT INTERNAL SCROLLABLE TABLE) */}
       <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 shadow-md space-y-2.5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2">

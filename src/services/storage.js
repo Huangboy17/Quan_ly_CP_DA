@@ -102,13 +102,15 @@ export async function syncFromSupabase(userId) {
           end_date: row.ngay_ket_thuc || '',
           costGroup: row.nhom_chi_phi || '',
           costGroupNote: '',
-          estimated_settlement_value: Number(row.gia_tri_quyet_toan || 0) || afterVAT,
-          // Settlement / status fields — read directly from DB
-          status: row.trang_thai || 'in_progress',
-          settled_at: row.ngay_quyet_toan || null,
+          estimated_settlement_value: afterVAT,
+          // Settlement / status fields
+          // NOTE: trang_thai, ngay_quyet_toan, gia_tri_quyet_toan, gia_tri_quyet_toan_truoc_vat
+          // do NOT exist on the hop_dong table. Status is derived from ghi_chu_quyet_toan presence.
+          status: row.ghi_chu_quyet_toan ? 'settled' : 'in_progress',
+          settled_at: null,
           settlement_note: row.ghi_chu_quyet_toan || '',
-          finalSettlementAmount: Number(row.gia_tri_quyet_toan || 0) || null,
-          finalSettlementAmountBeforeVAT: Number(row.gia_tri_quyet_toan_truoc_vat || 0) || null,
+          finalSettlementAmount: null,
+          finalSettlementAmountBeforeVAT: null,
           appendices: [], // Will be populated from phu_luc_hop_dong below
         };
       });
@@ -288,12 +290,10 @@ export async function asyncSaveContractToSupabase(contract, userId) {
       tien_do_hop_dong: Number(contract.execution_days || 0) || null,
       ngay_ket_thuc: contract.end_date || null,
       nhom_chi_phi: contract.costGroup || '',
-      // Status & settlement fields
-      trang_thai: contract.status || 'in_progress',
-      ngay_quyet_toan: contract.settled_at || null,
+      // Settlement note — only column that exists on hop_dong for settlement tracking
       ghi_chu_quyet_toan: contract.settlement_note || null,
-      gia_tri_quyet_toan: contract.finalSettlementAmount ? Number(contract.finalSettlementAmount) : null,
-      gia_tri_quyet_toan_truoc_vat: contract.finalSettlementAmountBeforeVAT ? Number(contract.finalSettlementAmountBeforeVAT) : null,
+      // NOTE: trang_thai, ngay_quyet_toan, gia_tri_quyet_toan, gia_tri_quyet_toan_truoc_vat
+      // do NOT exist on the Supabase hop_dong table — excluded to avoid PGRST204 error.
       // phu_luc JSONB is intentionally NOT written here.
       // Appendices are managed exclusively in the phu_luc_hop_dong table.
     };
