@@ -14,6 +14,8 @@ import ProjectsView from './components/projects/ProjectsView';
 import ProjectModal from './components/projects/ProjectModal';
 import ExcelImportModal from './components/common/ExcelImportModal';
 import LoginView from './components/auth/LoginView';
+import AdminDashboard from './components/admin/AdminDashboard';
+import { ShieldAlert, Clock } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './services/supabase';
 import { 
   getAggregatedData, 
@@ -32,7 +34,8 @@ import {
   updateTmdtAdjustmentPhase,
   deleteTmdtAdjustmentPhase,
   saveContractAppendix,
-  deleteContractAppendix
+  deleteContractAppendix,
+  fetchUserProfile
 } from './services/storage';
 
 export default function App() {
@@ -51,6 +54,7 @@ export default function App() {
 
   // Supabase Auth State
   const [userSession, setUserSession] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   // Handle Supabase Auth Session
@@ -73,10 +77,21 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (userSession?.user?.id) {
+      fetchUserProfile(userSession.user.id).then(profile => {
+        setUserProfile(profile);
+      });
+    } else {
+      setUserProfile(null);
+    }
+  }, [userSession]);
+
   const handleLogout = async () => {
     if (supabase) {
       await supabase.auth.signOut();
       setUserSession(null);
+      setUserProfile(null);
     }
   };
 
@@ -319,6 +334,42 @@ export default function App() {
     );
   }
 
+  // Handle Admin Approval Flow - Block access if pending or blocked
+  if (userSession && userProfile) {
+    if (userProfile.status === 'pending') {
+      return (
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center font-sans p-6">
+          <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl text-center">
+            <Clock className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-white mb-2">Tài khoản đang chờ duyệt</h2>
+            <p className="text-slate-400 mb-6 text-sm">
+              Tài khoản của bạn đã được ghi nhận và đang chờ Quản trị viên phê duyệt. Vui lòng quay lại sau.
+            </p>
+            <button onClick={handleLogout} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition">
+              Đăng xuất
+            </button>
+          </div>
+        </div>
+      );
+    }
+    if (userProfile.status === 'blocked') {
+      return (
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center font-sans p-6">
+          <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl text-center border-t-4 border-t-rose-500">
+            <ShieldAlert className="w-16 h-16 text-rose-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-white mb-2">Tài khoản đã bị khóa</h2>
+            <p className="text-slate-400 mb-6 text-sm">
+              Tài khoản của bạn đã bị vô hiệu hóa bởi Quản trị viên. Bạn không thể truy cập vào hệ thống lúc này.
+            </p>
+            <button onClick={handleLogout} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition">
+              Đăng xuất
+            </button>
+          </div>
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       
@@ -333,6 +384,7 @@ export default function App() {
         globalSearch={globalSearch}
         setGlobalSearch={setGlobalSearch}
         userSession={userSession}
+        userProfile={userProfile}
         onLogout={handleLogout}
       />
 
@@ -370,6 +422,10 @@ export default function App() {
               onNewPayment={() => handleOpenNewPayment()}
               onSelectCostGroup={(costGroup) => handleSelectCostGroupFilter(costGroup)}
             />
+          )}
+
+          {activeTab === 'admin' && userProfile?.role === 'admin' && (
+            <AdminDashboard userSession={userSession} />
           )}
 
           {activeTab === 'contracts' && (

@@ -2155,3 +2155,40 @@ export function getAggregatedData(timeFilter = {}, isLoggedIn = false) {
 }
 
 export async function seedSampleDataToSupabase() {}
+
+// --- ADMIN & PROFILE FUNCTIONS ---
+
+export async function fetchUserProfile(userId) {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('role, status, full_name, email')
+    .eq('id', userId)
+    .single();
+  if (error) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+  return data;
+}
+
+export async function fetchAllProfiles() {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc('get_all_profiles');
+  if (error) {
+    console.error('Error fetching all profiles:', error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function updateProfileStatus(targetUserId, newStatus) {
+  if (!supabase) return false;
+  const { error } = await supabase.rpc('update_user_status', { target_user_id: targetUserId, new_status: newStatus });
+  if (error) {
+    console.error('Error updating profile status:', error);
+    return false;
+  }
+  return true;
+}
+

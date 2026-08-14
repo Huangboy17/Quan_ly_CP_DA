@@ -12,7 +12,8 @@ import {
   FileSpreadsheet,
   LogOut,
   UserCheck,
-  Database
+  Database,
+  ShieldCheck
 } from 'lucide-react';
 import { resetStorage, exportData, importData } from '../../services/storage';
 
@@ -26,6 +27,7 @@ export default function Header({
   globalSearch, 
   setGlobalSearch,
   userSession,
+  userProfile,
   onLogout
 }) {
 
@@ -147,6 +149,17 @@ export default function Header({
           </button>
 
           {/* Quick Add Buttons */}
+          {userProfile?.role === 'admin' && (
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition cursor-pointer ${activeTab === 'admin' ? 'bg-amber-600 text-white' : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30'}`}
+              title="Quản trị hệ thống (Phê duyệt tài khoản)"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Quản Trị
+            </button>
+          )}
+
           <button
             onClick={onNewContract}
             className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition cursor-pointer"
