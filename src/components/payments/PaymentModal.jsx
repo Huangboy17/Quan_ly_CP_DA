@@ -6,6 +6,7 @@ import {
   formatVNDCompact,
   numberToWordsVN, 
   calculateVATValues, 
+  calculateVATFromAfter,
   formatInputNumber, 
   parseRawNumber,
   formatDisplayDate
@@ -43,6 +44,10 @@ export default function PaymentModal({
 
   // Settlement VAT rate — user-controlled, independent of contract VAT, defaults to 10%
   const [settlementVatRate, setSettlementVatRate] = useState(10);
+
+  // Payment VAT input mode: 'before' or 'after'
+  const [paymentVatInputMode, setPaymentVatInputMode] = useState('before');
+  const [amountAfterVatInput, setAmountAfterVatInput] = useState('');
 
   // Extract unique projects list from contracts
   const projectOptions = useMemo(() => {
@@ -181,7 +186,9 @@ export default function PaymentModal({
   const paymentVatRate = Number(formData.vat_rate !== undefined ? formData.vat_rate : 10);
 
   // Real-time 3-value VAT calculation using payment's own vat_rate
-  const phaseVATValues = calculateVATValues(formData.amount_before_vat, paymentVatRate);
+  const phaseVATValues = paymentVatInputMode === 'after' && amountAfterVatInput
+    ? calculateVATFromAfter(amountAfterVatInput, paymentVatRate)
+    : calculateVATValues(formData.amount_before_vat, paymentVatRate);
 
   // Cumulative paid sums before this payment
   const paidBeforeVAT = selectedContract ? (selectedContract.totalPaidBeforeVAT || 0) : 0;
@@ -257,16 +264,23 @@ export default function PaymentModal({
       }
 
     } else {
-      if (!formData.amount_before_vat || Number(formData.amount_before_vat) <= 0) {
-        alert('Vui lòng nhập Giá trị thanh toán trước VAT hợp lệ!');
-        return;
+      if (paymentVatInputMode === 'before') {
+        if (!formData.amount_before_vat || Number(formData.amount_before_vat) <= 0) {
+          alert('Vui lòng nhập Giá trị thanh toán trước VAT hợp lệ!');
+          return;
+        }
+      } else {
+        if (!amountAfterVatInput || Number(amountAfterVatInput) <= 0) {
+          alert('Vui lòng nhập Giá trị thanh toán sau VAT hợp lệ!');
+          return;
+        }
       }
 
       onSavePayment({
         ...formData,
         payment_phase: Number(formData.payment_phase),
-        amount_before_vat: Number(formData.amount_before_vat),
-        vat_rate: paymentVatRate,          // payment's own VAT rate (user-set)
+        amount_before_vat: phaseVATValues.amountBeforeVAT,
+        vat_rate: paymentVatRate,
         vat_amount: phaseVATValues.vatAmount,
         amount_after_vat: phaseVATValues.amountAfterVAT,
       });
@@ -494,12 +508,39 @@ export default function PaymentModal({
                 </div>
               </div>
 
-              {/* Value BEFORE VAT & Quick Chips */}
+              {/* Value BEFORE/AFTER VAT & Quick Chips */}
               <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-3">
+                {/* Cách nhập giá trị */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">Cách nhập giá trị</label>
+                  <div className="flex items-center gap-4">
+                    <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer border text-xs font-semibold transition ${paymentVatInputMode === 'before' ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800'}`}>
+                      <input type="radio" name="paymentVatInputMode" value="before" checked={paymentVatInputMode === 'before'} onChange={() => {
+                        if (paymentVatInputMode === 'after') {
+                          // Keep values consistent when switching
+                          setPaymentVatInputMode('before');
+                        }
+                      }} className="accent-emerald-500" />
+                      Trước VAT
+                    </label>
+                    <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer border text-xs font-semibold transition ${paymentVatInputMode === 'after' ? 'bg-blue-600/20 border-blue-500/40 text-blue-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800'}`}>
+                      <input type="radio" name="paymentVatInputMode" value="after" checked={paymentVatInputMode === 'after'} onChange={() => {
+                        if (paymentVatInputMode === 'before') {
+                          // Compute afterVAT from current beforeVAT when switching
+                          const calc = calculateVATValues(formData.amount_before_vat, paymentVatRate);
+                          setAmountAfterVatInput(calc.amountAfterVAT);
+                          setPaymentVatInputMode('after');
+                        }
+                      }} className="accent-blue-500" />
+                      Sau VAT
+                    </label>
+                  </div>
+                </div>
+
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-semibold text-slate-300">
-                      Giá Trị Thanh Toán Trước VAT <span className="text-rose-400">*</span>
+                      {paymentVatInputMode === 'before' ? 'Giá Trị Thanh Toán Trước VAT' : 'Giá Trị Thanh Toán Sau VAT'} <span className="text-rose-400">*</span>
                     </label>
                     <span className="text-[11px] font-bold text-blue-300 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/30">
                       Tỷ lệ VAT Hợp đồng: {contractVatRate}%
@@ -509,8 +550,17 @@ export default function PaymentModal({
                     <input
                       type="text"
                       placeholder="2.000.000.000"
-                      value={formatInputNumber(formData.amount_before_vat)}
-                      onChange={(e) => setFormData({ ...formData, amount_before_vat: parseRawNumber(e.target.value) })}
+                      value={paymentVatInputMode === 'before' ? formatInputNumber(formData.amount_before_vat) : formatInputNumber(amountAfterVatInput)}
+                      onChange={(e) => {
+                        const rawVal = parseRawNumber(e.target.value);
+                        if (paymentVatInputMode === 'before') {
+                          setFormData({ ...formData, amount_before_vat: rawVal });
+                        } else {
+                          setAmountAfterVatInput(rawVal);
+                          const calc = calculateVATFromAfter(rawVal, paymentVatRate);
+                          setFormData(prev => ({ ...prev, amount_before_vat: calc.amountBeforeVAT }));
+                        }
+                      }}
                       className="w-full pl-3.5 pr-12 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono font-bold text-white focus:outline-none focus:border-emerald-500 transition"
                       required
                     />
@@ -527,10 +577,16 @@ export default function PaymentModal({
                     <button
                       key={amt}
                       type="button"
-                      onClick={() => setFormData(prev => ({
-                        ...prev,
-                        amount_before_vat: (Number(prev.amount_before_vat || 0) + amt)
-                      }))}
+                      onClick={() => {
+                        if (paymentVatInputMode === 'before') {
+                          setFormData(prev => ({ ...prev, amount_before_vat: (Number(prev.amount_before_vat || 0) + amt) }));
+                        } else {
+                          const newAfter = (Number(amountAfterVatInput || 0) + amt);
+                          setAmountAfterVatInput(newAfter);
+                          const calc = calculateVATFromAfter(newAfter, paymentVatRate);
+                          setFormData(prev => ({ ...prev, amount_before_vat: calc.amountBeforeVAT }));
+                        }
+                      }}
                       className="px-2 py-0.5 rounded bg-slate-700/80 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-mono transition cursor-pointer"
                     >
                       +{amt >= 1_000_000_000 ? `${amt / 1_000_000_000} Tỷ` : `${amt / 1_000_000} Tr`}
@@ -538,7 +594,7 @@ export default function PaymentModal({
                   ))}
                 </div>
 
-                {/* VAT RATE INPUT — payment-specific, independent of contract VAT */}
+                {/* VAT RATE INPUT */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-semibold text-slate-300">Thuế VAT của đợt thanh toán này</label>
@@ -552,7 +608,14 @@ export default function PaymentModal({
                         max="100"
                         step="1"
                         value={formData.vat_rate !== undefined ? formData.vat_rate : 10}
-                        onChange={(e) => setFormData(prev => ({ ...prev, vat_rate: Number(e.target.value) }))}
+                        onChange={(e) => {
+                          const newRate = Number(e.target.value);
+                          setFormData(prev => ({ ...prev, vat_rate: newRate }));
+                          if (paymentVatInputMode === 'after' && amountAfterVatInput) {
+                            const calc = calculateVATFromAfter(amountAfterVatInput, newRate);
+                            setFormData(prev => ({ ...prev, vat_rate: newRate, amount_before_vat: calc.amountBeforeVAT }));
+                          }
+                        }}
                         className="w-full pl-3.5 pr-10 py-2 bg-slate-900 border border-blue-500/40 rounded-xl text-sm font-mono font-bold text-blue-300 focus:outline-none focus:border-blue-500 transition"
                       />
                       <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">%</span>
@@ -562,7 +625,13 @@ export default function PaymentModal({
                         <button
                           key={rate}
                           type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, vat_rate: rate }))}
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, vat_rate: rate }));
+                            if (paymentVatInputMode === 'after' && amountAfterVatInput) {
+                              const calc = calculateVATFromAfter(amountAfterVatInput, rate);
+                              setFormData(prev => ({ ...prev, vat_rate: rate, amount_before_vat: calc.amountBeforeVAT }));
+                            }
+                          }}
                           className={`px-2.5 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
                             Number(formData.vat_rate) === rate
                               ? 'bg-blue-600/30 border border-blue-500 text-blue-300'
@@ -579,16 +648,16 @@ export default function PaymentModal({
                 {/* READ-ONLY AUTO VAT & AFTER VAT PANEL */}
                 <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
                   <div className="flex justify-between text-slate-400">
-                    <span>Đợt thanh toán trước VAT:</span>
-                    <span className="font-mono text-slate-200 font-bold">{formatVND(formData.amount_before_vat)}</span>
+                    <span>{paymentVatInputMode === 'after' ? 'Đợt thanh toán trước VAT (Tự động tính):' : 'Đợt thanh toán trước VAT:'}</span>
+                    <span className={`font-mono font-bold ${paymentVatInputMode === 'after' ? 'text-amber-300' : 'text-slate-200'}`}>{formatVND(phaseVATValues.amountBeforeVAT)}</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
                     <span>+ Tiền VAT ({paymentVatRate}%):</span>
                     <span className="font-mono text-blue-300 font-bold">+{formatVND(phaseVATValues.vatAmount)}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-slate-800 text-sm font-extrabold">
-                    <span className="text-white">Tổng Thanh Toán Sau VAT:</span>
-                    <span className="font-mono text-emerald-400 text-base">{formatVND(phaseVATValues.amountAfterVAT)}</span>
+                    <span className="text-white">{paymentVatInputMode === 'before' ? 'Tổng Thanh Toán Sau VAT (Tự động tính):' : 'Tổng Thanh Toán Sau VAT:'}</span>
+                    <span className={`font-mono text-base ${paymentVatInputMode === 'before' ? 'text-emerald-400' : 'text-slate-200'}`}>{formatVND(phaseVATValues.amountAfterVAT)}</span>
                   </div>
                 </div>
 

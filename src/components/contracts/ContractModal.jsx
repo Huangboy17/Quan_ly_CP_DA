@@ -7,7 +7,8 @@ import {
   calcDaysBetween, 
   formatInputNumber, 
   parseRawNumber,
-  calculateVATValues
+  calculateVATValues,
+  calculateVATFromAfter
 } from '../../utils/formatters';
 
 export const COST_GROUP_OPTIONS = [
@@ -46,6 +47,8 @@ export default function ContractModal({
   });
 
   const [settlementTouched, setSettlementTouched] = useState(false);
+  const [vatInputMode, setVatInputMode] = useState('before'); // 'before' | 'after'
+  const [contractValueAfterVATInput, setContractValueAfterVATInput] = useState('');
 
   useEffect(() => {
     if (editingContract) {
@@ -146,9 +149,47 @@ export default function ContractModal({
     });
   };
 
+  const handleAfterVATChange = (valStr) => {
+    const rawVal = parseRawNumber(valStr);
+    setContractValueAfterVATInput(rawVal);
+    setFormData(prev => {
+      const currentRate = prev.isCustomVat ? (Number(prev.customVatRate) || 0) : prev.vatRate;
+      const calculated = calculateVATFromAfter(rawVal, currentRate);
+      const shouldUpdateSettlement = !settlementTouched || !prev.estimated_settlement_value;
+      return {
+        ...prev,
+        contractValueBeforeVAT: calculated.amountBeforeVAT,
+        estimated_settlement_value: shouldUpdateSettlement ? calculated.amountAfterVAT : prev.estimated_settlement_value
+      };
+    });
+  };
+
+  const handleVatInputModeChange = (newMode) => {
+    if (newMode === vatInputMode) return;
+    const currentRate = formData.isCustomVat ? (Number(formData.customVatRate) || 0) : formData.vatRate;
+    if (newMode === 'after') {
+      // Switching to after-VAT: compute afterVAT from current beforeVAT
+      const calc = calculateVATValues(formData.contractValueBeforeVAT, currentRate);
+      setContractValueAfterVATInput(calc.amountAfterVAT);
+    }
+    // Switching to before-VAT: formData.contractValueBeforeVAT already has the correct value
+    setVatInputMode(newMode);
+  };
+
   const handleVatRateSelect = (rate, isCustom = false) => {
     setFormData(prev => {
       const activeRate = isCustom ? (Number(prev.customVatRate) || 0) : rate;
+      if (vatInputMode === 'after' && contractValueAfterVATInput) {
+        const calc = calculateVATFromAfter(contractValueAfterVATInput, activeRate);
+        const shouldUpdateSettlement = !settlementTouched || !prev.estimated_settlement_value;
+        return {
+          ...prev,
+          vatRate: activeRate,
+          isCustomVat: isCustom,
+          contractValueBeforeVAT: calc.amountBeforeVAT,
+          estimated_settlement_value: shouldUpdateSettlement ? calc.amountAfterVAT : prev.estimated_settlement_value
+        };
+      }
       const calculated = calculateVATValues(prev.contractValueBeforeVAT, activeRate);
       const shouldUpdateSettlement = !settlementTouched || !prev.estimated_settlement_value;
       return {
@@ -163,6 +204,17 @@ export default function ContractModal({
   const handleCustomVatInputChange = (valStr) => {
     const rateNum = Math.max(0, Math.min(100, Number(valStr) || 0));
     setFormData(prev => {
+      if (vatInputMode === 'after' && contractValueAfterVATInput) {
+        const calc = calculateVATFromAfter(contractValueAfterVATInput, rateNum);
+        const shouldUpdateSettlement = !settlementTouched || !prev.estimated_settlement_value;
+        return {
+          ...prev,
+          customVatRate: valStr,
+          vatRate: rateNum,
+          contractValueBeforeVAT: calc.amountBeforeVAT,
+          estimated_settlement_value: shouldUpdateSettlement ? calc.amountAfterVAT : prev.estimated_settlement_value
+        };
+      }
       const calculated = calculateVATValues(prev.contractValueBeforeVAT, rateNum);
       const shouldUpdateSettlement = !settlementTouched || !prev.estimated_settlement_value;
       return {
@@ -176,7 +228,10 @@ export default function ContractModal({
 
   // Real-time calculation of VAT & Total After VAT
   const activeVatRate = formData.isCustomVat ? (Number(formData.customVatRate) || 0) : formData.vatRate;
-  const { amountBeforeVAT, vatAmount, amountAfterVAT } = calculateVATValues(formData.contractValueBeforeVAT, activeVatRate);
+  const vatCalcResult = vatInputMode === 'after' && contractValueAfterVATInput
+    ? calculateVATFromAfter(contractValueAfterVATInput, activeVatRate)
+    : calculateVATValues(formData.contractValueBeforeVAT, activeVatRate);
+  const { amountBeforeVAT, vatAmount, amountAfterVAT } = vatCalcResult;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -188,9 +243,16 @@ export default function ContractModal({
       alert('Vui lòng nhập Số Hợp đồng!');
       return;
     }
-    if (!formData.contractValueBeforeVAT || Number(formData.contractValueBeforeVAT) <= 0) {
-      alert('Vui lòng nhập Giá trị Hợp đồng trước VAT hợp lệ!');
-      return;
+    if (vatInputMode === 'before') {
+      if (!formData.contractValueBeforeVAT || Number(formData.contractValueBeforeVAT) <= 0) {
+        alert('Vui lòng nhập Giá trị Hợp đồng trước VAT hợp lệ!');
+        return;
+      }
+    } else {
+      if (!contractValueAfterVATInput || Number(contractValueAfterVATInput) <= 0) {
+        alert('Vui lòng nhập Giá trị Hợp đồng sau VAT hợp lệ!');
+        return;
+      }
     }
 
     onSaveContract({
@@ -308,17 +370,32 @@ export default function ContractModal({
               </span>
             </div>
 
-            {/* STT 4: Giá trị trước VAT */}
+            {/* Cách nhập giá trị */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Cách nhập giá trị</label>
+              <div className="flex items-center gap-4">
+                <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer border text-xs font-semibold transition ${vatInputMode === 'before' ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800'}`}>
+                  <input type="radio" name="vatInputMode" value="before" checked={vatInputMode === 'before'} onChange={() => handleVatInputModeChange('before')} className="accent-emerald-500" />
+                  Trước VAT
+                </label>
+                <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer border text-xs font-semibold transition ${vatInputMode === 'after' ? 'bg-blue-600/20 border-blue-500/40 text-blue-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800'}`}>
+                  <input type="radio" name="vatInputMode" value="after" checked={vatInputMode === 'after'} onChange={() => handleVatInputModeChange('after')} className="accent-blue-500" />
+                  Sau VAT
+                </label>
+              </div>
+            </div>
+
+            {/* STT 4: Input giá trị */}
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                4. Giá trị trước VAT <span className="text-rose-400">*</span>
+                4. {vatInputMode === 'before' ? 'Giá trị trước VAT' : 'Giá trị sau VAT'} <span className="text-rose-400">*</span>
               </label>
               <div className="relative">
                 <input
                   type="text"
                   placeholder="5.000.000.000"
-                  value={formatInputNumber(formData.contractValueBeforeVAT)}
-                  onChange={(e) => handleBeforeVATChange(e.target.value)}
+                  value={vatInputMode === 'before' ? formatInputNumber(formData.contractValueBeforeVAT) : formatInputNumber(contractValueAfterVATInput)}
+                  onChange={(e) => vatInputMode === 'before' ? handleBeforeVATChange(e.target.value) : handleAfterVATChange(e.target.value)}
                   className="w-full pl-3.5 pr-12 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono font-bold text-white focus:outline-none focus:border-emerald-500 transition"
                   required
                 />
@@ -381,19 +458,19 @@ export default function ContractModal({
               )}
             </div>
 
-            {/* STT 6: Giá trị sau VAT (Tự động tính) */}
+            {/* STT 6: Bảng tóm tắt giá trị (Tự động tính) */}
             <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
               <div className="flex justify-between text-slate-400">
-                <span>Giá trị trước VAT:</span>
-                <span className="font-mono text-slate-200 font-bold">{formatVND(amountBeforeVAT)}</span>
+                <span>{vatInputMode === 'after' ? 'Giá trị trước VAT (Tự động tính):' : 'Giá trị trước VAT:'}</span>
+                <span className={`font-mono font-bold ${vatInputMode === 'after' ? 'text-amber-300' : 'text-slate-200'}`}>{formatVND(amountBeforeVAT)}</span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>+ Tiền VAT ({activeVatRate}%):</span>
                 <span className="font-mono text-blue-300 font-bold">+{formatVND(vatAmount)}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-slate-800 text-sm font-extrabold">
-                <span className="text-white">6. Giá trị sau VAT (Tự động tính):</span>
-                <span className="font-mono text-emerald-400 text-base">{formatVND(amountAfterVAT)}</span>
+                <span className="text-white">{vatInputMode === 'before' ? '6. Giá trị sau VAT (Tự động tính):' : '6. Giá trị sau VAT:'}</span>
+                <span className={`font-mono text-base ${vatInputMode === 'before' ? 'text-emerald-400' : 'text-slate-200'}`}>{formatVND(amountAfterVAT)}</span>
               </div>
             </div>
           </div>

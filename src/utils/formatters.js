@@ -157,6 +157,29 @@ export function calculateVATValues(amountBeforeVat, vatRate) {
   };
 }
 
+// Calculate VAT values from AFTER VAT amount (reverse calculation)
+// Formula: beforeVAT = afterVAT / (1 + vatRate/100), vatAmount = afterVAT - beforeVAT
+export function calculateVATFromAfter(amountAfterVat, vatRate) {
+  const after = cleanVND(amountAfterVat);
+  const rate = Number(vatRate) || 0;
+  if (rate === 0) {
+    return {
+      amountBeforeVAT: after,
+      vatRate: 0,
+      vatAmount: 0,
+      amountAfterVAT: after,
+    };
+  }
+  const before = Math.round(after / (1 + rate / 100));
+  const vatAmount = after - before;
+  return {
+    amountBeforeVAT: before,
+    vatRate: rate,
+    vatAmount: vatAmount,
+    amountAfterVAT: after,
+  };
+}
+
 // Clean string to raw number
 export function parseRawNumber(val) {
   if (typeof val === 'number') return val;
