@@ -70,6 +70,10 @@ export default function App() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Chỉ cập nhật session khi có thay đổi thực sự (đăng nhập, đăng xuất, cập nhật user).
+      // Bỏ qua TOKEN_REFRESHED vì nó tự phát khi tab regain focus (Alt+Tab),
+      // gây re-render cascading và reset form đang mở.
+      if (_event === 'TOKEN_REFRESHED') return;
       setUserSession(session);
       setIsAuthLoading(false);
     });

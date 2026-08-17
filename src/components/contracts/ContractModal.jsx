@@ -88,7 +88,8 @@ export default function ContractModal({
       });
       setSettlementTouched(false);
     }
-  }, [editingContract, isOpen, projects]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingContract, isOpen]);
 
   const handleSigningDateChange = (date) => {
     setFormData(prev => {

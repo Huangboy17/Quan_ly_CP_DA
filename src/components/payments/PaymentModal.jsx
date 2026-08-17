@@ -131,7 +131,8 @@ export default function PaymentModal({
         });
       }
     }
-  }, [editingPayment, isOpen, initialContractId, contracts, payments]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingPayment, isOpen, initialContractId]);
 
   // Handlers for Project & Contract Combobox changes
   const handleProjectSelect = (projOption) => {
