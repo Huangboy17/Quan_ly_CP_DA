@@ -22,6 +22,33 @@ export default function ContractDetailModal({
   const totalAppendicesAfterVat = cleanVND(contract.totalAppendicesAfterVAT || 0);
   const currentContractValueAfterVat = cleanVND(contract.contractValueAfterVAT || contract.contract_value || 0);
 
+  // Sort appendices strictly by appendix_number (PL01, PL02) or signed_date
+  const sortedAppendices = [...appendicesList].sort((a, b) => {
+    const numA = a.appendix_number ? parseInt(String(a.appendix_number).replace(/\D/g, ''), 10) : NaN;
+    const numB = b.appendix_number ? parseInt(String(b.appendix_number).replace(/\D/g, ''), 10) : NaN;
+    if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+      return numA - numB;
+    }
+    if (a.appendix_number && b.appendix_number && a.appendix_number !== b.appendix_number) {
+      return String(a.appendix_number).localeCompare(String(b.appendix_number));
+    }
+    const d1 = a.signed_date || '1970-01-01';
+    const d2 = b.signed_date || '1970-01-01';
+    return d1.localeCompare(d2);
+  });
+
+  // Compute running cumulative contract value after each appendix in sequence
+  let runningContractVal = initialContractValueAfterVat;
+  const appendixProgression = sortedAppendices.map((app) => {
+    const changeAmt = cleanVND(app.amount_after_vat !== undefined ? app.amount_after_vat : (app.amount_before_vat || 0));
+    runningContractVal = cleanVND(runningContractVal + changeAmt);
+    return {
+      ...app,
+      changeAmt,
+      valueAfterAppendix: runningContractVal,
+    };
+  });
+
   // Filter payments belonging to this contract and sort strictly by payment_date ASCENDING
   const contractPayments = payments
     .filter(p => p.contract_id === contract.id)
@@ -116,65 +143,122 @@ export default function ContractDetailModal({
             </div>
           </div>
 
-          {/* SECTION 2: LỊCH SỬ PHỤ LỤC HỢP ĐỒNG (APPENDICES HISTORY) */}
-          <div className="space-y-3 p-4 rounded-xl bg-slate-950/60 border border-slate-800">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <Paperclip className="w-4 h-4 text-blue-400" />
-                Lịch Sử Phụ Lục Hợp Đồng ({appendicesList.length} phụ lục)
-              </h4>
+          {/* SECTION 2: GIÁ TRỊ HỢP ĐỒNG & PHỤ LỤC */}
+          <div className="space-y-3.5 p-4 rounded-xl bg-slate-950/70 border border-slate-800 shadow-md">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2 tracking-tight">
+                  <Paperclip className="w-4 h-4 text-blue-400" />
+                  GIÁ TRỊ HỢP ĐỒNG & PHỤ LỤC ({appendicesList.length} phụ lục)
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Diễn biến điều chỉnh giá trị từ Hợp đồng ban đầu đến Giá trị Hợp đồng hiện tại
+                </p>
+              </div>
               <button
                 onClick={() => onOpenAddAppendix && onOpenAddAppendix(contract.id)}
-                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1 transition cursor-pointer self-start sm:self-auto shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" /> + Thêm Phụ Lục
               </button>
             </div>
 
-            {/* Table of Appendices */}
+            {/* TIMELINE PROGRESSION BANNER (Giá trị HĐ ban đầu → PL01 → PL02 → Giá trị HĐ hiện tại) */}
+            <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2 overflow-x-auto">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Chuỗi diễn biến giá trị hợp đồng:
+              </span>
+
+              <div className="flex items-center gap-2 min-w-max text-xs flex-wrap">
+                {/* Step 1: Giá trị ban đầu */}
+                <div className="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 flex flex-col">
+                  <span className="text-[10px] text-slate-400 font-medium">HĐ Ban Đầu (Gốc)</span>
+                  <span className="font-mono font-bold text-white text-xs">{formatVND(initialContractValueAfterVat)}</span>
+                </div>
+
+                {/* Appendices steps */}
+                {appendixProgression.map((app) => (
+                  <React.Fragment key={app.id}>
+                    <span className="text-slate-500 font-bold">➔</span>
+                    <div className={`px-3 py-1.5 rounded-lg border flex flex-col ${
+                      app.changeAmt >= 0 
+                        ? 'bg-emerald-950/30 border-emerald-500/30' 
+                        : 'bg-rose-950/30 border-rose-500/30'
+                    }`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold font-mono text-slate-300">
+                          {app.appendix_number || '—'}
+                        </span>
+                        {app.signed_date && (
+                          <span className="text-[9px] text-slate-400 font-mono">
+                            ({formatDisplayDate(app.signed_date)})
+                          </span>
+                        )}
+                      </div>
+                      <span className={`font-mono font-bold text-xs ${app.changeAmt >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {app.changeAmt >= 0 ? `+${formatVND(app.changeAmt)}` : formatVND(app.changeAmt)}
+                      </span>
+                    </div>
+                  </React.Fragment>
+                ))}
+
+                {/* Final Step: Giá trị hiện tại */}
+                <span className="text-blue-400 font-bold">➔</span>
+                <div className="px-3 py-1.5 rounded-lg bg-blue-950/50 border border-blue-500/40 flex flex-col shadow-sm">
+                  <span className="text-[10px] text-blue-300 font-bold">HĐ Hiện Tại</span>
+                  <span className="font-mono font-extrabold text-blue-400 text-xs">{formatVND(currentContractValueAfterVat)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Table of Appendices Detailed History */}
             <div className="overflow-x-auto border border-slate-800 rounded-xl shadow-inner">
-              <table className="w-full text-left text-xs text-slate-300">
+              <table className="w-full text-left text-xs text-slate-300 min-w-[700px]">
                 <thead className="bg-slate-900 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-700">
                   <tr>
-                    <th className="py-2.5 px-3">Số Phụ Lục</th>
-                    <th className="py-2.5 px-3">Ngày Ký</th>
+                    <th className="py-2.5 px-3 w-28">Số Phụ Lục</th>
+                    <th className="py-2.5 px-3 w-28">Ngày Ký</th>
                     <th className="py-2.5 px-3">Nội Dung Điều Chỉnh Chi Tiết</th>
-                    <th className="py-2.5 px-3 text-right">Giá Trị Phụ Lục (Sau VAT)</th>
-                    <th className="py-2.5 px-3 text-center">Thao Tác</th>
+                    <th className="py-2.5 px-3 text-right w-44">Giá Trị Điều Chỉnh (+/-)</th>
+                    <th className="py-2.5 px-3 text-right w-44 font-bold text-blue-300">Giá Trị HĐ Sau Phụ Lục</th>
+                    <th className="py-2.5 px-3 text-center w-20">Thao Tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800 bg-slate-900/40">
-                  {appendicesList.map((app) => (
+                  {appendixProgression.map((app) => (
                     <tr key={app.id} className="hover:bg-slate-800/60 transition">
                       <td className="py-2.5 px-3 font-mono font-bold text-white">
-                        {app.appendix_number}
+                        {app.appendix_number || '—'}
                       </td>
                       <td className="py-2.5 px-3 font-mono text-slate-300">
-                        {formatDisplayDate(app.signed_date)}
+                        {app.signed_date ? formatDisplayDate(app.signed_date) : '—'}
                       </td>
                       <td className="py-2.5 px-3 text-slate-300 max-w-xs leading-relaxed">
-                        <div className="font-medium text-slate-200">{app.content}</div>
+                        <div className="font-medium text-slate-200">{app.content || '—'}</div>
                         {app.note && <div className="text-[10px] text-slate-400 italic">Căn cứ: {app.note}</div>}
                       </td>
-                      <td className={`py-2.5 px-3 text-right font-mono font-bold text-xs ${app.amount_after_vat >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        {app.amount_after_vat >= 0 ? `+${formatVND(app.amount_after_vat)}` : formatVND(app.amount_after_vat)}
+                      <td className={`py-2.5 px-3 text-right font-mono font-bold text-xs ${app.changeAmt >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {app.changeAmt >= 0 ? `+${formatVND(app.changeAmt)}` : formatVND(app.changeAmt)}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-xs text-blue-300 bg-slate-950/40">
+                        {formatVND(app.valueAfterAppendix)}
                       </td>
                       <td className="py-2.5 px-3 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => onEditAppendix && onEditAppendix(contract.id, app)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-slate-800 transition"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-slate-800 transition cursor-pointer"
                             title="Sửa Phụ Lục"
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => {
-                              if (window.confirm(`Bạn có chắc muốn xóa phụ lục ${app.appendix_number}?`)) {
+                              if (window.confirm(`Bạn có chắc muốn xóa phụ lục ${app.appendix_number || 'này'}?`)) {
                                 onDeleteAppendix && onDeleteAppendix(contract.id, app.id);
                               }
                             }}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition"
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition cursor-pointer"
                             title="Xóa Phụ Lục"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -183,10 +267,10 @@ export default function ContractDetailModal({
                       </td>
                     </tr>
                   ))}
-                  {appendicesList.length === 0 && (
+                  {appendixProgression.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="py-6 text-center text-slate-400">
-                        Hợp đồng này chưa phát sinh phụ lục điều chỉnh giá trị nào.
+                      <td colSpan="6" className="py-6 text-center text-slate-400">
+                        Hợp đồng này chưa phát sinh phụ lục điều chỉnh giá trị nào (Giá trị hợp đồng giữ nguyên so với hợp đồng gốc).
                       </td>
                     </tr>
                   )}
@@ -200,7 +284,7 @@ export default function ContractDetailModal({
                 Giá trị ban đầu: <span className="font-bold text-white">{formatVND(initialContractValueAfterVat)}</span>
               </div>
               <div className={totalAppendicesAfterVat >= 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
-                Tổng giá trị phụ lục: {totalAppendicesAfterVat >= 0 ? `+${formatVND(totalAppendicesAfterVat)}` : formatVND(totalAppendicesAfterVat)}
+                Tổng điều chỉnh phụ lục: {totalAppendicesAfterVat >= 0 ? `+${formatVND(totalAppendicesAfterVat)}` : formatVND(totalAppendicesAfterVat)}
               </div>
               <div className="text-blue-300 font-bold text-sm">
                 Giá trị HĐ hiện tại: {formatVND(currentContractValueAfterVat)}

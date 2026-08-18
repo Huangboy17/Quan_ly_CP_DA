@@ -276,11 +276,11 @@ export default function ContractModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-8">
+    <div className="fixed inset-0 z-50 flex justify-center items-start pt-6 pb-6 px-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in overflow-hidden">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full shadow-2xl flex flex-col max-h-[calc(100vh-48px)] overflow-hidden">
         
-        {/* Modal Header */}
-        <div className="px-6 py-4 bg-slate-800/80 border-b border-slate-700/80 flex items-center justify-between">
+        {/* Modal Header (Fixed) */}
+        <div className="px-6 py-3.5 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
               <Building2 className="w-5 h-5" />
@@ -293,299 +293,309 @@ export default function ContractModal({
             </div>
           </div>
           <button 
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {/* Modal Form */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
           
-          {/* STT 1: Mã dự án */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-semibold text-slate-300">
-                1. Mã dự án <span className="text-rose-400">*</span>
-              </label>
-              {onOpenNewProjectModal && (
-                <button
-                  type="button"
-                  onClick={onOpenNewProjectModal}
-                  className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 font-medium cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Thêm Dự án mới
-                </button>
-              )}
-            </div>
-            <select
-              value={formData.project_id}
-              onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition"
-              required
-            >
-              <option value="">-- Chọn dự án --</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name} ({p.code || p.id})</option>
-              ))}
-            </select>
-          </div>
-
-          {/* STT 2: Số hợp đồng */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              2. Số hợp đồng <span className="text-rose-400">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Ví dụ: HĐ-2026/SH-01"
-              value={formData.contract_number}
-              onChange={(e) => setFormData({ ...formData, contract_number: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-mono transition"
-              required
-            />
-          </div>
-
-          {/* STT 3: Nội dung hợp đồng */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              3. Nội dung hợp đồng / Gói thầu
-            </label>
-            <input
-              type="text"
-              placeholder="Nội dung tóm tắt hạng mục công việc..."
-              value={formData.content}
-              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition"
-            />
-          </div>
-
-          {/* STT 4, 5, 6: GIÁ TRỊ HỢP ĐỒNG (Trước VAT, VAT %, Sau VAT) */}
-          <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
-              <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-emerald-400" />
-                Mô Hình Giá Trị Hợp Đồng & Thuế VAT
+          {/* Modal Body (Scrollable) */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            
+            {/* SECTION 1: THÔNG TIN CHUNG HỢP ĐỒNG */}
+            <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/70 space-y-3.5">
+              <span className="text-xs font-bold text-slate-200 uppercase tracking-wider block border-b border-slate-700/60 pb-2">
+                Thông tin chung
               </span>
-            </div>
 
-            {/* Cách nhập giá trị */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Cách nhập giá trị</label>
-              <div className="flex items-center gap-4">
-                <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer border text-xs font-semibold transition ${vatInputMode === 'before' ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800'}`}>
-                  <input type="radio" name="vatInputMode" value="before" checked={vatInputMode === 'before'} onChange={() => handleVatInputModeChange('before')} className="accent-emerald-500" />
-                  Trước VAT
-                </label>
-                <label className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer border text-xs font-semibold transition ${vatInputMode === 'after' ? 'bg-blue-600/20 border-blue-500/40 text-blue-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800'}`}>
-                  <input type="radio" name="vatInputMode" value="after" checked={vatInputMode === 'after'} onChange={() => handleVatInputModeChange('after')} className="accent-blue-500" />
-                  Sau VAT
-                </label>
-              </div>
-            </div>
-
-            {/* STT 4: Input giá trị */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                4. {vatInputMode === 'before' ? 'Giá trị trước VAT' : 'Giá trị sau VAT'} <span className="text-rose-400">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="5.000.000.000"
-                  value={vatInputMode === 'before' ? formatInputNumber(formData.contractValueBeforeVAT) : formatInputNumber(contractValueAfterVATInput)}
-                  onChange={(e) => vatInputMode === 'before' ? handleBeforeVATChange(e.target.value) : handleAfterVATChange(e.target.value)}
-                  className="w-full pl-3.5 pr-12 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono font-bold text-white focus:outline-none focus:border-emerald-500 transition"
-                  required
-                />
-                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
-                  VNĐ
-                </span>
-              </div>
-            </div>
-
-            {/* STT 5: VAT (%) */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                5. VAT (%) <span className="text-rose-400">*</span>
-              </label>
-              <div className="flex flex-wrap items-center gap-2">
-                {[5, 8, 10].map((rate) => (
-                  <button
-                    key={rate}
-                    type="button"
-                    onClick={() => handleVatRateSelect(rate, false)}
-                    className={`flex-1 py-2 rounded-xl text-xs font-bold font-mono transition cursor-pointer border ${
-                      !formData.isCustomVat && formData.vatRate === rate
-                        ? 'bg-blue-600 text-white border-blue-500 shadow-md'
-                        : 'bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800'
-                    }`}
-                  >
-                    VAT {rate}%
-                  </button>
-                ))}
-                
-                <button
-                  type="button"
-                  onClick={() => handleVatRateSelect(12, true)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold font-mono transition cursor-pointer border ${
-                    formData.isCustomVat
-                      ? 'bg-purple-600 text-white border-purple-500 shadow-md'
-                      : 'bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800'
-                  }`}
-                >
-                  ☐ Khác
-                </button>
-              </div>
-
-              {formData.isCustomVat && (
-                <div className="mt-2.5 flex items-center gap-2 animate-in fade-in duration-150">
-                  <span className="text-xs font-medium text-purple-300">Nhập tỷ lệ VAT tùy chỉnh:</span>
-                  <div className="relative w-32">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      placeholder="12"
-                      value={formData.customVatRate}
-                      onChange={(e) => handleCustomVatInputChange(e.target.value)}
-                      className="w-full pl-3 pr-7 py-1.5 bg-slate-900 border border-purple-500/50 rounded-lg text-xs font-mono font-bold text-purple-300 focus:outline-none focus:border-purple-400"
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-purple-400">%</span>
+              {/* Row 1: Dự án & Số Hợp Đồng (2 Cột) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-slate-300">
+                      Mã / Tên dự án <span className="text-rose-400">*</span>
+                    </label>
+                    {onOpenNewProjectModal && (
+                      <button
+                        type="button"
+                        onClick={onOpenNewProjectModal}
+                        className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-0.5 font-medium cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" /> Thêm Dự án mới
+                      </button>
+                    )}
                   </div>
+                  <select
+                    value={formData.project_id}
+                    onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500 transition"
+                    required
+                  >
+                    <option value="">-- Chọn dự án --</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.code || p.id})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Số hợp đồng <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: HĐ-2026/SH-01"
+                    value={formData.contract_number}
+                    onChange={(e) => setFormData({ ...formData, contract_number: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono transition"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: Nhà Thầu & Nhóm Chi Phí (2 Cột) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Nhà thầu / Đơn vị thi công <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Tên công ty nhà thầu..."
+                    value={formData.contractor}
+                    onChange={(e) => setFormData({ ...formData, contractor: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500 transition"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center justify-between">
+                    <span>Nhóm chi phí</span>
+                    <span className="text-[10px] text-slate-400 font-normal">(Phân loại ngân sách)</span>
+                  </label>
+                  <select
+                    value={formData.costGroup}
+                    onChange={(e) => setFormData({ ...formData, costGroup: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-cyan-400 font-semibold cursor-pointer transition"
+                  >
+                    <option value="">-- Chưa phân loại / Để trống --</option>
+                    {COST_GROUP_OPTIONS.map((group) => (
+                      <option key={group} value={group}>{group}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Ghi chú nhóm chi phí khi chọn "Khác" */}
+              {formData.costGroup === 'Khác' && (
+                <div className="space-y-1 pt-0.5 animate-in fade-in duration-200">
+                  <label className="block text-xs font-semibold text-purple-300">
+                    Ghi chú nhóm chi phí chi tiết <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: Bảo hiểm công trình, Chi phí dự phòng..."
+                    value={formData.costGroupNote}
+                    onChange={(e) => setFormData({ ...formData, costGroupNote: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-900 border border-purple-500/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 transition"
+                    required={formData.costGroup === 'Khác'}
+                  />
                 </div>
               )}
-            </div>
 
-            {/* STT 6: Bảng tóm tắt giá trị (Tự động tính) */}
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
-              <div className="flex justify-between text-slate-400">
-                <span>{vatInputMode === 'after' ? 'Giá trị trước VAT (Tự động tính):' : 'Giá trị trước VAT:'}</span>
-                <span className={`font-mono font-bold ${vatInputMode === 'after' ? 'text-amber-300' : 'text-slate-200'}`}>{formatVND(amountBeforeVAT)}</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>+ Tiền VAT ({activeVatRate}%):</span>
-                <span className="font-mono text-blue-300 font-bold">+{formatVND(vatAmount)}</span>
-              </div>
-              <div className="flex justify-between pt-2 border-t border-slate-800 text-sm font-extrabold">
-                <span className="text-white">{vatInputMode === 'before' ? '6. Giá trị sau VAT (Tự động tính):' : '6. Giá trị sau VAT:'}</span>
-                <span className={`font-mono text-base ${vatInputMode === 'before' ? 'text-emerald-400' : 'text-slate-200'}`}>{formatVND(amountAfterVAT)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* STT 7: Nhà thầu */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              7. Nhà thầu / Đơn vị thi công <span className="text-rose-400">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Tên công ty nhà thầu..."
-              value={formData.contractor}
-              onChange={(e) => setFormData({ ...formData, contractor: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition"
-              required
-            />
-          </div>
-
-          {/* STT 8, 9, 10: THỜI GIAN VÀ TIẾN ĐỘ (Ngày ký, Tiến độ HĐ, Ngày kết thúc) */}
-          <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
-              <span className="text-xs font-semibold text-slate-200 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-amber-400" />
-                Thời Gian & Tiến Độ Thực Hiện Hợp Đồng
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              {/* STT 8: Ngày ký */}
+              {/* Row 3: Nội dung hợp đồng (Full width) */}
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">
-                  8. Ngày ký
-                </label>
-                <input
-                  type="date"
-                  value={formData.signing_date}
-                  onChange={(e) => handleSigningDateChange(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 transition"
-                  required
-                />
-              </div>
-
-              {/* STT 9: Tiến độ HĐ (ngày) */}
-              <div>
-                <label className="block font-semibold text-slate-300 mb-1">
-                  9. Tiến độ HĐ (ngày)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="365"
-                  value={formData.execution_days}
-                  onChange={(e) => handleDaysChange(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm font-mono text-amber-300 focus:outline-none focus:border-blue-500 transition"
-                />
-              </div>
-
-              {/* STT 10: Ngày kết thúc (Tự động tính) */}
-              <div>
-                <label className="block font-semibold text-slate-400 mb-1">
-                  10. Ngày kết thúc (Tự động tính)
-                </label>
-                <input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => handleEndDateChange(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition font-mono"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* STT 11: NHÓM CHI PHÍ */}
-          <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-700/80 space-y-3">
-            <div className="flex items-center gap-2 border-b border-slate-700/60 pb-2">
-              <Tag className="w-4 h-4 text-cyan-400" />
-              <label className="text-xs font-bold text-white uppercase tracking-wider">
-                11. Nhóm chi phí
-              </label>
-            </div>
-
-            <div>
-              <select
-                value={formData.costGroup}
-                onChange={(e) => setFormData({ ...formData, costGroup: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-cyan-400 font-semibold cursor-pointer transition"
-              >
-                <option value="">-- Chưa phân loại / Để trống --</option>
-                {COST_GROUP_OPTIONS.map((group) => (
-                  <option key={group} value={group}>{group}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Ghi chú nhóm chi phí khi chọn "Khác" */}
-            {formData.costGroup === 'Khác' && (
-              <div className="space-y-1.5 pt-1 animate-in fade-in duration-200">
-                <label className="block text-xs font-semibold text-purple-300">
-                  Ghi chú nhóm chi phí <span className="text-rose-400">*</span>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Nội dung hợp đồng / Gói thầu
                 </label>
                 <input
                   type="text"
-                  placeholder="Ví dụ: Bảo hiểm công trình, Chi phí dự phòng..."
-                  value={formData.costGroupNote}
-                  onChange={(e) => setFormData({ ...formData, costGroupNote: e.target.value })}
-                  className="w-full px-3.5 py-2 bg-slate-900 border border-purple-500/60 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 transition"
-                  required={formData.costGroup === 'Khác'}
+                  placeholder="Nội dung tóm tắt hạng mục công việc..."
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500 transition"
                 />
               </div>
-            )}
+            </div>
+
+            {/* SECTION 2: MÔ HÌNH GIÁ TRỊ HỢP ĐỒNG & THUẾ VAT */}
+            <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/70 space-y-3.5">
+              <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
+                <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-emerald-400" />
+                  Mô Hình Giá Trị Hợp Đồng & Thuế VAT
+                </span>
+
+                {/* Cách nhập giá trị */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-slate-400 font-medium">Nhập theo:</span>
+                  <div className="flex items-center gap-2">
+                    <label className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg cursor-pointer border text-xs font-semibold transition ${vatInputMode === 'before' ? 'bg-emerald-600/20 border-emerald-500/40 text-emerald-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800'}`}>
+                      <input type="radio" name="vatInputMode" value="before" checked={vatInputMode === 'before'} onChange={() => handleVatInputModeChange('before')} className="accent-emerald-500" />
+                      Trước VAT
+                    </label>
+                    <label className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg cursor-pointer border text-xs font-semibold transition ${vatInputMode === 'after' ? 'bg-blue-600/20 border-blue-500/40 text-blue-300' : 'bg-slate-900 border-slate-700 text-slate-400 hover:bg-slate-800'}`}>
+                      <input type="radio" name="vatInputMode" value="after" checked={vatInputMode === 'after'} onChange={() => handleVatInputModeChange('after')} className="accent-blue-500" />
+                      Sau VAT
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid 2 Cột: Input Giá Trị & VAT (%) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {/* Input Giá Trị */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    {vatInputMode === 'before' ? 'Giá trị trước VAT' : 'Giá trị sau VAT'} <span className="text-rose-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="5.000.000.000"
+                      value={vatInputMode === 'before' ? formatInputNumber(formData.contractValueBeforeVAT) : formatInputNumber(contractValueAfterVATInput)}
+                      onChange={(e) => vatInputMode === 'before' ? handleBeforeVATChange(e.target.value) : handleAfterVATChange(e.target.value)}
+                      className="w-full pl-3 pr-11 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-bold text-white focus:outline-none focus:border-emerald-500 transition"
+                      required
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+                      VNĐ
+                    </span>
+                  </div>
+                </div>
+
+                {/* Thuế VAT (%) */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Thuế VAT (%) <span className="text-rose-400">*</span>
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    {[5, 8, 10].map((rate) => (
+                      <button
+                        key={rate}
+                        type="button"
+                        onClick={() => handleVatRateSelect(rate, false)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold font-mono transition cursor-pointer border ${
+                          !formData.isCustomVat && formData.vatRate === rate
+                            ? 'bg-blue-600 text-white border-blue-500 shadow-md'
+                            : 'bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800'
+                        }`}
+                      >
+                        {rate}%
+                      </button>
+                    ))}
+                    
+                    <button
+                      type="button"
+                      onClick={() => handleVatRateSelect(12, true)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition cursor-pointer border ${
+                        formData.isCustomVat
+                          ? 'bg-purple-600 text-white border-purple-500 shadow-md'
+                          : 'bg-slate-900 text-slate-400 border-slate-700 hover:bg-slate-800'
+                      }`}
+                    >
+                      Khác
+                    </button>
+                  </div>
+
+                  {formData.isCustomVat && (
+                    <div className="mt-2 flex items-center gap-2 animate-in fade-in duration-150">
+                      <span className="text-[11px] font-medium text-purple-300">Tỷ lệ VAT tùy chỉnh:</span>
+                      <div className="relative w-28">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          placeholder="12"
+                          value={formData.customVatRate}
+                          onChange={(e) => handleCustomVatInputChange(e.target.value)}
+                          className="w-full pl-2.5 pr-6 py-1 bg-slate-900 border border-purple-500/50 rounded-lg text-xs font-mono font-bold text-purple-300 focus:outline-none focus:border-purple-400"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-purple-400">%</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bảng tóm tắt 3 giá trị (Tự động tính) */}
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5 text-xs">
+                <div className="flex justify-between text-slate-400">
+                  <span>{vatInputMode === 'after' ? 'Giá trị trước VAT (Tự động tính):' : 'Giá trị trước VAT:'}</span>
+                  <span className={`font-mono font-bold ${vatInputMode === 'after' ? 'text-amber-300' : 'text-slate-200'}`}>{formatVND(amountBeforeVAT)}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>+ Tiền thuế VAT ({activeVatRate}%):</span>
+                  <span className="font-mono text-blue-300 font-bold">+{formatVND(vatAmount)}</span>
+                </div>
+                <div className="flex justify-between pt-1.5 border-t border-slate-800 text-xs font-extrabold">
+                  <span className="text-white">{vatInputMode === 'before' ? 'Giá trị sau VAT (Tự động tính):' : 'Giá trị sau VAT:'}</span>
+                  <span className={`font-mono text-sm ${vatInputMode === 'before' ? 'text-emerald-400' : 'text-slate-200'}`}>{formatVND(amountAfterVAT)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 3: THỜI GIAN VÀ TIẾN ĐỘ */}
+            <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/70 space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
+                <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-400" />
+                  Thời Gian & Tiến Độ Thực Hiện Hợp Đồng
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">
+                    Ngày ký hợp đồng
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.signing_date}
+                    onChange={(e) => handleSigningDateChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-blue-500 transition"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-300 mb-1">
+                    Tiến độ HĐ (ngày)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="90"
+                    value={formData.execution_days}
+                    onChange={(e) => handleDaysChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-amber-300 focus:outline-none focus:border-blue-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-400 mb-1">
+                    Ngày kết thúc (Tự tính)
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => handleEndDateChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-blue-500 transition font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          {/* Modal Footer Actions */}
-          <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3">
+          {/* Modal Footer Actions (Fixed) */}
+          <div className="px-6 py-3.5 bg-slate-900 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -595,7 +605,7 @@ export default function ContractModal({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition cursor-pointer"
+              className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition cursor-pointer"
             >
               {editingContract ? 'Lưu Thay Đổi' : 'Tạo Hợp Đồng'}
             </button>

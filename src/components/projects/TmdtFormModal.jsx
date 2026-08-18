@@ -99,19 +99,11 @@ export default function TmdtFormModal({
         onClick={onClose}
       />
 
-      {/* Main Centered Modal Window */}
-      <div 
-        className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-[92vw] max-h-[88vh] shadow-2xl flex flex-col overflow-hidden"
-        style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 9999
-        }}
-      >
-        {/* Modal Header */}
-        <div className="px-6 py-4 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between shrink-0">
+    <div className="fixed inset-0 z-[9999] flex justify-center items-start pt-6 pb-6 px-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in overflow-hidden">
+      {/* Main Modal Window */}
+      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full flex flex-col max-h-[calc(100vh-48px)] shadow-2xl overflow-hidden">
+        {/* Modal Header (Fixed) */}
+        <div className="px-6 py-3.5 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold font-mono text-sm">
               Lần {phaseNumber}
@@ -124,6 +116,7 @@ export default function TmdtFormModal({
             </div>
           </div>
           <button 
+            type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition cursor-pointer"
           >
@@ -132,7 +125,10 @@ export default function TmdtFormModal({
         </div>
 
         {/* Modal Form Content */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 flex-1 overflow-y-auto min-h-0">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          
+          {/* Scrollable Body */}
+          <div className="p-5 space-y-3.5 flex-1 overflow-y-auto min-h-0 text-xs">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -282,9 +278,10 @@ export default function TmdtFormModal({
               className="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-blue-500 font-mono transition"
             />
           </div>
+          </div>
 
-          {/* Modal Footer */}
-          <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0">
+          {/* Modal Footer (Fixed) */}
+          <div className="px-6 py-3.5 bg-slate-900 border-t border-slate-800 flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -294,7 +291,7 @@ export default function TmdtFormModal({
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/30 transition cursor-pointer"
+              className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/30 transition cursor-pointer"
             >
               {editingPhase ? 'Lưu Cập Nhật' : `Lưu Điều Chỉnh Lần ${phaseNumber}`}
             </button>
@@ -303,6 +300,7 @@ export default function TmdtFormModal({
         </form>
 
       </div>
+    </div>
     </div>,
     document.body
   );

@@ -1761,7 +1761,12 @@ export function getAggregatedData(timeFilter = {}, isLoggedIn = false) {
     const latestPaymentDate = latestPaymentDateMap[c.id] || null;
     const paymentsCount = contractPaymentsCount[c.id] || 0;
     const status = c.status || 'in_progress';
-    const estimatedSettlement = cleanVND(c.estimated_settlement_value !== undefined && c.estimated_settlement_value !== null ? c.estimated_settlement_value : currentContractValueAfterVAT);
+    // Dự kiến quyết toán:
+    // - Chưa quyết toán → Giá trị HĐ hiện tại (đã bao gồm phụ lục)
+    // - Đã quyết toán → Tổng lũy kế thanh toán thực tế (bao gồm cả đợt quyết toán)
+    const estimatedSettlement = status === 'settled'
+      ? paidAfterVAT
+      : currentContractValueAfterVAT;
 
     const costGroup = c.costGroup || '';
     const costGroupNote = c.costGroupNote || '';

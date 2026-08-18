@@ -88,9 +88,41 @@ export default function ContractDossierView({
   const afterVat = cleanVND(contract.contractValueAfterVAT || contract.contract_value || (beforeVat + vatAmount));
 
   const initialValueAfterVat = cleanVND(contract.initialContractValueAfterVAT || afterVat);
+  const initialValueBeforeVat = cleanVND(contract.initialContractValueBeforeVAT || (contract.contractValueBeforeVAT || 0));
+  const initialVatAmt = cleanVND(contract.initialVatAmount || (initialValueAfterVat - initialValueBeforeVat));
+  const totalAppendicesBeforeVat = cleanVND(contract.totalAppendicesBeforeVAT || 0);
+  const totalAppendicesVat = cleanVND(contract.totalAppendicesVAT || 0);
   const totalAppendicesAfterVat = cleanVND(contract.totalAppendicesAfterVAT || 0);
   const currentContractValueAfterVat = cleanVND(contract.contractValueAfterVAT || contract.contract_value || afterVat);
-  const estimatedSettlement = cleanVND(contract.estimated_settlement_value !== undefined && contract.estimated_settlement_value !== null ? contract.estimated_settlement_value : currentContractValueAfterVat);
+
+  // Sort appendices strictly by appendix_number (PL01, PL02) or signed_date
+  const sortedAppendices = [...appendicesList].sort((a, b) => {
+    const numA = a.appendix_number ? parseInt(String(a.appendix_number).replace(/\D/g, ''), 10) : NaN;
+    const numB = b.appendix_number ? parseInt(String(b.appendix_number).replace(/\D/g, ''), 10) : NaN;
+    if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+      return numA - numB;
+    }
+    if (a.appendix_number && b.appendix_number && a.appendix_number !== b.appendix_number) {
+      return String(a.appendix_number).localeCompare(String(b.appendix_number));
+    }
+    const d1 = a.signed_date || '1970-01-01';
+    const d2 = b.signed_date || '1970-01-01';
+    return d1.localeCompare(d2);
+  });
+
+  // Compute running cumulative contract value after each appendix in sequence
+  let runningContractValDossier = initialValueAfterVat;
+  const appendixProgression = sortedAppendices.map((app) => {
+    const changeAmt = cleanVND(app.amount_after_vat !== undefined ? app.amount_after_vat : (app.amount_before_vat || 0));
+    runningContractValDossier = cleanVND(runningContractValDossier + changeAmt);
+    return {
+      ...app,
+      changeAmt,
+      valueAfterAppendix: runningContractValDossier,
+    };
+  });
+
+  // estimatedSettlement — computed after totalPaidAfterVat is calculated (see below line ~214)
   const isSettled = contract.status === 'settled';
 
   // Duration & Execution Date Calculations
@@ -184,6 +216,10 @@ export default function ContractDossierView({
   });
 
   const totalPaidAfterVat = runningCumulative;
+  // Dự kiến quyết toán:
+  // - Chưa quyết toán → Giá trị HĐ hiện tại (sau phụ lục)
+  // - Đã quyết toán → Tổng lũy kế thanh toán thực tế (bao gồm đợt quyết toán)
+  const estimatedSettlement = isSettled ? totalPaidAfterVat : currentContractValueAfterVat;
   const remainingToPay = Math.max(0, cleanVND(currentContractValueAfterVat - totalPaidAfterVat));
   const paidRatio = currentContractValueAfterVat > 0 ? (totalPaidAfterVat / currentContractValueAfterVat) * 100 : 0;
   const remainingRatio = Math.max(0, 100 - paidRatio);
@@ -339,6 +375,21 @@ export default function ContractDossierView({
         </div>
       </div>
 
+      {/* 2.5 NỘI DUNG HỢP ĐỒNG */}
+      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 shadow-md">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nội dung hợp đồng</span>
+        </div>
+        {contract.content ? (
+          <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap line-clamp-3 hover:line-clamp-none transition-all cursor-pointer" title="Nhấn để xem đầy đủ">
+            {contract.content}
+          </p>
+        ) : (
+          <p className="text-xs text-slate-500 italic">Chưa cập nhật nội dung hợp đồng.</p>
+        )}
+      </div>
+
       {/* 3. NHÓM 2: KHU VỰC CÁC KPI GIÁ TRỊ CỐT LÕI (DÀN HÀNG NGANG SINGLE ROW ON DESKTOP) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
         
@@ -354,7 +405,7 @@ export default function ContractDossierView({
           <div className="text-xs sm:text-sm font-bold text-slate-400 font-mono mt-0.5">{formatVND(vatAmount)}</div>
         </div>
 
-        {/* KPI 3: Giá trị sau VAT (Gốc HĐ) */}
+        {/* KPI 3: Giá trị sau VAT */}
         <div className="p-2.5 rounded-xl bg-slate-900 border border-blue-500/40 bg-blue-950/20 shadow-md">
           <span className="text-[10px] font-bold text-blue-300 uppercase block">GIÁ TRỊ HỢP ĐỒNG</span>
           <div className="text-xs sm:text-sm font-black text-white font-mono mt-0.5">{formatVND(currentContractValueAfterVat)}</div>
@@ -372,12 +423,103 @@ export default function ContractDossierView({
           <div className="text-xs sm:text-sm font-black text-amber-400 font-mono mt-0.5">{formatVND(remainingToPay)}</div>
         </div>
 
-        {/* KPI 6: Giá trị quyết toán */}
-        <div className="p-2.5 rounded-xl bg-slate-900 border border-purple-500/30 shadow-md">
-          <span className="text-[10px] font-semibold text-purple-300 uppercase block">DỰ KIẾN QUYẾT TOÁN</span>
-          <div className="text-xs sm:text-sm font-bold text-purple-300 font-mono mt-0.5">{formatVND(estimatedSettlement)}</div>
+        {/* KPI 6: Quyết toán — label thay đổi theo trạng thái */}
+        <div className={`p-2.5 rounded-xl bg-slate-900 border shadow-md ${
+          isSettled 
+            ? 'border-blue-500/40 bg-blue-950/20' 
+            : 'border-purple-500/30'
+        }`}>
+          <span className={`text-[10px] font-bold uppercase block ${
+            isSettled ? 'text-blue-300' : 'text-purple-300'
+          }`}>
+            {isSettled ? 'GIÁ TRỊ QUYẾT TOÁN' : 'DỰ KIẾN QUYẾT TOÁN'}
+          </span>
+          <div className={`text-xs sm:text-sm font-black font-mono mt-0.5 ${
+            isSettled ? 'text-blue-200' : 'text-purple-300'
+          }`}>
+            {formatVND(estimatedSettlement)}
+          </div>
         </div>
 
+      </div>
+
+      {/* 3.5 CẤU THÀNH GIÁ TRỊ HỢP ĐỒNG */}
+      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 shadow-md text-[11px]">
+        <div className="flex items-center gap-1.5 mb-2 border-b border-slate-800 pb-1.5">
+          <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            Cấu thành giá trị hợp đồng
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-[11px]">
+            <thead>
+              <tr className="text-left text-[10px] text-slate-500 uppercase">
+                <th className="pb-1.5 pr-2 font-semibold" style={{minWidth:'140px'}}>Thành phần</th>
+                <th className="pb-1.5 pr-2 font-semibold" style={{minWidth:'80px'}}>Ngày ký</th>
+                <th className="pb-1.5 pr-2 font-semibold text-right" style={{minWidth:'130px'}}>Trước VAT</th>
+                <th className="pb-1.5 pr-2 font-semibold text-right" style={{minWidth:'110px'}}>VAT</th>
+                <th className="pb-1.5 pr-2 font-semibold text-right" style={{minWidth:'130px'}}>Sau VAT</th>
+                <th className="pb-1.5 font-semibold" style={{minWidth:'150px'}}>Diễn giải</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/60">
+              {/* Dòng: Hợp đồng gốc */}
+              <tr>
+                <td className="py-1.5 pr-2 font-semibold text-slate-200">Hợp đồng gốc</td>
+                <td className="py-1.5 pr-2 font-mono text-slate-400">{formatDisplayDate(contract.signing_date)}</td>
+                <td className="py-1.5 pr-2 font-mono font-bold text-slate-300 text-right">{formatVND(initialValueBeforeVat)}</td>
+                <td className="py-1.5 pr-2 font-mono text-slate-400 text-right">{formatVND(initialVatAmt)}</td>
+                <td className="py-1.5 pr-2 font-mono font-bold text-slate-200 text-right">{formatVND(initialValueAfterVat)}</td>
+                <td className="py-1.5 text-slate-500">Giá trị theo hợp đồng ký ban đầu</td>
+              </tr>
+
+              {/* Dòng: Từng phụ lục */}
+              {appendixProgression.map((app, idx) => {
+                const appBeforeVat = cleanVND(app.amount_before_vat || 0);
+                const appVatAmt = cleanVND(app.vat_amount !== undefined ? app.vat_amount : 0);
+                const appAfterVat = app.changeAmt;
+                const isPositive = appAfterVat >= 0;
+                const signCls = isPositive ? 'text-emerald-400' : 'text-rose-400';
+                const fmtSign = (v) => (v >= 0 ? '+' : '') + formatVND(v);
+                return (
+                  <tr key={app.id || idx}>
+                    <td className="py-1.5 pr-2 font-semibold text-slate-300">
+                      Phụ lục {app.appendix_number || String(idx + 1).padStart(2, '0')}
+                    </td>
+                    <td className="py-1.5 pr-2 font-mono text-slate-400">
+                      {app.signed_date ? formatDisplayDate(app.signed_date) : '—'}
+                    </td>
+                    <td className={`py-1.5 pr-2 font-mono font-bold text-right ${signCls}`}>{fmtSign(appBeforeVat)}</td>
+                    <td className={`py-1.5 pr-2 font-mono text-right ${signCls}`}>{fmtSign(appVatAmt)}</td>
+                    <td className={`py-1.5 pr-2 font-mono font-bold text-right ${signCls}`}>{fmtSign(appAfterVat)}</td>
+                    <td className="py-1.5 text-slate-500 truncate max-w-[200px]" title={app.content || app.note || ''}>
+                      {app.content || app.note || 'Điều chỉnh giá trị theo phụ lục'}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+
+            {/* Dòng tổng kết */}
+            <tfoot>
+              <tr className="border-t border-slate-700">
+                <td className="pt-2 pr-2 font-bold text-blue-300">Tổng giá trị hiện tại</td>
+                <td className="pt-2 pr-2"></td>
+                <td className="pt-2 pr-2 font-mono font-black text-white text-right">{formatVND(beforeVat)}</td>
+                <td className="pt-2 pr-2 font-mono font-bold text-slate-300 text-right">{formatVND(vatAmount)}</td>
+                <td className="pt-2 pr-2 font-mono font-black text-white text-right">{formatVND(currentContractValueAfterVat)}</td>
+                <td className="pt-2 text-slate-500 text-[10px]">
+                  {sortedAppendices.length > 0 
+                    ? `= HĐ gốc ${totalAppendicesAfterVat >= 0 ? '+' : '−'} ${sortedAppendices.length} phụ lục`
+                    : 'Chưa có phụ lục điều chỉnh'
+                  }
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
 
       {/* 4. NHÓM 3: TIẾN ĐỘ THANH TOÁN (SLIM PROGRESS BAR COMPACT) */}
@@ -678,21 +820,31 @@ export default function ContractDossierView({
                 </button>
               </div>
 
-              <div className="space-y-1.5 mt-2 flex-1 max-h-36 overflow-y-auto pr-1">
-                {appendicesList.map((app) => (
-                  <div key={app.id} className="p-2 rounded bg-slate-950/60 border border-slate-800 flex items-center justify-between text-xs">
-                    <div>
-                      <div className="font-mono font-bold text-white text-[11px]">{app.appendix_number}</div>
-                      <div className="text-[10px] text-slate-400 line-clamp-1">{app.content}</div>
+              <div className="space-y-1.5 mt-2 flex-1 max-h-40 overflow-y-auto pr-1">
+                {appendixProgression.map((app) => (
+                  <div key={app.id} className="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs gap-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-white text-[11px]">{app.appendix_number || '—'}</span>
+                        {app.signed_date && (
+                          <span className="text-[9px] text-slate-400 font-mono">({formatDisplayDate(app.signed_date)})</span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate">{app.content || '—'}</div>
                     </div>
-                    <div className="text-right font-mono font-bold text-emerald-400 text-xs">
-                      +{formatVND(app.amount_after_vat)}
+                    <div className="text-right shrink-0">
+                      <div className={`font-mono font-bold text-xs ${app.changeAmt >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {app.changeAmt >= 0 ? `+${formatVND(app.changeAmt)}` : formatVND(app.changeAmt)}
+                      </div>
+                      <div className="text-[9px] text-blue-300 font-mono font-semibold">
+                        Sau PL: {formatVND(app.valueAfterAppendix)}
+                      </div>
                     </div>
                   </div>
                 ))}
-                {appendicesList.length === 0 && (
+                {appendixProgression.length === 0 && (
                   <div className="text-center py-4 text-xs text-slate-500 italic">
-                    Chưa phát sinh phụ lục.
+                    Chưa phát sinh phụ lục điều chỉnh giá trị.
                   </div>
                 )}
               </div>
@@ -700,7 +852,9 @@ export default function ContractDossierView({
 
             <div className="pt-2 border-t border-slate-800 text-xs flex items-center justify-between shrink-0">
               <span className="text-slate-400 text-[11px]">Tổng phụ lục:</span>
-              <span className="font-mono font-bold text-white text-xs">{formatVND(totalAppendicesAfterVat)}</span>
+              <span className={`font-mono font-bold text-xs ${totalAppendicesAfterVat >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                {totalAppendicesAfterVat >= 0 ? `+${formatVND(totalAppendicesAfterVat)}` : formatVND(totalAppendicesAfterVat)}
+              </span>
             </div>
           </div>
 
