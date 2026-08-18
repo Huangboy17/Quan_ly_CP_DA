@@ -24,7 +24,8 @@ import {
   ArrowRight,
   ChevronDown,
   Tag,
-  X
+  X,
+  MoreVertical
 } from 'lucide-react';
 import { formatVND, formatDisplayDate } from '../../utils/formatters';
 import { COST_GROUP_OPTIONS } from './ContractModal';
@@ -60,7 +61,14 @@ export default function ContractsView({
   const [chartStatusFilter, setChartStatusFilter] = useState('');
   const [chartScheduleFilter, setChartScheduleFilter] = useState('');
   const [statusChartMetric, setStatusChartMetric] = useState('count'); // 'count' or 'value'
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
 
+  // Close action menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = () => setOpenActionMenuId(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const contractorsList = Array.from(new Set(baseContracts.map(c => c.contractor).filter(Boolean))).sort();
   const searchQuery = (globalSearch || localSearch).toLowerCase().trim();
@@ -529,23 +537,24 @@ export default function ContractsView({
       </div>
 
       {/* Contracts Data Table */}
-      <div className="rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-hidden">
-        <div className="overflow-x-auto w-full">
-          <table className="w-full text-left text-xs text-slate-300 min-w-[1050px]">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
-              <tr>
-                <th className="py-3.5 px-4 w-36">Số HĐ / Ngày Ký</th>
-                <th className="py-3.5 px-4">Tên HĐ & Nhà Thầu</th>
-                <th className="py-3.5 px-4 w-40">Nhóm Chi Phí</th>
-                <th className="py-3.5 px-4 text-right w-36">Giá Trị HĐ (Sau VAT)</th>
-                <th className="py-3.5 px-4 text-right w-36">Chi Trả Trong Kỳ</th>
-                <th className="py-3.5 px-4 text-right w-36">Lũy Kế Đã Chi</th>
-                <th className="py-3.5 px-4 text-right w-36">Còn Lại</th>
-                <th className="py-3.5 px-4 text-center w-28">Trạng Thái</th>
-                <th className="py-3.5 px-4 text-center w-36">Thao Tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/80">
+      <div className="rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-visible">
+        <div className="overflow-x-auto w-full" style={{ overflow: 'visible' }}>
+          <div style={{ minWidth: '1050px' }}>
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
+                <tr>
+                  <th className="py-3.5 px-4 w-32">Số HĐ / Ngày Ký</th>
+                  <th className="py-3.5 px-4">Tên HĐ & Nhà Thầu</th>
+                  <th className="py-3.5 px-4 w-32">Nhóm Chi Phí</th>
+                  <th className="py-3.5 px-4 text-right w-36">Giá Trị HĐ (Sau VAT)</th>
+                  <th className="py-3.5 px-4 text-right w-36">Chi Trả Trong Kỳ</th>
+                  <th className="py-3.5 px-4 text-right w-36">Lũy Kế Đã Chi</th>
+                  <th className="py-3.5 px-4 text-right w-32">Còn Lại</th>
+                  <th className="py-3.5 px-4 text-center w-28">Trạng Thái</th>
+                  <th className="py-3.5 px-4 text-center w-20">Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/80">
               {filteredContracts.map((c) => {
                 const appendicesCount = Array.isArray(c.appendices) ? c.appendices.length : 0;
                 return (
@@ -568,12 +577,15 @@ export default function ContractsView({
                     </td>
 
                     {/* Tên HĐ & Nhà Thầu */}
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-100 text-xs line-clamp-1 group-hover:text-blue-300 transition">{c.content}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5">
-                        <span className="text-slate-300 font-medium">{c.contractor || 'Chưa cập nhật'}</span>
-                        <span className="text-slate-500">•</span>
-                        <span className="text-blue-400 font-semibold">{c.projectName}</span>
+                    <td 
+                      className="py-3.5 px-4 max-w-[250px]" 
+                      title={`${c.content}\nNhà thầu: ${c.contractor || 'Chưa cập nhật'}`}
+                    >
+                      <div className="font-bold text-slate-100 text-xs truncate group-hover:text-blue-300 transition">{c.content}</div>
+                      <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 truncate">
+                        <span className="text-slate-300 font-medium truncate">{c.contractor || 'Chưa cập nhật'}</span>
+                        <span className="text-slate-500 shrink-0">•</span>
+                        <span className="text-blue-400 font-semibold shrink-0">{c.projectName}</span>
                       </div>
                     </td>
 
@@ -585,7 +597,7 @@ export default function ContractsView({
                             {c.costGroup}
                           </span>
                           {c.costGroup === 'Khác' && c.costGroupNote && (
-                            <span className="text-[10px] text-purple-300 italic font-mono">
+                            <span className="text-[10px] text-purple-300 italic font-mono truncate max-w-[120px]" title={c.costGroupNote}>
                               ({c.costGroupNote})
                             </span>
                           )}
@@ -613,9 +625,15 @@ export default function ContractsView({
                     </td>
 
                     {/* Còn lại */}
-                    <td className="py-3.5 px-4 text-right font-mono font-medium text-amber-400">
-                      {formatVND(c.remainingAfterVAT || c.remainingValue || 0)}
-                    </td>
+                    {(() => {
+                      const remainingVal = c.remainingAfterVAT || c.remainingValue || 0;
+                      const isZeroRemaining = remainingVal <= 0;
+                      return (
+                        <td className={`py-3.5 px-4 text-right font-mono font-medium ${isZeroRemaining ? 'text-emerald-400/70' : 'text-amber-400'}`}>
+                          {formatVND(remainingVal)}
+                        </td>
+                      );
+                    })()}
 
                     {/* Trạng thái */}
                     <td className="py-3.5 px-4 text-center">
@@ -629,35 +647,53 @@ export default function ContractsView({
                     </td>
 
                     {/* Thao tác */}
-                    <td className="py-3.5 px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center justify-center gap-1.5">
+                    <td className="py-3.5 px-4 text-center relative" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => handleRowClick(c.id)}
-                          className="px-2.5 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 text-[11px] font-semibold border border-blue-500/30 transition cursor-pointer flex items-center gap-1"
-                          title="Xem Chi Tiết Hợp Đồng"
+                          className="p-1.5 rounded-lg bg-blue-600/10 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-500/20 transition cursor-pointer"
+                          title="Xem Chi Tiết"
                         >
-                          <Eye className="w-3.5 h-3.5" /> Chi tiết
+                          <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditContract(c);
-                          }}
-                          className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition cursor-pointer"
-                          title="Sửa hợp đồng"
-                        >
-                          <Edit className="w-3.5 h-3.5 text-blue-400" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteContract(c.id);
-                          }}
-                          className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition cursor-pointer"
-                          title="Xóa hợp đồng"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                        </button>
+                        
+                        <div className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenActionMenuId(openActionMenuId === c.id ? null : c.id);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition cursor-pointer"
+                            title="Thêm thao tác"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+
+                          {openActionMenuId === c.id && (
+                            <div className="absolute right-0 top-full mt-1 w-32 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden py-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenActionMenuId(null);
+                                  onEditContract(c);
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition flex items-center gap-2 cursor-pointer"
+                              >
+                                <Edit className="w-3.5 h-3.5 text-blue-400" /> Sửa hợp đồng
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setOpenActionMenuId(null);
+                                  onDeleteContract(c.id);
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-rose-400 transition flex items-center gap-2 cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Xóa hợp đồng
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
 
@@ -674,6 +710,7 @@ export default function ContractsView({
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
