@@ -80,15 +80,6 @@ export default function ProjectsView({
     isTimeRangeFilterActive = false
   } = data;
 
-  // Cleanup Blob URL when unmounting
-  React.useEffect(() => {
-    return () => {
-      if (previewPdfUrl) {
-        URL.revokeObjectURL(previewPdfUrl);
-      }
-    };
-  }, [previewPdfUrl]);
-
   // Active Project: Automatically synced with selectedProjectId from Global Filter Header!
   const activeProj = useMemo(() => {
     if (selectedProjectId) {
@@ -103,6 +94,15 @@ export default function ProjectsView({
   const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
   const [previewPdfFilename, setPreviewPdfFilename] = useState(null);
   const [previewPdfBlob, setPreviewPdfBlob] = useState(null);
+
+  // Cleanup Blob URL when unmounting
+  React.useEffect(() => {
+    return () => {
+      if (previewPdfUrl) {
+        URL.revokeObjectURL(previewPdfUrl);
+      }
+    };
+  }, [previewPdfUrl]);
 
   // Modals State
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);

@@ -1,0 +1,1 @@
+import React from 'react'; import { renderToString } from 'react-dom/server'; import ProjectsView from './src/components/projects/ProjectsView.jsx'; try { renderToString(React.createElement(ProjectsView, { data: { projects: [{id: 1, name: 'Proj'}], contracts: [], payments: [] } })); console.log('RENDER OK'); } catch(e) { console.error('RENDER ERROR', e); }
