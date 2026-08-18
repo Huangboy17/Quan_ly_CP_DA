@@ -27,7 +27,8 @@ import {
   X,
   MoreVertical
 } from 'lucide-react';
-import { formatVND, formatDisplayDate } from '../../utils/formatters';
+import { formatVND, formatDisplayDate, formatCurrencyByUnit } from '../../utils/formatters';
+import { exportContractsExcel, exportContractsPdf } from '../../utils/export/contractExport';
 import { COST_GROUP_OPTIONS } from './ContractModal';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -63,18 +64,11 @@ export default function ContractsView({
   const [statusChartMetric, setStatusChartMetric] = useState('count'); // 'count' or 'value'
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
   const [displayUnit, setDisplayUnit] = useState(() => localStorage.getItem('contractListDisplayUnit') || 'vnd');
+  const [exporting, setExporting] = useState(null); // 'excel' | 'pdf' | null
 
   React.useEffect(() => {
     localStorage.setItem('contractListDisplayUnit', displayUnit);
   }, [displayUnit]);
-
-  const formatCurrencyByUnit = (value, unit) => {
-    if (value === null || value === undefined || isNaN(value)) return '0';
-    const numValue = Number(value);
-    if (unit === 'billion') return (numValue / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 3 });
-    if (unit === 'million') return (numValue / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
-    return numValue.toLocaleString('vi-VN');
-  };
 
   // Close action menu when clicking outside
   React.useEffect(() => {
@@ -539,6 +533,58 @@ export default function ContractsView({
               <option value="million">Triệu đồng</option>
               <option value="billion">Tỷ đồng</option>
             </select>
+          </div>
+
+          {/* Export Buttons */}
+          <div className="relative shrink-0 flex items-center gap-1.5">
+            <button
+              disabled={exporting === 'excel' || filteredContracts.length === 0}
+              onClick={async () => {
+                setExporting('excel');
+                try {
+                  const selectedProj = projects.find(p => String(p.id) === String(selectedProjectId));
+                  await exportContractsExcel(filteredContracts, {
+                    selectedProjectName: selectedProj?.name || '',
+                    contractorFilter,
+                    costGroupFilter,
+                    statusFilter,
+                    displayUnit,
+                    periodLabel,
+                  }, displayUnit);
+                } catch (err) {
+                  alert(err.message || 'Không thể xuất báo cáo. Vui lòng thử lại.');
+                } finally {
+                  setExporting(null);
+                }
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exporting === 'excel' ? 'Đang xuất...' : '📊 Xuất Excel'}
+            </button>
+            <button
+              disabled={exporting === 'pdf' || filteredContracts.length === 0}
+              onClick={async () => {
+                setExporting('pdf');
+                try {
+                  const selectedProj = projects.find(p => String(p.id) === String(selectedProjectId));
+                  await exportContractsPdf(filteredContracts, {
+                    selectedProjectName: selectedProj?.name || '',
+                    contractorFilter,
+                    costGroupFilter,
+                    statusFilter,
+                    displayUnit,
+                    periodLabel,
+                  }, displayUnit);
+                } catch (err) {
+                  alert(err.message || 'Không thể xuất báo cáo. Vui lòng thử lại.');
+                } finally {
+                  setExporting(null);
+                }
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-destructive border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exporting === 'pdf' ? 'Đang tạo...' : '📄 Xuất PDF'}
+            </button>
           </div>
 
           {/* Reset Local Filters */}

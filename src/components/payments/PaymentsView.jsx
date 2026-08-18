@@ -48,6 +48,7 @@ import {
   Legend
 } from 'recharts';
 import { formatVND, formatVNDCompact, formatDisplayDate, cleanVND, calcEndDate, calcDaysBetween } from '../../utils/formatters';
+import { exportPaymentsExcel, exportPaymentsPdf } from '../../utils/export/paymentExport';
 
 export default function PaymentsView({ 
   data, 
@@ -76,6 +77,7 @@ export default function PaymentsView({
   // Sort State (Default: payment_date ASC)
   const [sortColumn, setSortColumn] = useState('payment_date');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [exporting, setExporting] = useState(null); // 'excel' | 'pdf' | null
 
   // Pagination State (Default: 100 rows / page)
   const [currentPage, setCurrentPage] = useState(1);
@@ -426,6 +428,50 @@ export default function PaymentsView({
             className="w-full sm:w-auto justify-center px-3.5 py-1.5 rounded-xl bg-success hover:bg-success/90 text-primary-foreground text-xs font-extrabold shadow-lg shadow-success/30 transition cursor-pointer flex items-center gap-1"
           >
             + Nhập Thanh Toán Mới
+          </button>
+          <button
+            disabled={exporting === 'excel' || sortedPayments.length === 0}
+            onClick={async () => {
+              setExporting('excel');
+              try {
+                await exportPaymentsExcel(sortedPayments, {
+                  selectedProjectName: selectedProjectObj?.name || '',
+                  contractFilter,
+                  contractorFilter,
+                  searchQuery,
+                  periodLabel,
+                });
+              } catch (err) {
+                alert(err.message || 'Không thể xuất báo cáo.');
+              } finally {
+                setExporting(null);
+              }
+            }}
+            className="w-full sm:w-auto justify-center px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {exporting === 'excel' ? 'Đang xuất...' : '📊 Xuất Excel'}
+          </button>
+          <button
+            disabled={exporting === 'pdf' || sortedPayments.length === 0}
+            onClick={async () => {
+              setExporting('pdf');
+              try {
+                await exportPaymentsPdf(sortedPayments, {
+                  selectedProjectName: selectedProjectObj?.name || '',
+                  contractFilter,
+                  contractorFilter,
+                  searchQuery,
+                  periodLabel,
+                });
+              } catch (err) {
+                alert(err.message || 'Không thể xuất báo cáo.');
+              } finally {
+                setExporting(null);
+              }
+            }}
+            className="w-full sm:w-auto justify-center px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-destructive border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {exporting === 'pdf' ? 'Đang tạo...' : '📄 Xuất PDF'}
           </button>
         </div>
       </div>

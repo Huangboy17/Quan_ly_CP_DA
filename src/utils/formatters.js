@@ -182,7 +182,23 @@ export function calculateVATFromAfter(amountAfterVat, vatRate) {
   };
 }
 
-// Clean string to raw number
+// Format currency value by display unit (vnd/million/billion)
+// Pure function - same logic as ContractsView local version
+export function formatCurrencyByUnit(value, unit) {
+  if (value === null || value === undefined || isNaN(value)) return '0';
+  const numValue = Number(value);
+  if (unit === 'billion') return (numValue / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 3 });
+  if (unit === 'million') return (numValue / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+  return numValue.toLocaleString('vi-VN');
+}
+
+// Get display unit label string
+export function getDisplayUnitLabel(unit) {
+  if (unit === 'billion') return 'Tỷ đồng';
+  if (unit === 'million') return 'Triệu đồng';
+  return 'VNĐ';
+}
+
 export function parseRawNumber(val) {
   if (typeof val === 'number') return val;
   if (!val) return 0;

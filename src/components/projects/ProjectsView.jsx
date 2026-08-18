@@ -41,6 +41,7 @@ import {
   Cell
 } from 'recharts';
 import { formatVND, formatVNDCompact, formatDisplayDate, cleanVND, calcEndDate, calcDaysBetween } from '../../utils/formatters';
+import { exportProjectExcel, exportProjectPdf } from '../../utils/export/projectExport';
 import TmdtHistoryModal from './TmdtHistoryModal';
 import TmdtFormModal from './TmdtFormModal';
 import TmdtPhaseDetailModal from './TmdtPhaseDetailModal';
@@ -84,6 +85,8 @@ export default function ProjectsView({
     }
     return projects.length > 0 ? projects[0] : null;
   }, [projects, selectedProjectId]);
+
+  const [exporting, setExporting] = useState(null); // 'excel' | 'pdf' | null
 
   // Modals State
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -502,6 +505,38 @@ export default function ProjectsView({
               title="Xóa toàn bộ dự án và các hợp đồng, thanh toán liên quan"
             >
               <Trash2 className="w-3.5 h-3.5 text-destructive" /> 🗑️ Xóa tất cả dự án
+            </button>
+            <button
+              disabled={exporting === 'excel' || !activeProj}
+              onClick={async () => {
+                setExporting('excel');
+                try {
+                  await exportProjectExcel(activeProj, projContracts, activePaymentsForScope, periodLabel);
+                } catch (err) {
+                  alert(err.message || 'Không thể xuất báo cáo.');
+                } finally {
+                  setExporting(null);
+                }
+              }}
+              className="w-full sm:w-auto justify-center px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exporting === 'excel' ? 'Đang xuất...' : '📊 Xuất Excel'}
+            </button>
+            <button
+              disabled={exporting === 'pdf' || !activeProj}
+              onClick={async () => {
+                setExporting('pdf');
+                try {
+                  await exportProjectPdf(activeProj, projContracts, activePaymentsForScope, periodLabel);
+                } catch (err) {
+                  alert(err.message || 'Không thể xuất báo cáo.');
+                } finally {
+                  setExporting(null);
+                }
+              }}
+              className="w-full sm:w-auto justify-center px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-destructive border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exporting === 'pdf' ? 'Đang tạo...' : '📄 Xuất PDF'}
             </button>
             <button
               onClick={onNewProject}
