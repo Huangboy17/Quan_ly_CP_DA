@@ -1,7 +1,7 @@
 import React from 'react';
 import { LayoutDashboard, FileText, CreditCard, FolderKanban, Plus } from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, counts, onNewProject }) {
+export default function Sidebar({ activeTab, setActiveTab, counts, onNewProject, isMobileMenuOpen, setIsMobileMenuOpen }) {
   const navItems = [
     {
       id: 'dashboard',
@@ -34,7 +34,22 @@ export default function Sidebar({ activeTab, setActiveTab, counts, onNewProject 
   ];
 
   return (
-    <aside className="w-full lg:w-60 lg:min-w-[240px] bg-card border-r border-border p-4 shrink-0 flex flex-col justify-between transition-colors">
+    <>
+      {/* Mobile Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Container */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 ease-in-out
+        w-64 lg:w-60 lg:min-w-[240px] bg-card border-r border-border p-4 shrink-0 flex flex-col justify-between 
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:relative lg:translate-x-0
+      `}>
       <div className="space-y-6">
         <div>
           <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
@@ -101,5 +116,6 @@ export default function Sidebar({ activeTab, setActiveTab, counts, onNewProject 
         <span>Local Storage</span>
       </div>
     </aside>
+    </>
   );
 }

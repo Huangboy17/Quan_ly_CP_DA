@@ -59,6 +59,9 @@ export default function App() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
+  
+  // Mobile Sidebar State
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Check URL on initial mount for /reset-password
   useEffect(() => {
@@ -438,6 +441,8 @@ export default function App() {
         userSession={userSession}
         userProfile={userProfile}
         onLogout={handleLogout}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
 
       {/* Sticky Global Time & Project Filter Header Bar */}
@@ -448,18 +453,26 @@ export default function App() {
       />
 
       {/* Main Content Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-full px-2 sm:px-4 lg:px-6">
+      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-full px-2 sm:px-4 lg:px-6 overflow-hidden">
         
         {/* Left Navigation Sidebar */}
         <Sidebar
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={(tab) => {
+            setActiveTab(tab);
+            setIsMobileMenuOpen(false); // Close sidebar on mobile when navigating
+          }}
           counts={{
             projectsCount: data.projects.length,
             contractsCount: data.contracts.length,
             paymentsCount: data.payments.length,
           }}
-          onNewProject={handleOpenNewProject}
+          onNewProject={() => {
+            handleOpenNewProject();
+            setIsMobileMenuOpen(false);
+          }}
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
 
         {/* Right Main Screen View */}

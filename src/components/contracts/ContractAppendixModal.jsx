@@ -100,7 +100,7 @@ export default function ContractAppendixModal({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-center items-start pt-6 pb-6 px-4 bg-background/80 backdrop-blur-md animate-fade-in overflow-hidden">
-      <div className="bg-card border border-border/80 rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[calc(100vh-48px)] overflow-hidden">
+      <div className="bg-card border border-border/80 rounded-2xl shadow-2xl w-full max-w-2xl mx-2 md:mx-auto flex flex-col max-h-[95vh] overflow-hidden">
         
         {/* Modal Header (Fixed) */}
         <div className="px-6 py-3.5 bg-muted/50 border-b border-border/70 flex items-center justify-between shrink-0">

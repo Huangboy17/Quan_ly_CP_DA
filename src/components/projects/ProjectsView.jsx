@@ -470,42 +470,42 @@ export default function ProjectsView({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+          <div className="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-2 self-start md:self-auto">
             <button
               onClick={() => onOpenExcelImport && onOpenExcelImport('projects')}
-              className="px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success hover:text-success/90 text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
+              className="w-full sm:w-auto justify-center px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success hover:text-success/90 text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
             >
               📥 Import Excel
             </button>
             <button
               onClick={() => onEditProject(activeProj)}
-              className="px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
+              className="w-full sm:w-auto justify-center px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
             >
               <Edit className="w-3.5 h-3.5 text-primary" /> Chỉnh sửa dự án
             </button>
             <button
               onClick={() => handleOpenTmdtHistory(activeProj)}
-              className="px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success/90 text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
+              className="w-full sm:w-auto justify-center px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success/90 text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
             >
               <Clock className="w-3.5 h-3.5" /> Lịch sử TMĐT
             </button>
             <button
               onClick={() => handleOpenDeleteModal(activeProj)}
-              className="px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold border border-destructive/40 transition cursor-pointer flex items-center gap-1"
+              className="w-full sm:w-auto justify-center px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold border border-destructive/40 transition cursor-pointer flex items-center gap-1"
               title="Xóa dự án hiện tại"
             >
               <Trash2 className="w-3.5 h-3.5 text-destructive" /> Xóa DA
             </button>
             <button
               onClick={() => setIsDeleteAllModalOpen(true)}
-              className="px-3 py-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900 text-rose-300 text-xs font-semibold border border-destructive/50 shadow-sm transition cursor-pointer flex items-center gap-1"
+              className="w-full sm:w-auto justify-center px-3 py-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900 text-rose-300 text-xs font-semibold border border-destructive/50 shadow-sm transition cursor-pointer flex items-center gap-1"
               title="Xóa toàn bộ dự án và các hợp đồng, thanh toán liên quan"
             >
               <Trash2 className="w-3.5 h-3.5 text-destructive" /> 🗑️ Xóa tất cả dự án
             </button>
             <button
               onClick={onNewProject}
-              className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1"
+              className="w-full sm:w-auto justify-center px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1"
             >
               <Plus className="w-4 h-4" /> + Thêm dự án
             </button>
@@ -935,7 +935,8 @@ export default function ProjectsView({
         </div>
 
         {cashflowChartData.length > 0 ? (
-          <div className="h-72 w-full">
+          <div className="h-72 w-full overflow-x-auto overflow-y-hidden hide-scrollbar">
+            <div className="min-w-[600px] h-full">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart 
                 data={cashflowChartData} 
@@ -1033,6 +1034,7 @@ export default function ProjectsView({
                 />
               </ComposedChart>
             </ResponsiveContainer>
+            </div>
           </div>
         ) : (
           <div className="h-48 flex items-center justify-center text-muted-foreground text-xs italic bg-background/40 rounded-xl border border-border space-y-2">

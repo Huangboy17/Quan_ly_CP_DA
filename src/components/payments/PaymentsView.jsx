@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { 
   CreditCard, 
@@ -414,16 +414,16 @@ export default function PaymentsView({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-start md:self-auto">
+        <div className="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-2 self-start md:self-auto">
           <button
             onClick={() => onOpenExcelImport && onOpenExcelImport('payments')}
-            className="px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success hover:text-success/80 text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
+            className="w-full sm:w-auto justify-center px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success hover:text-success/80 text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
           >
             📥 Import Excel
           </button>
           <button
             onClick={onNewPayment}
-            className="px-3.5 py-1.5 rounded-xl bg-success hover:bg-success/90 text-primary-foreground text-xs font-extrabold shadow-lg shadow-success/30 transition cursor-pointer flex items-center gap-1"
+            className="w-full sm:w-auto justify-center px-3.5 py-1.5 rounded-xl bg-success hover:bg-success/90 text-primary-foreground text-xs font-extrabold shadow-lg shadow-success/30 transition cursor-pointer flex items-center gap-1"
           >
             + Nhập Thanh Toán Mới
           </button>
@@ -566,8 +566,9 @@ export default function PaymentsView({
             )}
           </div>
 
-          <div className="h-64 w-full pt-2 flex-1">
+          <div className="h-64 w-full pt-2 flex-1 overflow-x-auto overflow-y-hidden hide-scrollbar">
             {comboMonthlyBarData.length > 0 ? (
+              <div className="min-w-[600px] h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={comboMonthlyBarData} margin={{ top: 25, right: 15, left: -5, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.5} />
@@ -683,6 +684,7 @@ export default function PaymentsView({
                   />
                 </ComposedChart>
               </ResponsiveContainer>
+              </div>
             ) : (
               <div className="h-full flex items-center justify-center text-xs text-muted-foreground italic">
                 Không có dữ liệu chi trả theo tháng trong phạm vi chọn.
@@ -789,9 +791,9 @@ export default function PaymentsView({
 
       {/* DENSE & READABLE PAYMENTS TABLE */}
       <div className="rounded-2xl bg-card border border-border shadow-xl overflow-hidden">
-        <div className="overflow-x-auto w-full">
+        <div className="overflow-x-auto w-full hide-scrollbar">
           <table className="w-full text-left text-xs text-foreground/80 min-w-[1050px]">
-            <thead className="bg-muted text-muted-foreground uppercase text-[11px] font-semibold border-b border-border">
+            <thead className="bg-muted text-muted-foreground uppercase text-[11px] font-semibold border-b border-border whitespace-nowrap">
               <tr>
                 <th className="py-3 px-3.5 text-center w-14">STT</th>
                 <th className="py-3 px-3.5 w-32 cursor-pointer hover:text-foreground" onClick={() => handleSort('payment_date')}>
@@ -800,12 +802,9 @@ export default function PaymentsView({
                     {sortColumn === 'payment_date' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-success" /> : <ArrowDown className="w-3 h-3 text-success" />)}
                   </div>
                 </th>
-                <th className="py-3 px-3.5 w-36">Dự Án</th>
+                <th className="py-3 px-3.5 w-28">Dự Án</th>
                 <th className="py-3 px-3.5 w-40">Số HĐ / Nhà Thầu</th>
-                <th className="py-3 px-3.5 text-center w-20">Đợt TT</th>
-                <th className="py-3 px-3.5 text-right w-36">Trước VAT</th>
-                <th className="py-3 px-3.5 text-center w-20">VAT (%)</th>
-                <th className="py-3 px-3.5 text-right w-36">Thuế VAT</th>
+                <th className="py-3 px-3.5 text-center w-16">Đợt TT</th>
                 <th className="py-3 px-3.5 text-right w-36 font-bold text-success">Sau VAT</th>
                 <th className="py-3 px-3.5 text-right w-40 font-bold text-primary/80">Lũy Kế HĐ</th>
                 <th className="py-3 px-3.5 text-center w-24">Thao Tác</th>
@@ -842,18 +841,6 @@ export default function PaymentsView({
                       </span>
                     </td>
 
-                    <td className="py-3 px-3.5 text-right font-mono text-foreground/90 font-medium">
-                      {formatVND(pm.amount_before_vat)}
-                    </td>
-
-                    <td className="py-3 px-3.5 text-center font-mono text-muted-foreground">
-                      {pm.vat_rate}%
-                    </td>
-
-                    <td className="py-3 px-3.5 text-right font-mono text-warning/90 font-medium">
-                      {formatVND(pm.vat_amount)}
-                    </td>
-
                     <td className="py-3 px-3.5 text-right font-mono font-extrabold text-success bg-success/5">
                       {formatVND(pm.amount_after_vat)}
                     </td>
@@ -886,7 +873,7 @@ export default function PaymentsView({
 
               {paginatedPayments.length === 0 && (
                 <tr>
-                  <td colSpan="11" className="py-10 text-center text-muted-foreground">
+                  <td colSpan="8" className="py-10 text-center text-muted-foreground">
                     Không tìm thấy đợt thanh toán nào thỏa mãn điều kiện lọc.
                   </td>
                 </tr>

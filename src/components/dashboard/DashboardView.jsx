@@ -1,4 +1,4 @@
-﻿import React, { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { 
   Building2, 
   FileText, 
@@ -207,16 +207,16 @@ export default function DashboardView({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-2 sm:gap-3">
           <button
             onClick={onNewContract}
-            className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/20 transition cursor-pointer flex items-center gap-2"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/20 transition flex justify-center items-center gap-2"
           >
             + Nhập Hợp Đồng Mới
           </button>
           <button
             onClick={onNewPayment}
-            className="px-4 py-2.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground text-xs font-semibold shadow-lg shadow-success/20 transition cursor-pointer flex items-center gap-2"
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground text-xs font-semibold shadow-lg shadow-success/20 transition flex justify-center items-center gap-2"
           >
             + Nhập Thanh Toán Đợt
           </button>
@@ -224,7 +224,7 @@ export default function DashboardView({
       </div>
 
       {/* KPI CARDS (COMPACT FLEX/GRID) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         
         <StatCard
           title={`Chi Trả Trong Kỳ`}
@@ -448,9 +448,10 @@ export default function DashboardView({
           )}
         </div>
 
-        <div className="h-80 w-full pt-2">
+        <div className="h-80 w-full pt-2 overflow-x-auto overflow-y-hidden hide-scrollbar">
           {comboCashFlowData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <div className="min-w-[600px] h-full">
+              <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={comboCashFlowData} margin={{ top: 25, right: 20, left: 0, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
                 
@@ -567,6 +568,7 @@ export default function DashboardView({
                 />
               </ComposedChart>
             </ResponsiveContainer>
+            </div>
           ) : (
             <div className="h-full flex items-center justify-center text-xs text-muted-foreground italic">
               Không có phát sinh chi cho {selectedProjectObj ? selectedProjectObj.name : 'phạm vi này'} trong {periodLabel}.

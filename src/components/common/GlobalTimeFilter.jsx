@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Calendar, RotateCcw, Tag } from 'lucide-react';
 import { COST_GROUP_OPTIONS } from '../contracts/ContractModal';
 
@@ -148,8 +148,8 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
   );
 
   return (
-    <div className="bg-background/95 backdrop-blur-md border-b border-border px-4 lg:px-6 py-3 sticky top-16 z-20 shadow-xl w-full transition-colors">
-      <div className="w-full max-w-full flex flex-col xl:flex-row xl:items-center justify-between gap-3 text-xs">
+    <div className="bg-background/95 backdrop-blur-md border-b border-border px-2 sm:px-4 lg:px-6 py-3 sticky top-16 z-20 shadow-xl w-full transition-colors">
+      <div className="w-full max-w-full flex flex-col lg:flex-row lg:items-center justify-between gap-3 text-xs">
         
         {/* Filter Label */}
         <div className="flex items-center gap-2 text-foreground font-bold shrink-0">
@@ -160,16 +160,16 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="flex flex-wrap items-center gap-3 flex-1">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 flex-1">
           
           {/* Year Buttons */}
-          <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border shadow-inner">
-            <span className="text-[11px] text-muted-foreground font-semibold px-1.5">Năm:</span>
+          <div className="flex flex-wrap items-center gap-1 bg-muted p-1 rounded-xl border border-border shadow-inner">
+            <span className="text-[11px] text-muted-foreground font-semibold px-1.5 hidden sm:inline">Năm:</span>
             {yearOptions.map(y => (
               <button
                 key={y}
                 onClick={() => handleYearChange(y)}
-                className={`px-3 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                className={`px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition cursor-pointer ${
                   (timeFilter.year || 'all') === y
                     ? 'bg-primary text-primary-foreground shadow-md shadow-primary/30'
                     : 'text-muted-foreground hover:text-foreground hover:bg-background'
@@ -181,13 +181,13 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
           </div>
 
           {/* Quarter Buttons */}
-          <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-border shadow-inner">
-            <span className="text-[11px] text-muted-foreground font-semibold px-1.5">Quý:</span>
+          <div className="flex flex-wrap items-center gap-1 bg-muted p-1 rounded-xl border border-border shadow-inner">
+            <span className="text-[11px] text-muted-foreground font-semibold px-1.5 hidden sm:inline">Quý:</span>
             {['all', 'Q1', 'Q2', 'Q3', 'Q4'].map(q => (
               <button
                 key={q}
                 onClick={() => handleQuarterChange(q)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                className={`px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold transition cursor-pointer ${
                   (timeFilter.quarter || 'all') === q
                     ? 'bg-success text-success-foreground shadow-md shadow-success/30'
                     : 'text-muted-foreground hover:text-foreground hover:bg-background'
@@ -199,11 +199,11 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
           </div>
 
           {/* Month Selector */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <select
               value={timeFilter.month || 'all'}
               onChange={(e) => handleMonthChange(e.target.value)}
-              className="px-3 py-1.5 bg-muted border border-border rounded-xl text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/40 text-xs font-semibold transition cursor-pointer hover:border-border"
+              className="px-2 sm:px-3 py-1.5 bg-muted border border-border rounded-xl text-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/40 text-[10px] sm:text-xs font-semibold transition cursor-pointer hover:border-border max-w-[110px] sm:max-w-none"
             >
               {monthOptions.map(m => (
                 <option key={m.value} value={m.value}>{m.label}</option>
@@ -212,23 +212,23 @@ export default function GlobalTimeFilter({ timeFilter, setTimeFilter, projects =
           </div>
 
           {/* Custom Date Range Picker Container */}
-          <div className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-xl border border-border shadow-inner text-foreground">
-            <span className="text-[11px] font-bold text-foreground">Từ:</span>
+          <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 sm:gap-2 bg-muted px-2 sm:px-3 py-1.5 rounded-xl border border-border shadow-inner text-foreground">
+            <span className="text-[10px] sm:text-[11px] font-bold text-foreground">Từ:</span>
             <div className="relative flex items-center">
               <input
                 type="date"
                 value={timeFilter.customStartDate || ''}
                 onChange={(e) => handleCustomStartDateChange(e.target.value)}
-                className="bg-background border border-border hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/40 text-foreground font-mono font-bold rounded-lg px-2.5 py-1 text-xs outline-none transition shadow-sm"
+                className="bg-background border border-border hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/40 text-foreground font-mono font-bold rounded-lg px-2 sm:px-2.5 py-1 text-[10px] sm:text-xs outline-none transition shadow-sm"
               />
             </div>
-            <span className="text-[11px] font-bold text-foreground">Đến:</span>
+            <span className="text-[10px] sm:text-[11px] font-bold text-foreground">Đến:</span>
             <div className="relative flex items-center">
               <input
                 type="date"
                 value={timeFilter.customEndDate || ''}
                 onChange={(e) => handleCustomEndDateChange(e.target.value)}
-                className="bg-background border border-border hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/40 text-foreground font-mono font-bold rounded-lg px-2.5 py-1 text-xs outline-none transition shadow-sm"
+                className="bg-background border border-border hover:border-primary focus:border-primary focus:ring-2 focus:ring-primary/40 text-foreground font-mono font-bold rounded-lg px-2 sm:px-2.5 py-1 text-[10px] sm:text-xs outline-none transition shadow-sm"
               />
             </div>
           </div>

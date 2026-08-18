@@ -75,7 +75,7 @@ export default function ContractDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="bg-card border border-border rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden my-8">
+      <div className="bg-card border border-border rounded-2xl max-w-4xl w-full mx-2 md:mx-auto shadow-2xl flex flex-col max-h-[95vh] overflow-hidden my-8">
         
         {/* Modal Header */}
         <div className="px-6 py-4 bg-muted/80 border-b border-border/80 flex items-center justify-between">

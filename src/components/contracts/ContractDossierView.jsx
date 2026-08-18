@@ -607,10 +607,10 @@ export default function ContractDossierView({
             </h3>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto items-stretch sm:items-center gap-2 self-start sm:self-auto">
             <button
               onClick={() => setShowCharts(!showCharts)}
-              className="px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-primary text-[11px] font-semibold border border-border transition cursor-pointer flex items-center gap-1"
+              className="w-full sm:w-auto justify-center px-2.5 py-1 rounded-lg bg-muted hover:bg-muted/80 text-primary text-[11px] font-semibold border border-border transition cursor-pointer flex items-center gap-1"
             >
               {showCharts ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
               {showCharts ? 'Ẩn biểu đồ & phụ lục' : 'Xem biểu đồ & phụ lục'}
@@ -626,16 +626,14 @@ export default function ContractDossierView({
         </div>
 
         {/* Compact Internal Scrollable Table Container (max-h-60 overflow-y-auto) */}
-        <div className="overflow-x-auto border border-border rounded-lg shadow-inner max-h-64 overflow-y-auto">
+        <div className="overflow-x-auto border border-border rounded-lg shadow-inner max-h-64 overflow-y-auto hide-scrollbar">
           <table className="w-full text-left text-xs text-foreground/80 min-w-[850px] relative">
-            <thead className="bg-muted text-muted-foreground uppercase text-[11px] font-semibold border-b border-border sticky top-0 z-10">
+            <thead className="bg-muted text-muted-foreground uppercase text-[11px] font-semibold border-b border-border sticky top-0 z-10 whitespace-nowrap">
               <tr>
                 <th className="py-2.5 px-3 text-center w-12">STT</th>
                 <th className="py-2.5 px-3">ĐỢT THANH TOÁN</th>
-                <th className="py-2.5 px-3 text-center">LOẠI</th>
+                <th className="py-2.5 px-3 text-center w-24">LOẠI</th>
                 <th className="py-2.5 px-3">NGÀY THANH TOÁN</th>
-                <th className="py-2.5 px-3 text-right">GIÁ TRỊ (TRƯỚC VAT)</th>
-                <th className="py-2.5 px-3 text-center">VAT</th>
                 <th className="py-2.5 px-3 text-right font-bold text-success">GIÁ TRỊ (SAU VAT)</th>
                 <th className="py-2.5 px-3 text-right font-bold text-primary">LŨY KẾ ĐÃ CHI</th>
                 <th className="py-2.5 px-3 text-center w-20">THAO TÁC</th>
@@ -661,12 +659,6 @@ export default function ContractDossierView({
                     </span>
                   </td>
                   <td className="py-2 px-3 font-mono text-foreground/80">{pm.displayDate}</td>
-                  <td className="py-2 px-3 text-right font-mono text-foreground/90">{formatVND(pm.amount_before_vat)}</td>
-                  <td className="py-2 px-3 text-center font-mono">
-                    <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold border border-primary/30 text-[10px]">
-                      {pm.vat_rate}%
-                    </span>
-                  </td>
                   <td className="py-2 px-3 text-right font-mono font-bold text-success text-xs bg-success/5">
                     {formatVND(pm.amount_after_vat)}
                   </td>
@@ -700,7 +692,7 @@ export default function ContractDossierView({
 
               {paymentsWithCumulative.length === 0 && (
                 <tr>
-                  <td colSpan="9" className="py-8 text-center text-muted-foreground">
+                  <td colSpan="7" className="py-8 text-center text-muted-foreground">
                     <p className="font-semibold text-foreground/80">Chưa có dữ liệu thanh toán.</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Nhấn nút "+ Thêm đợt thanh toán" ở trên để ghi nhận khoản giải ngân đầu tiên.</p>
                   </td>
@@ -726,7 +718,8 @@ export default function ContractDossierView({
             </div>
 
             {chartData.length > 0 ? (
-              <div className="h-48 w-full pt-1 flex-1">
+              <div className="h-48 w-full pt-1 flex-1 overflow-x-auto overflow-y-hidden hide-scrollbar">
+                <div className="min-w-[500px] h-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={chartData} margin={{ top: 15, right: 15, left: -5, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.5} />
@@ -816,6 +809,7 @@ export default function ContractDossierView({
                     />
                   </ComposedChart>
                 </ResponsiveContainer>
+                </div>
               </div>
             ) : (
               <div className="h-44 flex items-center justify-center text-muted-foreground text-xs italic bg-background/40 rounded-lg border border-border flex-1">

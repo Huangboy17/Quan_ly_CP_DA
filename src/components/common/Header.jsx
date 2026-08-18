@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { 
   Building2, 
   PlusCircle, 
@@ -13,7 +13,8 @@ import {
   LogOut,
   UserCheck,
   Database,
-  ShieldCheck
+  ShieldCheck,
+  Menu
 } from 'lucide-react';
 import { resetStorage, exportData, importData } from '../../services/storage';
 import ThemeToggle from './ThemeToggle';
@@ -29,7 +30,9 @@ export default function Header({
   setGlobalSearch,
   userSession,
   userProfile,
-  onLogout
+  onLogout,
+  isMobileMenuOpen,
+  setIsMobileMenuOpen
 }) {
 
   const handleReset = () => {
@@ -69,38 +72,44 @@ export default function Header({
   };
 
   return (
-    <header className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-30 px-4 lg:px-6 py-3.5 shadow-lg w-full transition-colors">
-      <div className="w-full max-w-full flex flex-col md:flex-row items-center justify-between gap-4">
+    <header className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-30 px-2 sm:px-4 lg:px-6 py-2.5 sm:py-3.5 shadow-lg w-full transition-colors">
+      <div className="w-full max-w-full flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
         
         {/* Logo & Brand */}
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-primary text-foreground font-bold">
-              <Building2 className="w-6 h-6 text-foreground" />
+        <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto justify-between">
+          <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
+            <button 
+              className="lg:hidden p-1.5 -ml-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition"
+              onClick={(e) => { e.stopPropagation(); setIsMobileMenuOpen(!isMobileMenuOpen); }}
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-primary text-foreground font-bold">
+              <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
+              <h1 className="text-base sm:text-lg font-bold text-foreground tracking-tight flex items-center gap-1.5 sm:gap-2">
                 BUILD<span className="text-primary font-extrabold">COST</span>
-                <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20 flex items-center gap-1 font-mono">
+                <span className="hidden sm:flex text-[10px] sm:text-xs font-normal px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20 items-center gap-1 font-mono">
                   <Database className="w-3 h-3 text-success" /> Supabase Database
                 </span>
               </h1>
-              <p className="text-xs text-muted-foreground">Quản lý Chi phí & Hợp đồng Xây dựng</p>
+              <p className="hidden sm:block text-xs text-muted-foreground">Quản lý Chi phí & Hợp đồng Xây dựng</p>
             </div>
           </div>
 
           {/* Mobile Actions */}
-          <div className="flex items-center gap-2 md:hidden">
+          <div className="flex items-center gap-1.5 sm:gap-2 md:hidden">
             <button 
               onClick={onNewContract}
-              className="p-2 rounded-lg bg-primary text-primary-foreground text-xs flex items-center gap-1 font-medium hover:bg-primary/90 transition cursor-pointer"
+              className="w-9 h-9 sm:p-2 rounded-lg bg-primary text-primary-foreground text-xs flex items-center justify-center gap-1 font-medium hover:bg-primary/90 transition cursor-pointer"
               title="Thêm hợp đồng"
             >
               <FileText className="w-4 h-4" />
             </button>
             <button 
               onClick={onNewPayment}
-              className="p-2 rounded-lg bg-success text-success-foreground text-xs flex items-center gap-1 font-medium hover:bg-success/90 transition cursor-pointer"
+              className="w-9 h-9 sm:p-2 rounded-lg bg-success text-success-foreground text-xs flex items-center justify-center gap-1 font-medium hover:bg-success/90 transition cursor-pointer"
               title="Thêm thanh toán"
             >
               <Wallet className="w-4 h-4" />
@@ -108,7 +117,7 @@ export default function Header({
             {userSession && (
               <button
                 onClick={onLogout}
-                className="p-2 rounded-lg bg-card text-destructive hover:bg-muted text-xs transition cursor-pointer"
+                className="w-9 h-9 sm:p-2 rounded-lg bg-card text-destructive hover:bg-muted text-xs transition flex items-center justify-center cursor-pointer"
                 title="Đăng xuất"
               >
                 <LogOut className="w-4 h-4" />

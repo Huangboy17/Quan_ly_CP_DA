@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   AlertCircle,
   Activity,
@@ -537,23 +537,22 @@ export default function ContractsView({
       </div>
 
       {/* Contracts Data Table */}
-      <div className="rounded-2xl bg-card border border-border shadow-xl overflow-visible">
-        <div className="overflow-x-auto w-full" style={{ overflow: 'visible' }}>
-          <div style={{ minWidth: '1050px' }}>
-            <table className="w-full text-left text-xs text-muted-foreground">
-              <thead className="bg-muted text-muted-foreground uppercase text-[11px] font-semibold border-b border-border">
-                <tr>
-                  <th className="py-3.5 px-4 w-32">Số HĐ / Ngày Ký</th>
-                  <th className="py-3.5 px-4">Tên HĐ & Nhà Thầu</th>
-                  <th className="py-3.5 px-4 w-32">Nhóm Chi Phí</th>
-                  <th className="py-3.5 px-4 text-right w-36">Giá Trị HĐ (Sau VAT)</th>
-                  <th className="py-3.5 px-4 text-right w-36">Chi Trả Trong Kỳ</th>
-                  <th className="py-3.5 px-4 text-right w-36">Lũy Kế Đã Chi</th>
-                  <th className="py-3.5 px-4 text-right w-32">Còn Lại</th>
-                  <th className="py-3.5 px-4 text-center w-28">Trạng Thái</th>
-                  <th className="py-3.5 px-4 text-center w-20">Thao Tác</th>
-                </tr>
-              </thead>
+      <div className="rounded-2xl bg-card border border-border shadow-xl overflow-hidden flex flex-col relative z-0">
+        <div className="overflow-x-auto overflow-y-auto w-full max-h-[70vh] table-responsive-container custom-scrollbar">
+          <table className="w-full text-left text-xs text-muted-foreground border-collapse" style={{ minWidth: 'max-content' }}>
+            <thead className="text-muted-foreground uppercase text-[11px] font-semibold whitespace-nowrap sticky top-0 z-30 shadow-sm bg-muted">
+              <tr>
+                <th className="py-3.5 px-4 w-[120px] min-w-[120px] max-w-[120px] sticky left-0 z-40 bg-muted border-b border-border shadow-[1px_0_0_0_var(--color-border)]">Số HĐ / Ngày Ký</th>
+                <th className="py-3.5 px-4 w-[240px] min-w-[240px] max-w-[240px] sticky left-[120px] z-40 bg-muted border-b border-border shadow-[1px_0_0_0_var(--color-border)]">Tên HĐ & Nhà Thầu</th>
+                <th className="py-3.5 px-4 w-[100px] bg-muted border-b border-border">Nhóm Chi Phí</th>
+                <th className="py-3.5 px-4 text-right bg-muted border-b border-border whitespace-nowrap w-[130px]">Giá Trị HĐ (Sau VAT)</th>
+                <th className="py-3.5 px-4 text-right bg-muted border-b border-border whitespace-nowrap w-[130px]">Chi Trả Trong Kỳ</th>
+                <th className="py-3.5 px-4 text-right bg-muted border-b border-border whitespace-nowrap w-[130px]">Lũy Kế Đã Chi</th>
+                <th className="py-3.5 px-4 text-right bg-muted border-b border-border whitespace-nowrap w-[130px]">Còn Lại</th>
+                <th className="py-3.5 px-4 text-center bg-muted border-b border-border whitespace-nowrap w-[110px]">Trạng Thái</th>
+                <th className="py-3.5 px-4 text-center bg-muted border-b border-border whitespace-nowrap w-[80px]">Thao Tác</th>
+              </tr>
+            </thead>
               <tbody className="divide-y divide-border/80">
               {filteredContracts.map((c) => {
                 const appendicesCount = Array.isArray(c.appendices) ? c.appendices.length : 0;
@@ -566,8 +565,8 @@ export default function ContractsView({
                   >
                     
                     {/* Số HĐ / Ngày Ký */}
-                    <td className="py-3.5 px-4 font-mono">
-                      <div className="font-bold text-foreground text-xs group-hover:text-primary transition">{c.contract_number}</div>
+                    <td className="py-3.5 px-4 font-mono sticky left-0 z-20 bg-card group-hover:bg-muted/50 shadow-[1px_0_0_0_var(--color-border)] align-top whitespace-nowrap overflow-hidden text-ellipsis">
+                      <div className="font-bold text-foreground text-xs group-hover:text-primary transition truncate">{c.contract_number}</div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">{formatDisplayDate(c.signing_date)}</div>
                       {appendicesCount > 0 && (
                         <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[10px] font-semibold">
@@ -578,7 +577,7 @@ export default function ContractsView({
 
                     {/* Tên HĐ & Nhà Thầu */}
                     <td 
-                      className="py-3.5 px-4 max-w-[250px]" 
+                      className="py-3.5 px-4 sticky left-[120px] z-20 bg-card group-hover:bg-muted/50 shadow-[1px_0_0_0_var(--color-border)] align-top overflow-hidden text-ellipsis" 
                       title={`${c.content}\nNhà thầu: ${c.contractor || 'Chưa cập nhật'}`}
                     >
                       <div className="font-bold text-foreground text-xs truncate group-hover:text-primary transition">{c.content}</div>
@@ -590,7 +589,7 @@ export default function ContractsView({
                     </td>
 
                     {/* Nhóm Chi Phí */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 align-top whitespace-nowrap">
                       {c.costGroup ? (
                         <div className="flex flex-col items-start gap-0.5">
                           <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-primary/10 text-primary border border-primary/30 inline-block">
@@ -610,17 +609,17 @@ export default function ContractsView({
                     </td>
 
                     {/* Giá trị HĐ sau VAT */}
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-foreground">
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-foreground whitespace-nowrap align-top">
                       {formatVND(c.contractValueAfterVAT || c.contract_value)}
                     </td>
 
                     {/* Chi trả trong kỳ */}
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-success bg-success/5">
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-success bg-success/5 whitespace-nowrap align-top">
                       {formatVND(c.inPeriodPaidAfterVAT || 0)}
                     </td>
 
                     {/* Lũy kế đã chi */}
-                    <td className="py-3.5 px-4 text-right font-mono font-semibold text-primary">
+                    <td className="py-3.5 px-4 text-right font-mono font-semibold text-primary whitespace-nowrap align-top">
                       {formatVND(c.totalPaidAfterVAT || c.totalPaid || 0)}
                     </td>
 
@@ -629,14 +628,14 @@ export default function ContractsView({
                       const remainingVal = c.remainingAfterVAT || c.remainingValue || 0;
                       const isZeroRemaining = remainingVal <= 0;
                       return (
-                        <td className={`py-3.5 px-4 text-right font-mono font-medium ${isZeroRemaining ? 'text-success/70' : 'text-warning'}`}>
+                        <td className={`py-3.5 px-4 text-right font-mono font-medium whitespace-nowrap align-top ${isZeroRemaining ? 'text-success/70' : 'text-warning'}`}>
                           {formatVND(remainingVal)}
                         </td>
                       );
                     })()}
 
                     {/* Trạng thái */}
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-3.5 px-4 text-center whitespace-nowrap align-top">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-block border ${
                         c.status === 'settled'
                           ? 'bg-primary/10 text-primary border-primary/30'
@@ -647,7 +646,7 @@ export default function ContractsView({
                     </td>
 
                     {/* Thao tác */}
-                    <td className="py-3.5 px-4 text-center relative" onClick={(e) => e.stopPropagation()}>
+                    <td className="py-3.5 px-4 text-center relative whitespace-nowrap align-top" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => handleRowClick(c.id)}
@@ -710,7 +709,6 @@ export default function ContractsView({
               )}
             </tbody>
           </table>
-          </div>
         </div>
       </div>
 
