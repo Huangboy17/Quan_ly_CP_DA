@@ -62,6 +62,19 @@ export default function ContractsView({
   const [chartScheduleFilter, setChartScheduleFilter] = useState('');
   const [statusChartMetric, setStatusChartMetric] = useState('count'); // 'count' or 'value'
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
+  const [displayUnit, setDisplayUnit] = useState(() => localStorage.getItem('contractListDisplayUnit') || 'vnd');
+
+  React.useEffect(() => {
+    localStorage.setItem('contractListDisplayUnit', displayUnit);
+  }, [displayUnit]);
+
+  const formatCurrencyByUnit = (value, unit) => {
+    if (value === null || value === undefined || isNaN(value)) return '0';
+    const numValue = Number(value);
+    if (unit === 'billion') return (numValue / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 3 });
+    if (unit === 'million') return (numValue / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+    return numValue.toLocaleString('vi-VN');
+  };
 
   // Close action menu when clicking outside
   React.useEffect(() => {
@@ -514,6 +527,20 @@ export default function ContractsView({
             </select>
           </div>
 
+          {/* Unit Selector */}
+          <div className="relative shrink-0 flex items-center gap-2 bg-muted/30 px-2 py-1 rounded-xl border border-border/60">
+            <span className="text-xs font-medium text-muted-foreground">Đơn vị:</span>
+            <select
+              value={displayUnit}
+              onChange={(e) => setDisplayUnit(e.target.value)}
+              className="bg-background border border-border text-foreground rounded-lg px-2 py-0.5 text-xs font-bold focus:outline-none focus:border-primary cursor-pointer"
+            >
+              <option value="vnd">Đồng</option>
+              <option value="million">Triệu đồng</option>
+              <option value="billion">Tỷ đồng</option>
+            </select>
+          </div>
+
           {/* Reset Local Filters */}
           {isLocalFiltered && (
             <button
@@ -545,10 +572,22 @@ export default function ContractsView({
                 <th className="py-3.5 px-4 w-[120px] min-w-[120px] max-w-[120px] sticky left-0 z-40 bg-muted border-b border-border shadow-[1px_0_0_0_var(--color-border)]">Số HĐ / Ngày Ký</th>
                 <th className="py-3.5 px-4 w-[240px] min-w-[240px] max-w-[240px] sticky left-[120px] z-40 bg-muted border-b border-border shadow-[1px_0_0_0_var(--color-border)]">Tên HĐ & Nhà Thầu</th>
                 <th className="py-3.5 px-4 w-[100px] bg-muted border-b border-border">Nhóm Chi Phí</th>
-                <th className="py-3.5 px-4 text-right bg-muted border-b border-border whitespace-nowrap w-[130px]">Giá Trị HĐ (Sau VAT)</th>
-                <th className="py-3.5 px-4 text-right bg-muted border-b border-border whitespace-nowrap w-[130px]">Chi Trả Trong Kỳ</th>
-                <th className="py-3.5 px-4 text-right bg-muted border-b border-border whitespace-nowrap w-[130px]">Lũy Kế Đã Chi</th>
-                <th className="py-3.5 px-4 text-right bg-muted border-b border-border whitespace-nowrap w-[130px]">Còn Lại</th>
+                <th className="py-3 px-2.5 text-right bg-muted border-b border-border leading-tight">
+                  Giá Trị HĐ<br/>
+                  <span className="text-[9px] font-mono lowercase opacity-80 inline-block">({displayUnit === 'billion' ? 'tỷ đ' : displayUnit === 'million' ? 'tr đ' : 'vnđ'})</span>
+                </th>
+                <th className="py-3 px-2.5 text-right bg-muted border-b border-border leading-tight">
+                  Chi Trả Kỳ<br/>
+                  <span className="text-[9px] font-mono lowercase opacity-80 inline-block">({displayUnit === 'billion' ? 'tỷ đ' : displayUnit === 'million' ? 'tr đ' : 'vnđ'})</span>
+                </th>
+                <th className="py-3 px-2.5 text-right bg-muted border-b border-border leading-tight">
+                  Lũy Kế<br/>
+                  <span className="text-[9px] font-mono lowercase opacity-80 inline-block">({displayUnit === 'billion' ? 'tỷ đ' : displayUnit === 'million' ? 'tr đ' : 'vnđ'})</span>
+                </th>
+                <th className="py-3 px-2.5 text-right bg-muted border-b border-border leading-tight">
+                  Còn Lại<br/>
+                  <span className="text-[9px] font-mono lowercase opacity-80 inline-block">({displayUnit === 'billion' ? 'tỷ đ' : displayUnit === 'million' ? 'tr đ' : 'vnđ'})</span>
+                </th>
                 <th className="py-3.5 px-4 text-center bg-muted border-b border-border whitespace-nowrap w-[110px]">Trạng Thái</th>
                 <th className="py-3.5 px-4 text-center bg-muted border-b border-border whitespace-nowrap w-[80px]">Thao Tác</th>
               </tr>
@@ -609,18 +648,18 @@ export default function ContractsView({
                     </td>
 
                     {/* Giá trị HĐ sau VAT */}
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-foreground whitespace-nowrap align-top">
-                      {formatVND(c.contractValueAfterVAT || c.contract_value)}
+                    <td className="py-3.5 px-2.5 text-right font-mono font-bold text-foreground whitespace-nowrap align-top">
+                      {formatCurrencyByUnit(c.contractValueAfterVAT || c.contract_value, displayUnit)}
                     </td>
 
                     {/* Chi trả trong kỳ */}
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-success bg-success/5 whitespace-nowrap align-top">
-                      {formatVND(c.inPeriodPaidAfterVAT || 0)}
+                    <td className="py-3.5 px-2.5 text-right font-mono font-bold text-success bg-success/5 whitespace-nowrap align-top">
+                      {formatCurrencyByUnit(c.inPeriodPaidAfterVAT || 0, displayUnit)}
                     </td>
 
                     {/* Lũy kế đã chi */}
-                    <td className="py-3.5 px-4 text-right font-mono font-semibold text-primary whitespace-nowrap align-top">
-                      {formatVND(c.totalPaidAfterVAT || c.totalPaid || 0)}
+                    <td className="py-3.5 px-2.5 text-right font-mono font-semibold text-primary whitespace-nowrap align-top">
+                      {formatCurrencyByUnit(c.totalPaidAfterVAT || c.totalPaid || 0, displayUnit)}
                     </td>
 
                     {/* Còn lại */}
@@ -628,8 +667,8 @@ export default function ContractsView({
                       const remainingVal = c.remainingAfterVAT || c.remainingValue || 0;
                       const isZeroRemaining = remainingVal <= 0;
                       return (
-                        <td className={`py-3.5 px-4 text-right font-mono font-medium whitespace-nowrap align-top ${isZeroRemaining ? 'text-success/70' : 'text-warning'}`}>
-                          {formatVND(remainingVal)}
+                        <td className={`py-3.5 px-2.5 text-right font-mono font-medium whitespace-nowrap align-top ${isZeroRemaining ? 'text-success/70' : 'text-warning'}`}>
+                          {formatCurrencyByUnit(remainingVal, displayUnit)}
                         </td>
                       );
                     })()}
