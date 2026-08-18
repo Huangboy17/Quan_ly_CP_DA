@@ -560,17 +560,25 @@ export default function ProjectsView({
               </span>
             </div>
 
-            <div>
+            <div className="min-w-0">
               <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Ngày Khởi Tạo:</span>
-              <span className="font-mono font-bold text-foreground block">
+              <span className="font-mono font-bold text-foreground block truncate">
                 {formatDisplayDate(activeProj.created_at || activeProj.start_date)}
               </span>
             </div>
 
-            <div>
+            <div className="min-w-0">
               <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Thời Gian Thực Hiện:</span>
               <span className="font-semibold text-foreground truncate block">
-                {activeProj.execution_time || activeProj.timeline || 'Chưa cập nhật'}
+                {(() => {
+                  const val = activeProj.execution_time || activeProj.timeline;
+                  if (!val) return 'Chưa cập nhật';
+                  const num = Number(val);
+                  if (!isNaN(num) && String(val).trim() === String(num)) {
+                    return `${num.toLocaleString('vi-VN')} Ngày`;
+                  }
+                  return val;
+                })()}
               </span>
             </div>
 

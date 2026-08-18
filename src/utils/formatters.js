@@ -107,10 +107,12 @@ export function numberToWordsVN(number) {
   return result.charAt(0).toUpperCase() + result.slice(1) + ' đồng';
 }
 
-// Format Date YYYY-MM-DD -> DD/MM/YYYY
+// Format Date YYYY-MM-DD -> DD/MM/YYYY (also handles full ISO timestamps)
 export function formatDisplayDate(dateStr) {
   if (!dateStr) return '---';
-  const parts = dateStr.split('-');
+  // Extract only the date portion (before 'T' if it's a full timestamp)
+  const dateOnly = String(dateStr).split('T')[0];
+  const parts = dateOnly.split('-');
   if (parts.length === 3) {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
   }
