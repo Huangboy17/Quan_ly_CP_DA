@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { X, LogIn, UserPlus, Mail, Lock, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../services/supabase';
 
@@ -49,12 +49,42 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           onClose();
         }, 800);
       } else {
+        const checkEmail = email.trim();
+        
+        // 1. First layer: Check profiles if RLS allows
+        const { data: existingProfiles } = await supabase
+          .from('profiles')
+          .select('status')
+          .ilike('email', checkEmail);
+
+        if (existingProfiles && existingProfiles.length > 0) {
+          const profileStatus = existingProfiles[0].status;
+          if (profileStatus === 'active') {
+            throw new Error('Email này đã được đăng ký và tài khoản đang hoạt động. Vui lòng đăng nhập thay vì đăng ký tài khoản mới.');
+          } else if (profileStatus === 'pending') {
+            throw new Error('Email này đã được đăng ký và đang chờ quản trị viên phê duyệt.');
+          } else {
+            throw new Error('Email này đã tồn tại trong hệ thống. Vui lòng liên hệ quản trị viên.');
+          }
+        }
+
+        // 2. Second layer: Auth check
         const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
+          email: checkEmail,
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          if (error.message.includes('already registered')) {
+            throw new Error('Email này đã được đăng ký và tài khoản đang hoạt động. Vui lòng đăng nhập thay vì đăng ký tài khoản mới.');
+          }
+          throw error;
+        }
+
+        // 3. Third layer: Catch Supabase fake success
+        if (data?.user && data.user.identities && data.user.identities.length === 0) {
+          throw new Error('Email này đã được đăng ký và tài khoản đang hoạt động. Vui lòng đăng nhập thay vì đăng ký tài khoản mới.');
+        }
 
         if (data.session) {
           setSuccessMsg('Đăng ký tài khoản thành công!');

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Building2, Lock, Mail, LogIn, UserPlus, KeyRound, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../services/supabase';
 
@@ -29,12 +29,41 @@ export default function LoginView({ onLoginSuccess }) {
 
     try {
       if (isSignUp) {
+        // 1. First layer: Check if email already exists in profiles (if RLS allows)
+        const checkEmail = email.trim();
+        const { data: existingProfiles } = await supabase
+          .from('profiles')
+          .select('status')
+          .ilike('email', checkEmail);
+
+        if (existingProfiles && existingProfiles.length > 0) {
+          const profileStatus = existingProfiles[0].status;
+          if (profileStatus === 'active') {
+            throw new Error('Email này đã được đăng ký và tài khoản đang hoạt động. Vui lòng đăng nhập thay vì đăng ký tài khoản mới.');
+          } else if (profileStatus === 'pending') {
+            throw new Error('Email này đã được đăng ký và đang chờ quản trị viên phê duyệt.');
+          } else {
+            throw new Error('Email này đã tồn tại trong hệ thống. Vui lòng liên hệ quản trị viên.');
+          }
+        }
+
+        // 2. Second layer: Supabase Auth check
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: checkEmail,
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          if (error.message.includes('already registered')) {
+            throw new Error('Email này đã được đăng ký và tài khoản đang hoạt động. Vui lòng đăng nhập thay vì đăng ký tài khoản mới.');
+          }
+          throw error;
+        }
+
+        // 3. Third layer: Catch Supabase "fake success" when confirm email is ON
+        if (data?.user && data.user.identities && data.user.identities.length === 0) {
+          throw new Error('Email này đã được đăng ký và tài khoản đang hoạt động. Vui lòng đăng nhập thay vì đăng ký tài khoản mới.');
+        }
 
         if (data?.user && data?.session === null) {
           setSuccessMsg('Đăng ký thành công! Vui lòng kiểm tra email của bạn để xác nhận tài khoản, hoặc đăng nhập nếu tài khoản đã được kích hoạt.');
