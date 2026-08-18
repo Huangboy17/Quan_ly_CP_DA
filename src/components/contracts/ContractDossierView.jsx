@@ -18,7 +18,8 @@ import {
   Paperclip,
   ArrowUpRight,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Info
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -285,12 +286,21 @@ export default function ContractDossierView({
 
         {/* Right Action Buttons */}
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => onOpenAddPayment(contract.id)}
-            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer flex items-center gap-1"
-          >
-            <Plus className="w-3.5 h-3.5" /> + Thanh toán
-          </button>
+          {isSettled ? (
+            <span
+              className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-500 text-xs font-bold border border-slate-700 flex items-center gap-1 cursor-not-allowed"
+              title="Hợp đồng đã quyết toán, không thể ghi nhận thêm thanh toán."
+            >
+              <Plus className="w-3.5 h-3.5" /> + Thanh toán
+            </span>
+          ) : (
+            <button
+              onClick={() => onOpenAddPayment(contract.id)}
+              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-600/20 transition cursor-pointer flex items-center gap-1"
+            >
+              <Plus className="w-3.5 h-3.5" /> + Thanh toán
+            </button>
+          )}
           <button
             onClick={() => onOpenAddAppendix(contract.id)}
             className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold border border-slate-700 transition cursor-pointer flex items-center gap-1"
@@ -306,31 +316,26 @@ export default function ContractDossierView({
         </div>
       </div>
 
-      {/* 2. NHÓM 1: CẤU TRÚC ĐỊNH DANH HỢP ĐỒNG (GRID 4 COLS X 2 ROWS - HORIZONTAL EFFICIENCY) */}
+      {/* 2. THÔNG TIN CHUNG HỢP ĐỒNG */}
       <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 shadow-md space-y-2.5 text-xs">
         <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <Building2 className="w-3.5 h-3.5 text-blue-400" />
-            THÔNG TIN NHẬN DIỆN & TIẾN ĐỘ THỜI GIAN
+            THÔNG TIN CHUNG
           </span>
-          <span className="text-[10px] font-mono text-slate-500">Mã HĐ: {contract.id}</span>
+          <span className="relative group">
+            <Info className="w-3.5 h-3.5 text-slate-600 hover:text-slate-400 cursor-help transition" />
+            <span className="absolute right-0 top-5 z-20 hidden group-hover:block bg-slate-800 border border-slate-700 text-[10px] text-slate-300 font-mono px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap">
+              Mã hệ thống: {contract.id}
+            </span>
+          </span>
         </div>
 
-        {/* 4 Columns Row 1 */}
+        {/* Row 1: 4 columns */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <span className="text-slate-400 block text-[10px] uppercase font-semibold">MÃ DỰ ÁN</span>
             <span className="font-mono font-bold text-blue-300 text-xs">{projectCode}</span>
-          </div>
-
-          <div>
-            <span className="text-slate-400 block text-[10px] uppercase font-semibold">SỐ HỢP ĐỒNG</span>
-            <span className="font-mono font-extrabold text-white text-xs">{contract.contract_number}</span>
-          </div>
-
-          <div>
-            <span className="text-slate-400 block text-[10px] uppercase font-semibold">NHÀ THẦU THỰC HIỆN</span>
-            <span className="font-bold text-slate-200 text-xs truncate block">{contract.contractor || 'Chưa cập nhật'}</span>
           </div>
 
           <div>
@@ -339,10 +344,7 @@ export default function ContractDossierView({
               {contract.costGroup || 'Chưa phân loại'}
             </span>
           </div>
-        </div>
 
-        {/* 4 Columns Row 2 */}
-        <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <span className="text-slate-400 block text-[10px] uppercase font-semibold">NGÀY KÝ HỢP ĐỒNG</span>
             <span className="font-mono font-bold text-slate-200 text-xs">{formatDisplayDate(signingDate)}</span>
@@ -352,10 +354,22 @@ export default function ContractDossierView({
             <span className="text-slate-400 block text-[10px] uppercase font-semibold">THỜI HẠN THỰC HIỆN</span>
             <span className="font-mono font-bold text-white text-xs">{executionDays} ngày</span>
           </div>
+        </div>
 
+        {/* Row 2: 4 columns */}
+        <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <span className="text-slate-400 block text-[10px] uppercase font-semibold">NGÀY KẾT THÚC HỢP ĐỒNG</span>
-            <span className="font-mono font-bold text-amber-300 text-xs">{formatDisplayDate(exactEndDate)}</span>
+            <span className="font-mono font-bold text-xs" style={{color: isSettled ? '#93c5fd' : isOverdue ? '#fda4af' : daysRemaining <= 30 ? '#fcd34d' : '#86efac'}}>
+              {exactEndDate ? formatDisplayDate(exactEndDate) : 'Chưa xác định'}
+            </span>
+            {exactEndDate && (
+              <span className={`block text-[10px] font-semibold mt-0.5 ${
+                isSettled ? 'text-blue-400' : isOverdue ? 'text-rose-400' : daysRemaining <= 30 ? 'text-amber-400' : 'text-emerald-400'
+              }`}>
+                {isSettled ? '✓ Đã quyết toán' : isOverdue ? `Quá hạn ${daysOverdue} ngày` : daysRemaining === 0 ? 'Hết hạn hôm nay' : `Còn ${daysRemaining} ngày`}
+              </span>
+            )}
           </div>
 
           <div>
@@ -372,72 +386,62 @@ export default function ContractDossierView({
               <span className="font-bold text-slate-200 text-xs truncate block">{projectName}</span>
             )}
           </div>
+
+          <div className="lg:col-span-2">
+            <span className="text-slate-400 block text-[10px] uppercase font-semibold">NỘI DUNG HỢP ĐỒNG</span>
+            {contract.content ? (
+              <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap line-clamp-2 hover:line-clamp-none transition-all cursor-pointer" title="Nhấn để xem đầy đủ">
+                {contract.content}
+              </p>
+            ) : (
+              <span className="text-xs text-slate-500 italic">Chưa cập nhật nội dung.</span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* 2.5 NỘI DUNG HỢP ĐỒNG */}
-      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 shadow-md">
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Nội dung hợp đồng</span>
-        </div>
-        {contract.content ? (
-          <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap line-clamp-3 hover:line-clamp-none transition-all cursor-pointer" title="Nhấn để xem đầy đủ">
-            {contract.content}
-          </p>
-        ) : (
-          <p className="text-xs text-slate-500 italic">Chưa cập nhật nội dung hợp đồng.</p>
-        )}
-      </div>
+      {/* 3. KPI TÀI CHÍNH — 2 NHÓM */}
+      <div className="flex flex-col lg:flex-row gap-2.5">
 
-      {/* 3. NHÓM 2: KHU VỰC CÁC KPI GIÁ TRỊ CỐT LÕI (DÀN HÀNG NGANG SINGLE ROW ON DESKTOP) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        
-        {/* KPI 1: Giá trị trước VAT */}
-        <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 shadow-md">
-          <span className="text-[10px] font-semibold text-slate-400 uppercase block">TRƯỚC VAT</span>
-          <div className="text-xs sm:text-sm font-bold text-slate-200 font-mono mt-0.5">{formatVND(beforeVat)}</div>
+        {/* NHÓM 1: QUY MÔ HỢP ĐỒNG */}
+        <div className="flex-1 p-3 rounded-xl bg-slate-900 border border-slate-800 shadow-md">
+          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Quy mô hợp đồng</span>
+          <div className="grid grid-cols-3 gap-2.5">
+            <div>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase block">Trước VAT</span>
+              <div className="text-xs font-bold text-slate-200 font-mono mt-0.5">{formatVND(beforeVat)}</div>
+            </div>
+            <div>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase block">Thuế VAT ({vatRate}%)</span>
+              <div className="text-xs font-bold text-slate-400 font-mono mt-0.5">{formatVND(vatAmount)}</div>
+            </div>
+            <div className="p-2 -m-1 rounded-lg bg-blue-950/30 border border-blue-500/30">
+              <span className="text-[10px] font-bold text-blue-300 uppercase block">GIÁ TRỊ HỢP ĐỒNG</span>
+              <div className="text-sm sm:text-lg font-black text-white font-mono mt-0.5 tracking-tight">{formatVND(currentContractValueAfterVat)}</div>
+            </div>
+          </div>
         </div>
 
-        {/* KPI 2: Thuế VAT (%) */}
-        <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 shadow-md">
-          <span className="text-[10px] font-semibold text-slate-400 uppercase block">THUẾ VAT ({vatRate}%)</span>
-          <div className="text-xs sm:text-sm font-bold text-slate-400 font-mono mt-0.5">{formatVND(vatAmount)}</div>
-        </div>
-
-        {/* KPI 3: Giá trị sau VAT */}
-        <div className="p-2.5 rounded-xl bg-slate-900 border border-blue-500/40 bg-blue-950/20 shadow-md">
-          <span className="text-[10px] font-bold text-blue-300 uppercase block">GIÁ TRỊ HỢP ĐỒNG</span>
-          <div className="text-xs sm:text-sm font-black text-white font-mono mt-0.5">{formatVND(currentContractValueAfterVat)}</div>
-        </div>
-
-        {/* KPI 4: Đã thanh toán (Lũy kế) */}
-        <div className="p-2.5 rounded-xl bg-slate-900 border border-emerald-500/30 bg-emerald-950/20 shadow-md">
-          <span className="text-[10px] font-bold text-emerald-400 uppercase block">ĐÃ THANH TOÁN</span>
-          <div className="text-xs sm:text-sm font-black text-emerald-400 font-mono mt-0.5">{formatVND(totalPaidAfterVat)}</div>
-        </div>
-
-        {/* KPI 5: Còn phải thanh toán */}
-        <div className="p-2.5 rounded-xl bg-slate-900 border border-amber-500/30 bg-amber-950/20 shadow-md">
-          <span className="text-[10px] font-bold text-amber-400 uppercase block">CÒN LẠI PHẢI TRẢ</span>
-          <div className="text-xs sm:text-sm font-black text-amber-400 font-mono mt-0.5">{formatVND(remainingToPay)}</div>
-        </div>
-
-        {/* KPI 6: Quyết toán — label thay đổi theo trạng thái */}
-        <div className={`p-2.5 rounded-xl bg-slate-900 border shadow-md ${
-          isSettled 
-            ? 'border-blue-500/40 bg-blue-950/20' 
-            : 'border-purple-500/30'
-        }`}>
-          <span className={`text-[10px] font-bold uppercase block ${
-            isSettled ? 'text-blue-300' : 'text-purple-300'
-          }`}>
-            {isSettled ? 'GIÁ TRỊ QUYẾT TOÁN' : 'DỰ KIẾN QUYẾT TOÁN'}
-          </span>
-          <div className={`text-xs sm:text-sm font-black font-mono mt-0.5 ${
-            isSettled ? 'text-blue-200' : 'text-purple-300'
-          }`}>
-            {formatVND(estimatedSettlement)}
+        {/* NHÓM 2: DÒNG TIỀN THỰC TẾ */}
+        <div className="flex-1 p-3 rounded-xl bg-slate-900 border border-slate-800 shadow-md">
+          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Dòng tiền thực tế</span>
+          <div className="grid grid-cols-3 gap-2.5">
+            <div>
+              <span className="text-[10px] font-bold text-emerald-400 uppercase block">Đã thanh toán</span>
+              <div className="text-xs font-black text-emerald-400 font-mono mt-0.5">{formatVND(totalPaidAfterVat)}</div>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-amber-400 uppercase block">Còn phải trả</span>
+              <div className="text-xs font-black text-amber-400 font-mono mt-0.5">{formatVND(remainingToPay)}</div>
+            </div>
+            <div>
+              <span className={`text-[10px] font-bold uppercase block ${isSettled ? 'text-blue-300' : 'text-purple-300'}`}>
+                {isSettled ? 'Giá trị QT' : 'Dự kiến QT'}
+              </span>
+              <div className={`text-xs font-black font-mono mt-0.5 ${isSettled ? 'text-blue-200' : 'text-purple-300'}`}>
+                {formatVND(estimatedSettlement)}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -455,27 +459,30 @@ export default function ContractDossierView({
         <div className="overflow-x-auto">
           <table className="w-full text-[11px]">
             <thead>
-              <tr className="text-left text-[10px] text-slate-500 uppercase">
-                <th className="pb-1.5 pr-2 font-semibold" style={{minWidth:'140px'}}>Thành phần</th>
-                <th className="pb-1.5 pr-2 font-semibold" style={{minWidth:'80px'}}>Ngày ký</th>
+              <tr className="text-[10px] text-slate-500 uppercase">
+                <th className="pb-1.5 pr-2 font-semibold text-left" style={{minWidth:'150px'}}>Thành phần</th>
+                <th className="pb-1.5 pr-2 font-semibold text-left" style={{minWidth:'80px'}}>Ngày ký</th>
                 <th className="pb-1.5 pr-2 font-semibold text-right" style={{minWidth:'130px'}}>Trước VAT</th>
-                <th className="pb-1.5 pr-2 font-semibold text-right" style={{minWidth:'110px'}}>VAT</th>
+                <th className="pb-1.5 pr-2 font-semibold text-right" style={{minWidth:'100px'}}>VAT</th>
                 <th className="pb-1.5 pr-2 font-semibold text-right" style={{minWidth:'130px'}}>Sau VAT</th>
-                <th className="pb-1.5 font-semibold" style={{minWidth:'150px'}}>Diễn giải</th>
+                <th className="pb-1.5 font-semibold text-left" style={{minWidth:'140px'}}>Diễn giải</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {/* Dòng: Hợp đồng gốc */}
-              <tr>
-                <td className="py-1.5 pr-2 font-semibold text-slate-200">Hợp đồng gốc</td>
-                <td className="py-1.5 pr-2 font-mono text-slate-400">{formatDisplayDate(contract.signing_date)}</td>
-                <td className="py-1.5 pr-2 font-mono font-bold text-slate-300 text-right">{formatVND(initialValueBeforeVat)}</td>
-                <td className="py-1.5 pr-2 font-mono text-slate-400 text-right">{formatVND(initialVatAmt)}</td>
-                <td className="py-1.5 pr-2 font-mono font-bold text-slate-200 text-right">{formatVND(initialValueAfterVat)}</td>
-                <td className="py-1.5 text-slate-500">Giá trị theo hợp đồng ký ban đầu</td>
+              {/* Dòng: Hợp đồng gốc — nổi bật hơn */}
+              <tr className="bg-slate-800/30">
+                <td className="py-2 pr-2 font-bold text-white flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0"></span>
+                  Hợp đồng gốc
+                </td>
+                <td className="py-2 pr-2 font-mono text-slate-300">{formatDisplayDate(contract.signing_date)}</td>
+                <td className="py-2 pr-2 font-mono font-bold text-slate-200 text-right">{formatVND(initialValueBeforeVat)}</td>
+                <td className="py-2 pr-2 font-mono text-slate-400 text-right">{formatVND(initialVatAmt)}</td>
+                <td className="py-2 pr-2 font-mono font-bold text-slate-100 text-right">{formatVND(initialValueAfterVat)}</td>
+                <td className="py-2 text-slate-500">Giá trị theo hợp đồng ký ban đầu</td>
               </tr>
 
-              {/* Dòng: Từng phụ lục */}
+              {/* Dòng: Từng phụ lục — indent nhẹ */}
               {appendixProgression.map((app, idx) => {
                 const appBeforeVat = cleanVND(app.amount_before_vat || 0);
                 const appVatAmt = cleanVND(app.vat_amount !== undefined ? app.vat_amount : 0);
@@ -485,8 +492,12 @@ export default function ContractDossierView({
                 const fmtSign = (v) => (v >= 0 ? '+' : '') + formatVND(v);
                 return (
                   <tr key={app.id || idx}>
-                    <td className="py-1.5 pr-2 font-semibold text-slate-300">
-                      Phụ lục {app.appendix_number || String(idx + 1).padStart(2, '0')}
+                    <td className="py-1.5 pr-2 text-slate-300 pl-4">
+                      <span className={`inline-flex items-center gap-1.5 ${isPositive ? '' : ''}`}>
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isPositive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                          PL {app.appendix_number || String(idx + 1).padStart(2, '0')}
+                        </span>
+                      </span>
                     </td>
                     <td className="py-1.5 pr-2 font-mono text-slate-400">
                       {app.signed_date ? formatDisplayDate(app.signed_date) : '—'}
@@ -502,22 +513,21 @@ export default function ContractDossierView({
               })}
             </tbody>
 
-            {/* Dòng tổng kết */}
-            <tfoot>
-              <tr className="border-t border-slate-700">
-                <td className="pt-2 pr-2 font-bold text-blue-300">Tổng giá trị hiện tại</td>
-                <td className="pt-2 pr-2"></td>
-                <td className="pt-2 pr-2 font-mono font-black text-white text-right">{formatVND(beforeVat)}</td>
-                <td className="pt-2 pr-2 font-mono font-bold text-slate-300 text-right">{formatVND(vatAmount)}</td>
-                <td className="pt-2 pr-2 font-mono font-black text-white text-right">{formatVND(currentContractValueAfterVat)}</td>
-                <td className="pt-2 text-slate-500 text-[10px]">
-                  {sortedAppendices.length > 0 
-                    ? `= HĐ gốc ${totalAppendicesAfterVat >= 0 ? '+' : '−'} ${sortedAppendices.length} phụ lục`
-                    : 'Chưa có phụ lục điều chỉnh'
-                  }
-                </td>
-              </tr>
-            </tfoot>
+            {/* Dòng tổng kết — chỉ hiển thị khi có phụ lục */}
+            {sortedAppendices.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-slate-600">
+                  <td className="pt-2.5 pr-2 font-bold text-blue-300 text-[11px]">= Tổng giá trị hiện tại</td>
+                  <td className="pt-2.5 pr-2"></td>
+                  <td className="pt-2.5 pr-2 font-mono font-black text-white text-right">{formatVND(beforeVat)}</td>
+                  <td className="pt-2.5 pr-2 font-mono font-bold text-slate-300 text-right">{formatVND(vatAmount)}</td>
+                  <td className="pt-2.5 pr-2 font-mono font-black text-white text-right">{formatVND(currentContractValueAfterVat)}</td>
+                  <td className="pt-2.5 text-slate-500 text-[10px]">
+                    HĐ gốc {totalAppendicesAfterVat >= 0 ? '+' : '−'} {sortedAppendices.length} phụ lục
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
