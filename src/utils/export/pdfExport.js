@@ -132,8 +132,12 @@ export async function generatePdf(config) {
       );
     }
 
-    // ── Save ─────────────────────────────────────────────────────────
-    doc.save(filename);
+    // ── Save or Return Blob ──────────────────────────────────────────
+    if (config.outputType === 'blob') {
+      return doc.output('blob');
+    } else {
+      doc.save(filename);
+    }
   } catch (error) {
     console.error('PDF export failed:', error);
     throw error;

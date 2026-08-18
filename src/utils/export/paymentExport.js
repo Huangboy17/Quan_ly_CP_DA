@@ -94,7 +94,7 @@ export async function exportPaymentsExcel(payments, filters = {}) {
   });
 }
 
-export async function exportPaymentsPdf(payments, filters = {}) {
+export async function exportPaymentsPdf(payments, filters = {}, outputType = 'download') {
   if (!payments || payments.length === 0) {
     throw new Error('Không có dữ liệu để xuất báo cáo.');
   }
@@ -104,7 +104,7 @@ export async function exportPaymentsPdf(payments, filters = {}) {
   const filterInfo = buildFilterInfo(filters);
   const dateStr = new Date().toISOString().slice(0, 10);
 
-  await generatePdf({
+  return await generatePdf({
     title: 'BÁO CÁO THEO DÕI THANH TOÁN',
     columns,
     data: rows,
@@ -112,5 +112,6 @@ export async function exportPaymentsPdf(payments, filters = {}) {
     totals,
     filename: `Bao_cao_theo_doi_thanh_toan_${dateStr}.pdf`,
     orientation: 'landscape',
+    outputType,
   });
 }

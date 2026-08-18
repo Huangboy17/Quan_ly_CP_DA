@@ -117,24 +117,22 @@ export async function exportProjectExcel(project, contracts, payments, periodLab
   });
 }
 
-export async function exportProjectPdf(project, contracts, payments, periodLabel) {
-  if (!project) {
-    throw new Error('Không có dữ liệu dự án để xuất báo cáo.');
-  }
-  const summary = computeProjectSummary(project, contracts, payments);
-  const contractRows = buildContractRows(contracts);
+export async function exportProjectPdf(project, projContracts = [], projPayments = [], periodLabel = '', outputType = 'download') {
+  if (!project) throw new Error('Không tìm thấy dự án.');
+  const summary = computeProjectSummary(project, projContracts, projPayments);
+  const contractRows = buildContractRows(projContracts);
   const columns = getContractColumns();
   const dateStr = new Date().toISOString().slice(0, 10);
-
+  
   const totals = {
     stt: '',
-    contract_number: `Tổng cộng (${contracts.length} HĐ)`,
+    contract_number: `Tổng cộng (${projContracts.length} HĐ)`,
     content: '',
     contractor: '',
     signing_date: '',
     end_date: '',
-    contractValue: contracts.reduce((s, c) => s + cleanVND(c.value_after_vat || c.contractValueAfterVAT || 0), 0),
-    totalPaid: payments.reduce((s, pm) => s + cleanVND(pm.amount_after_vat || 0), 0),
+    contractValue: summary.signedContracts,
+    totalPaid: summary.totalPaid,
     remaining: summary.remainingToPay,
     status: '',
   };
@@ -152,7 +150,7 @@ export async function exportProjectPdf(project, contracts, payments, periodLabel
   if (periodLabel) filters['Kỳ báo cáo'] = periodLabel;
   filters['Ngày xuất'] = new Date().toLocaleDateString('vi-VN');
 
-  await generatePdf({
+  return await generatePdf({
     title: `BÁO CÁO TỔNG HỢP DỰ ÁN: ${project.name}`,
     columns,
     data: contractRows,
@@ -160,5 +158,6 @@ export async function exportProjectPdf(project, contracts, payments, periodLabel
     totals,
     filename: `Bao_cao_du_an_${(project.code || project.id || '').replace(/[^a-zA-Z0-9]/g, '_')}_${dateStr}.pdf`,
     orientation: 'landscape',
+    outputType,
   });
 }

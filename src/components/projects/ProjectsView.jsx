@@ -22,7 +22,8 @@ import {
   Activity,
   X,
   CheckCircle,
-  Info
+  Info,
+  Eye
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -48,6 +49,7 @@ import TmdtPhaseDetailModal from './TmdtPhaseDetailModal';
 import DeleteProjectModal from './DeleteProjectModal';
 import DeleteAllProjectsModal from './DeleteAllProjectsModal';
 import ContractCostGroupChart from '../common/ContractCostGroupChart';
+import PdfPreviewModal from '../common/PdfPreviewModal';
 
 export default function ProjectsView({ 
   data, 
@@ -78,6 +80,15 @@ export default function ProjectsView({
     isTimeRangeFilterActive = false
   } = data;
 
+  // Cleanup Blob URL when unmounting
+  React.useEffect(() => {
+    return () => {
+      if (previewPdfUrl) {
+        URL.revokeObjectURL(previewPdfUrl);
+      }
+    };
+  }, [previewPdfUrl]);
+
   // Active Project: Automatically synced with selectedProjectId from Global Filter Header!
   const activeProj = useMemo(() => {
     if (selectedProjectId) {
@@ -86,7 +97,12 @@ export default function ProjectsView({
     return projects.length > 0 ? projects[0] : null;
   }, [projects, selectedProjectId]);
 
-  const [exporting, setExporting] = useState(null); // 'excel' | 'pdf' | null
+  const [exporting, setExporting] = useState(null); // 'excel' | 'pdf_preview' | 'pdf_download' | null
+
+  // PDF Preview State
+  const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+  const [previewPdfFilename, setPreviewPdfFilename] = useState(null);
+  const [previewPdfBlob, setPreviewPdfBlob] = useState(null);
 
   // Modals State
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -523,11 +539,35 @@ export default function ProjectsView({
               {exporting === 'excel' ? 'Đang xuất...' : '📊 Xuất Excel'}
             </button>
             <button
-              disabled={exporting === 'pdf' || !activeProj}
+              disabled={exporting === 'pdf_preview' || !activeProj}
               onClick={async () => {
-                setExporting('pdf');
+                setExporting('pdf_preview');
                 try {
-                  await exportProjectPdf(activeProj, projContracts, activePaymentsForScope, periodLabel);
+                  const blob = await exportProjectPdf(activeProj, projContracts, activePaymentsForScope, periodLabel, 'blob');
+                  
+                  if (previewPdfUrl) URL.revokeObjectURL(previewPdfUrl);
+                  
+                  const url = URL.createObjectURL(blob);
+                  setPreviewPdfBlob(blob);
+                  setPreviewPdfUrl(url);
+                  setPreviewPdfFilename(`Bao_cao_du_an_${(activeProj.code || activeProj.id || '').replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`);
+                } catch (err) {
+                  console.error(err);
+                  alert(err.message || 'Không thể tạo bản xem trước PDF. Vui lòng thử lại.');
+                } finally {
+                  setExporting(null);
+                }
+              }}
+              className="w-full sm:w-auto justify-center px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exporting === 'pdf_preview' ? 'Đang tạo...' : <><Eye className="w-3.5 h-3.5" /> Xem trước PDF</>}
+            </button>
+            <button
+              disabled={exporting === 'pdf_download' || !activeProj}
+              onClick={async () => {
+                setExporting('pdf_download');
+                try {
+                  await exportProjectPdf(activeProj, projContracts, activePaymentsForScope, periodLabel, 'download');
                 } catch (err) {
                   alert(err.message || 'Không thể xuất báo cáo.');
                 } finally {
@@ -536,7 +576,7 @@ export default function ProjectsView({
               }}
               className="w-full sm:w-auto justify-center px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-destructive border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {exporting === 'pdf' ? 'Đang tạo...' : '📄 Xuất PDF'}
+              {exporting === 'pdf_download' ? 'Đang tạo...' : '📄 Xuất PDF'}
             </button>
             <button
               onClick={onNewProject}
@@ -1379,6 +1419,28 @@ export default function ProjectsView({
         }}
       />
 
+      {/* PDF Preview Modal */}
+      <PdfPreviewModal
+        open={!!previewPdfUrl}
+        pdfUrl={previewPdfUrl}
+        filename={previewPdfFilename}
+        title={`Xem trước Báo cáo Dự án: ${activeProj?.name || ''}`}
+        onClose={() => {
+          if (previewPdfUrl) URL.revokeObjectURL(previewPdfUrl);
+          setPreviewPdfUrl(null);
+          setPreviewPdfBlob(null);
+        }}
+        onDownload={() => {
+          if (previewPdfBlob && previewPdfFilename) {
+            const url = URL.createObjectURL(previewPdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = previewPdfFilename;
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { formatVND, formatDisplayDate, formatCurrencyByUnit } from '../../utils/formatters';
 import { exportContractsExcel, exportContractsPdf } from '../../utils/export/contractExport';
+import PdfPreviewModal from '../common/PdfPreviewModal';
 import { COST_GROUP_OPTIONS } from './ContractModal';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -64,11 +65,25 @@ export default function ContractsView({
   const [statusChartMetric, setStatusChartMetric] = useState('count'); // 'count' or 'value'
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
   const [displayUnit, setDisplayUnit] = useState(() => localStorage.getItem('contractListDisplayUnit') || 'vnd');
-  const [exporting, setExporting] = useState(null); // 'excel' | 'pdf' | null
+  const [exporting, setExporting] = useState(null); // 'excel' | 'pdf_preview' | 'pdf_download' | null
+
+  // PDF Preview State
+  const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+  const [previewPdfFilename, setPreviewPdfFilename] = useState(null);
+  const [previewPdfBlob, setPreviewPdfBlob] = useState(null);
 
   React.useEffect(() => {
     localStorage.setItem('contractListDisplayUnit', displayUnit);
   }, [displayUnit]);
+
+  // Cleanup Blob URL when unmounting
+  React.useEffect(() => {
+    return () => {
+      if (previewPdfUrl) {
+        URL.revokeObjectURL(previewPdfUrl);
+      }
+    };
+  }, [previewPdfUrl]);
 
   // Close action menu when clicking outside
   React.useEffect(() => {
@@ -562,9 +577,41 @@ export default function ContractsView({
               {exporting === 'excel' ? 'Đang xuất...' : '📊 Xuất Excel'}
             </button>
             <button
-              disabled={exporting === 'pdf' || filteredContracts.length === 0}
+              disabled={exporting === 'pdf_preview' || filteredContracts.length === 0}
               onClick={async () => {
-                setExporting('pdf');
+                setExporting('pdf_preview');
+                try {
+                  const selectedProj = projects.find(p => String(p.id) === String(selectedProjectId));
+                  const blob = await exportContractsPdf(filteredContracts, {
+                    selectedProjectName: selectedProj?.name || '',
+                    contractorFilter,
+                    costGroupFilter,
+                    statusFilter,
+                    displayUnit,
+                    periodLabel,
+                  }, displayUnit, 'blob');
+                  
+                  if (previewPdfUrl) URL.revokeObjectURL(previewPdfUrl);
+                  
+                  const url = URL.createObjectURL(blob);
+                  setPreviewPdfBlob(blob);
+                  setPreviewPdfUrl(url);
+                  setPreviewPdfFilename(`Bao_cao_theo_doi_hop_dong_${new Date().toISOString().slice(0, 10)}.pdf`);
+                } catch (err) {
+                  console.error(err);
+                  alert(err.message || 'Không thể tạo bản xem trước PDF. Vui lòng thử lại.');
+                } finally {
+                  setExporting(null);
+                }
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exporting === 'pdf_preview' ? 'Đang tạo...' : <><Eye className="w-3.5 h-3.5" /> Xem trước PDF</>}
+            </button>
+            <button
+              disabled={exporting === 'pdf_download' || filteredContracts.length === 0}
+              onClick={async () => {
+                setExporting('pdf_download');
                 try {
                   const selectedProj = projects.find(p => String(p.id) === String(selectedProjectId));
                   await exportContractsPdf(filteredContracts, {
@@ -574,7 +621,7 @@ export default function ContractsView({
                     statusFilter,
                     displayUnit,
                     periodLabel,
-                  }, displayUnit);
+                  }, displayUnit, 'download');
                 } catch (err) {
                   alert(err.message || 'Không thể xuất báo cáo. Vui lòng thử lại.');
                 } finally {
@@ -583,7 +630,7 @@ export default function ContractsView({
               }}
               className="px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-destructive border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {exporting === 'pdf' ? 'Đang tạo...' : '📄 Xuất PDF'}
+              {exporting === 'pdf_download' ? 'Đang tạo...' : '📄 Xuất PDF'}
             </button>
           </div>
 
@@ -797,6 +844,28 @@ export default function ContractsView({
         </div>
       </div>
 
+      {/* PDF Preview Modal */}
+      <PdfPreviewModal
+        open={!!previewPdfUrl}
+        pdfUrl={previewPdfUrl}
+        filename={previewPdfFilename}
+        title="Xem trước Báo cáo Hợp đồng"
+        onClose={() => {
+          if (previewPdfUrl) URL.revokeObjectURL(previewPdfUrl);
+          setPreviewPdfUrl(null);
+          setPreviewPdfBlob(null);
+        }}
+        onDownload={() => {
+          if (previewPdfBlob && previewPdfFilename) {
+            const url = URL.createObjectURL(previewPdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = previewPdfFilename;
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+        }}
+      />
     </div>
   );
 }

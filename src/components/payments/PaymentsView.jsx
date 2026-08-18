@@ -26,7 +26,8 @@ import {
   Calendar,
   AlertCircle,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Eye
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -49,6 +50,7 @@ import {
 } from 'recharts';
 import { formatVND, formatVNDCompact, formatDisplayDate, cleanVND, calcEndDate, calcDaysBetween } from '../../utils/formatters';
 import { exportPaymentsExcel, exportPaymentsPdf } from '../../utils/export/paymentExport';
+import PdfPreviewModal from '../common/PdfPreviewModal';
 
 export default function PaymentsView({ 
   data, 
@@ -77,7 +79,12 @@ export default function PaymentsView({
   // Sort State (Default: payment_date ASC)
   const [sortColumn, setSortColumn] = useState('payment_date');
   const [sortDirection, setSortDirection] = useState('asc');
-  const [exporting, setExporting] = useState(null); // 'excel' | 'pdf' | null
+  const [exporting, setExporting] = useState(null); // 'excel' | 'pdf_preview' | 'pdf_download' | null
+
+  // PDF Preview State
+  const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
+  const [previewPdfFilename, setPreviewPdfFilename] = useState(null);
+  const [previewPdfBlob, setPreviewPdfBlob] = useState(null);
 
   // Pagination State (Default: 100 rows / page)
   const [currentPage, setCurrentPage] = useState(1);
@@ -452,9 +459,39 @@ export default function PaymentsView({
             {exporting === 'excel' ? 'Đang xuất...' : '📊 Xuất Excel'}
           </button>
           <button
-            disabled={exporting === 'pdf' || sortedPayments.length === 0}
+            disabled={exporting === 'pdf_preview' || sortedPayments.length === 0}
             onClick={async () => {
-              setExporting('pdf');
+              setExporting('pdf_preview');
+              try {
+                const blob = await exportPaymentsPdf(sortedPayments, {
+                  selectedProjectName: selectedProjectObj?.name || '',
+                  contractFilter,
+                  contractorFilter,
+                  searchQuery,
+                  periodLabel,
+                }, 'blob');
+                
+                if (previewPdfUrl) URL.revokeObjectURL(previewPdfUrl);
+                
+                const url = URL.createObjectURL(blob);
+                setPreviewPdfBlob(blob);
+                setPreviewPdfUrl(url);
+                setPreviewPdfFilename(`Bao_cao_theo_doi_thanh_toan_${new Date().toISOString().slice(0, 10)}.pdf`);
+              } catch (err) {
+                console.error(err);
+                alert(err.message || 'Không thể tạo bản xem trước PDF. Vui lòng thử lại.');
+              } finally {
+                setExporting(null);
+              }
+            }}
+            className="w-full sm:w-auto justify-center px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {exporting === 'pdf_preview' ? 'Đang tạo...' : <><Eye className="w-3.5 h-3.5" /> Xem trước PDF</>}
+          </button>
+          <button
+            disabled={exporting === 'pdf_download' || sortedPayments.length === 0}
+            onClick={async () => {
+              setExporting('pdf_download');
               try {
                 await exportPaymentsPdf(sortedPayments, {
                   selectedProjectName: selectedProjectObj?.name || '',
@@ -462,7 +499,7 @@ export default function PaymentsView({
                   contractorFilter,
                   searchQuery,
                   periodLabel,
-                });
+                }, 'download');
               } catch (err) {
                 alert(err.message || 'Không thể xuất báo cáo.');
               } finally {
@@ -471,7 +508,7 @@ export default function PaymentsView({
             }}
             className="w-full sm:w-auto justify-center px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-destructive border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {exporting === 'pdf' ? 'Đang tạo...' : '📄 Xuất PDF'}
+            {exporting === 'pdf_download' ? 'Đang tạo...' : '📄 Xuất PDF'}
           </button>
         </div>
       </div>
@@ -1095,6 +1132,28 @@ export default function PaymentsView({
         document.body
       )}
 
+      {/* PDF Preview Modal */}
+      <PdfPreviewModal
+        open={!!previewPdfUrl}
+        pdfUrl={previewPdfUrl}
+        filename={previewPdfFilename}
+        title="Xem trước Báo cáo Thanh toán"
+        onClose={() => {
+          if (previewPdfUrl) URL.revokeObjectURL(previewPdfUrl);
+          setPreviewPdfUrl(null);
+          setPreviewPdfBlob(null);
+        }}
+        onDownload={() => {
+          if (previewPdfBlob && previewPdfFilename) {
+            const url = URL.createObjectURL(previewPdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = previewPdfFilename;
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+        }}
+      />
     </div>
   );
 }

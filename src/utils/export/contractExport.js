@@ -116,7 +116,7 @@ export async function exportContractsExcel(contracts, filters = {}, displayUnit 
   });
 }
 
-export async function exportContractsPdf(contracts, filters = {}, displayUnit = 'vnd') {
+export async function exportContractsPdf(contracts, filters = {}, displayUnit = 'vnd', outputType = 'download') {
   if (!contracts || contracts.length === 0) {
     throw new Error('Không có dữ liệu để xuất báo cáo.');
   }
@@ -126,7 +126,7 @@ export async function exportContractsPdf(contracts, filters = {}, displayUnit = 
   const filterInfo = buildFilterInfo(filters);
   const dateStr = new Date().toISOString().slice(0, 10);
 
-  await generatePdf({
+  return await generatePdf({
     title: 'BÁO CÁO THEO DÕI HỢP ĐỒNG',
     columns,
     data: rows,
@@ -134,5 +134,6 @@ export async function exportContractsPdf(contracts, filters = {}, displayUnit = 
     totals,
     filename: `Bao_cao_theo_doi_hop_dong_${dateStr}.pdf`,
     orientation: 'landscape',
+    outputType,
   });
 }
