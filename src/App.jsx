@@ -14,6 +14,7 @@ import ProjectsView from './components/projects/ProjectsView';
 import ProjectModal from './components/projects/ProjectModal';
 import ExcelImportModal from './components/common/ExcelImportModal';
 import LoginView from './components/auth/LoginView';
+import ResetPasswordView from './components/auth/ResetPasswordView';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { ShieldAlert, Clock } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from './services/supabase';
@@ -56,6 +57,19 @@ export default function App() {
   const [userSession, setUserSession] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [hasRecoverySession, setHasRecoverySession] = useState(false);
+
+  // Check URL on initial mount for /reset-password
+  useEffect(() => {
+    if (window.location.pathname === '/reset-password') {
+      setIsPasswordRecovery(true);
+    }
+    // Supabase will automatically parse the hash if it's a recovery link
+    if (window.location.hash.includes('type=recovery')) {
+      setIsPasswordRecovery(true);
+    }
+  }, []);
 
   // Handle Supabase Auth Session
   useEffect(() => {
@@ -74,6 +88,12 @@ export default function App() {
       // Bỏ qua TOKEN_REFRESHED vì nó tự phát khi tab regain focus (Alt+Tab),
       // gây re-render cascading và reset form đang mở.
       if (_event === 'TOKEN_REFRESHED') return;
+      
+      if (_event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+        setHasRecoverySession(true);
+      }
+
       setUserSession(session);
       setIsAuthLoading(false);
     });
@@ -337,6 +357,20 @@ export default function App() {
           <span className="text-xs text-muted-foreground font-mono">Đang kiểm tra kết nối Supabase...</span>
         </div>
       </div>
+    );
+  }
+
+  // Handle Password Recovery Routing
+  if (isPasswordRecovery) {
+    return (
+      <ResetPasswordView 
+        hasRecoverySession={hasRecoverySession || !!userSession}
+        onBackToLogin={() => {
+          setIsPasswordRecovery(false);
+          setHasRecoverySession(false);
+          window.history.replaceState({}, document.title, '/');
+        }}
+      />
     );
   }
 

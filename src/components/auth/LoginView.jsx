@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from '../../services/supabase';
 
 export default function LoginView({ onLoginSuccess }) {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,6 +29,18 @@ export default function LoginView({ onLoginSuccess }) {
     setLoading(true);
 
     try {
+      if (isForgotPassword) {
+        const checkEmail = email.trim().toLowerCase();
+        const { error } = await supabase.auth.resetPasswordForEmail(checkEmail, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+
+        if (error) throw error;
+
+        setSuccessMsg('Nếu email này đã được đăng ký, chúng tôi đã gửi liên kết đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.');
+        return;
+      }
+
       if (isSignUp) {
         // 1. First layer: Check if email already exists in profiles (if RLS allows)
         const checkEmail = email.trim();
@@ -128,35 +141,44 @@ export default function LoginView({ onLoginSuccess }) {
           </div>
         )}
 
-        {/* Auth Toggle Tabs */}
-        <div className="flex rounded-xl bg-background p-1 border border-border text-xs font-semibold">
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(false);
-              setErrorMsg('');
-              setSuccessMsg('');
-            }}
-            className={`flex-1 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              !isSignUp ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <LogIn className="w-3.5 h-3.5" /> Đăng nhập
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp(true);
-              setErrorMsg('');
-              setSuccessMsg('');
-            }}
-            className={`flex-1 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              isSignUp ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <UserPlus className="w-3.5 h-3.5" /> Đăng ký
-          </button>
-        </div>
+        {/* Auth Toggle Tabs or Forgot Password Header */}
+        {!isForgotPassword ? (
+          <div className="flex rounded-xl bg-background p-1 border border-border text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(false);
+                setErrorMsg('');
+                setSuccessMsg('');
+              }}
+              className={`flex-1 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                !isSignUp ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <LogIn className="w-3.5 h-3.5" /> Đăng nhập
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(true);
+                setErrorMsg('');
+                setSuccessMsg('');
+              }}
+              className={`flex-1 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                isSignUp ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5" /> Đăng ký
+            </button>
+          </div>
+        ) : (
+          <div className="text-center bg-background border border-border rounded-xl py-3 px-4 shadow-sm">
+            <h2 className="text-sm font-bold text-foreground">Quên mật khẩu</h2>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Nhập email đã đăng ký để nhận liên kết đặt lại mật khẩu.
+            </p>
+          </div>
+        )}
 
         {/* Status Alerts */}
         {errorMsg && (
@@ -193,22 +215,40 @@ export default function LoginView({ onLoginSuccess }) {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-foreground/80 font-semibold uppercase text-[10px] tracking-wider block">
-              Mật khẩu
-            </label>
-            <div className="relative">
-              <KeyRound className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition font-medium"
-              />
+          {!isForgotPassword && (
+            <div className="space-y-1.5">
+              <label className="text-foreground/80 font-semibold uppercase text-[10px] tracking-wider block">
+                Mật khẩu
+              </label>
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition font-medium"
+                />
+              </div>
             </div>
-          </div>
+          )}
+
+          {!isForgotPassword && !isSignUp && (
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsForgotPassword(true);
+                  setErrorMsg('');
+                  setSuccessMsg('');
+                }}
+                className="text-[11px] font-semibold text-primary hover:text-primary/80 transition cursor-pointer"
+              >
+                Quên mật khẩu?
+              </button>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -217,6 +257,10 @@ export default function LoginView({ onLoginSuccess }) {
           >
             {loading ? (
               <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : isForgotPassword ? (
+              <>
+                <Mail className="w-4 h-4" /> Gửi liên kết đặt lại mật khẩu
+              </>
             ) : isSignUp ? (
               <>
                 <UserPlus className="w-4 h-4" /> Đăng ký tài khoản
@@ -228,6 +272,22 @@ export default function LoginView({ onLoginSuccess }) {
             )}
           </button>
         </form>
+
+        {isForgotPassword && (
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsForgotPassword(false);
+                setErrorMsg('');
+                setSuccessMsg('');
+              }}
+              className="text-xs font-bold text-muted-foreground hover:text-foreground transition cursor-pointer flex items-center justify-center gap-1 mx-auto"
+            >
+              ← Quay lại đăng nhập
+            </button>
+          </div>
+        )}
 
         <div className="pt-2 text-center text-[11px] text-muted-foreground border-t border-border/80 flex items-center justify-center gap-1.5">
           <ShieldCheck className="w-3.5 h-3.5 text-success" />
