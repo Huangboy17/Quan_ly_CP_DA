@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+﻿import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, ChevronDown, Check, X } from 'lucide-react';
 import { removeVietnameseTones } from '../../utils/formatters';
 
@@ -166,16 +166,16 @@ export default function SearchableCombobox({
             }
           }
         }}
-        className={`w-full px-3.5 py-2.5 bg-slate-800 border rounded-xl flex items-center justify-between cursor-pointer transition-all ${
+        className={`w-full px-3.5 py-2.5 bg-muted border rounded-xl flex items-center justify-between cursor-pointer transition-all ${
           disabled
-            ? 'opacity-50 cursor-not-allowed bg-slate-900/50 border-slate-800'
+            ? 'opacity-50 cursor-not-allowed bg-card/50 border-border'
             : isOpen
-            ? 'border-emerald-500 ring-1 ring-emerald-500 shadow-lg shadow-emerald-500/10'
-            : 'border-slate-700 hover:border-slate-600'
+            ? 'border-success ring-1 ring-emerald-500 shadow-lg shadow-emerald-500/10'
+            : 'border-border hover:border-border'
         }`}
       >
         <div className="flex items-center gap-2.5 flex-1 min-w-0 pr-2">
-          <Search className="w-4 h-4 text-slate-400 shrink-0" />
+          <Search className="w-4 h-4 text-muted-foreground shrink-0" />
           
           {isOpen ? (
             <input
@@ -189,7 +189,7 @@ export default function SearchableCombobox({
               autoFocus
             />
           ) : (
-            <span className={`text-sm truncate ${selectedOption ? 'text-slate-100 font-medium' : 'text-slate-400'}`}>
+            <span className={`text-sm truncate ${selectedOption ? 'text-slate-100 font-medium' : 'text-muted-foreground'}`}>
               {disabled
                 ? disabledPlaceholder
                 : selectedOption
@@ -204,19 +204,19 @@ export default function SearchableCombobox({
             <button
               type="button"
               onClick={handleClear}
-              className="p-1 hover:bg-slate-700 text-slate-400 hover:text-slate-200 rounded-lg transition"
+              className="p-1 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition"
               title="Xóa lựa chọn"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
-          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180 text-emerald-400' : ''}`} />
+          <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isOpen ? 'rotate-180 text-success' : ''}`} />
         </div>
       </div>
 
       {/* Dropdown Menu Popup */}
       {isOpen && !disabled && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden animate-in fade-in duration-150">
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-card border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in duration-150">
           
           {/* List Container */}
           <div ref={listRef} className="max-h-64 overflow-y-auto p-1.5 space-y-1">
@@ -245,24 +245,24 @@ export default function SearchableCombobox({
                     onMouseEnter={() => setHighlightIndex(idx)}
                     className={`px-3 py-2 rounded-lg cursor-pointer transition flex items-center justify-between text-xs ${
                       isHighlighted
-                        ? 'bg-slate-800 text-white'
+                        ? 'bg-muted text-foreground'
                         : isSelected
-                        ? 'bg-slate-800/60 text-emerald-300'
-                        : 'text-slate-300 hover:bg-slate-800/40'
+                        ? 'bg-muted/60 text-emerald-300'
+                        : 'text-foreground/80 hover:bg-muted/40'
                     }`}
                   >
                     <div className="min-w-0 flex-1 pr-2">
                       <div className="font-semibold truncate text-sm text-slate-100 flex items-center gap-2">
                         {opt.label}
-                        {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+                        {isSelected && <Check className="w-3.5 h-3.5 text-success shrink-0" />}
                       </div>
                       {opt.subtitle && (
-                        <div className="text-[11px] text-slate-400 truncate mt-0.5">{opt.subtitle}</div>
+                        <div className="text-[11px] text-muted-foreground truncate mt-0.5">{opt.subtitle}</div>
                       )}
                     </div>
 
                     {opt.badge && (
-                      <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-slate-800 text-amber-400 border border-slate-700 shrink-0">
+                      <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded bg-muted text-warning border border-border shrink-0">
                         {opt.badge}
                       </span>
                     )}
@@ -270,16 +270,16 @@ export default function SearchableCombobox({
                 );
               })
             ) : (
-              <div className="p-4 text-center text-xs text-slate-400">
-                Không tìm thấy kết quả phù hợp cho &quot;<span className="text-slate-200 font-semibold">{searchTerm}</span>&quot;
+              <div className="p-4 text-center text-xs text-muted-foreground">
+                Không tìm thấy kết quả phù hợp cho &quot;<span className="text-foreground font-semibold">{searchTerm}</span>&quot;
               </div>
             )}
           </div>
 
           {/* Footer info tip */}
-          <div className="px-3 py-1.5 bg-slate-950/80 border-t border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
-            <span>Dùng <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono">↑</kbd> <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono">↓</kbd> để di chuyển</span>
-            <span><kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono">Enter</kbd> chọn • <kbd className="px-1 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 font-mono">Esc</kbd> đóng</span>
+          <div className="px-3 py-1.5 bg-background/80 border-t border-border text-[10px] text-muted-foreground flex items-center justify-between">
+            <span>Dùng <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-foreground/80 font-mono">↑</kbd> <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-foreground/80 font-mono">↓</kbd> để di chuyển</span>
+            <span><kbd className="px-1 py-0.5 rounded bg-muted border border-border text-foreground/80 font-mono">Enter</kbd> chọn • <kbd className="px-1 py-0.5 rounded bg-muted border border-border text-foreground/80 font-mono">Esc</kbd> đóng</span>
           </div>
 
         </div>

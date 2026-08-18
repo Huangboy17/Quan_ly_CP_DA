@@ -317,10 +317,10 @@ export default function App() {
   // Render Loading Spinner while checking Auth session
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center font-sans">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-          <span className="text-xs text-slate-400 font-mono">Đang kiểm tra kết nối Supabase...</span>
+          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <span className="text-xs text-muted-foreground font-mono">Đang kiểm tra kết nối Supabase...</span>
         </div>
       </div>
     );
@@ -342,14 +342,14 @@ export default function App() {
   if (userSession && userProfile) {
     if (userProfile.status === 'pending') {
       return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center font-sans p-6">
-          <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl text-center">
-            <Clock className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-white mb-2">Tài khoản đang chờ duyệt</h2>
-            <p className="text-slate-400 mb-6 text-sm">
+        <div className="min-h-screen bg-background flex items-center justify-center font-sans p-6">
+          <div className="max-w-md w-full bg-card border border-border rounded-2xl p-8 shadow-2xl text-center">
+            <Clock className="w-16 h-16 text-warning mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-foreground mb-2">Tài khoản đang chờ duyệt</h2>
+            <p className="text-muted-foreground mb-6 text-sm">
               Tài khoản của bạn đã được ghi nhận và đang chờ Quản trị viên phê duyệt. Vui lòng quay lại sau.
             </p>
-            <button onClick={handleLogout} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition">
+            <button onClick={handleLogout} className="px-6 py-2 bg-muted hover:bg-border text-foreground rounded-lg font-semibold transition cursor-pointer">
               Đăng xuất
             </button>
           </div>
@@ -358,14 +358,14 @@ export default function App() {
     }
     if (userProfile.status === 'blocked') {
       return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center font-sans p-6">
-          <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl text-center border-t-4 border-t-rose-500">
-            <ShieldAlert className="w-16 h-16 text-rose-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-white mb-2">Tài khoản đã bị khóa</h2>
-            <p className="text-slate-400 mb-6 text-sm">
+        <div className="min-h-screen bg-background flex items-center justify-center font-sans p-6 transition-colors">
+          <div className="max-w-md w-full bg-card border border-border rounded-2xl p-8 shadow-2xl text-center border-t-4 border-t-warning">
+            <ShieldAlert className="w-16 h-16 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-foreground mb-2">Tài khoản đã bị khóa</h2>
+            <p className="text-muted-foreground mb-6 text-sm">
               Tài khoản của bạn đã bị vô hiệu hóa bởi Quản trị viên. Bạn không thể truy cập vào hệ thống lúc này.
             </p>
-            <button onClick={handleLogout} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition">
+            <button onClick={handleLogout} className="px-6 py-2 bg-muted hover:bg-border text-foreground rounded-lg font-semibold transition cursor-pointer">
               Đăng xuất
             </button>
           </div>
@@ -375,7 +375,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans transition-colors">
       
       {/* Top Main Header */}
       <Header

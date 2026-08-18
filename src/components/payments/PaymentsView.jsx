@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { 
   CreditCard, 
@@ -396,20 +396,20 @@ export default function PaymentsView({
     <div className="space-y-5 animate-fade-in pb-12">
 
       {/* HEADER COMPACT */}
-      <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3 min-h-[64px]">
+      <div className="p-4 rounded-2xl bg-card border border-border shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3 min-h-[64px]">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+          <div className="p-2 rounded-xl bg-success/20 text-success border border-success/30">
             <CreditCard className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+            <h2 className="text-base font-extrabold text-foreground tracking-tight flex items-center gap-2">
               QUẢN LÝ THANH TOÁN TỪNG ĐỢT
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono font-semibold border border-slate-700">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-muted text-foreground/80 font-mono font-semibold border border-border">
                 {sortedPayments.length} đợt phát sinh
               </span>
             </h2>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Phạm vi: <strong className="text-emerald-400 font-semibold">{periodLabel}</strong> {selectedProjectObj ? `• Dự án: ${selectedProjectObj.name}` : ''}
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Phạm vi: <strong className="text-success font-semibold">{periodLabel}</strong> {selectedProjectObj ? `• Dự án: ${selectedProjectObj.name}` : ''}
             </p>
           </div>
         </div>
@@ -417,13 +417,13 @@ export default function PaymentsView({
         <div className="flex items-center gap-2 self-start md:self-auto">
           <button
             onClick={() => onOpenExcelImport && onOpenExcelImport('payments')}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 text-xs font-semibold border border-slate-700 transition cursor-pointer flex items-center gap-1"
+            className="px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success hover:text-success/80 text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
           >
             📥 Import Excel
           </button>
           <button
             onClick={onNewPayment}
-            className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-lg shadow-emerald-600/30 transition cursor-pointer flex items-center gap-1"
+            className="px-3.5 py-1.5 rounded-xl bg-success hover:bg-success/90 text-primary-foreground text-xs font-extrabold shadow-lg shadow-success/30 transition cursor-pointer flex items-center gap-1"
           >
             + Nhập Thanh Toán Mới
           </button>
@@ -432,44 +432,44 @@ export default function PaymentsView({
 
       {/* COMPACT KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-        <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1 shadow-md">
-          <span className="text-[10px] text-slate-400 uppercase font-semibold block">Tổng Số Đợt Phát Sinh</span>
-          <div className="text-lg font-black text-white font-mono">{kpiStats.totalTransactions} Đợt</div>
-          <span className="text-[10px] text-slate-400 block font-mono">Đã lọc theo điều kiện chọn</span>
+        <div className="p-3.5 rounded-xl bg-card border border-border space-y-1 shadow-md">
+          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Tổng Số Đợt Phát Sinh</span>
+          <div className="text-lg font-black text-foreground font-mono">{kpiStats.totalTransactions} Đợt</div>
+          <span className="text-[10px] text-muted-foreground block font-mono">Đã lọc theo điều kiện chọn</span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1 shadow-md">
-          <span className="text-[10px] text-slate-400 uppercase font-semibold block">Chi Trả Trước VAT</span>
-          <div className="text-lg font-black text-blue-400 font-mono">{formatVND(kpiStats.sumBeforeVAT)}</div>
-          <span className="text-[10px] text-slate-400 block font-mono">Nguyên giá trước thuế</span>
+        <div className="p-3.5 rounded-xl bg-card border border-border space-y-1 shadow-md">
+          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Chi Trả Trước VAT</span>
+          <div className="text-lg font-black text-primary font-mono">{formatVND(kpiStats.sumBeforeVAT)}</div>
+          <span className="text-[10px] text-muted-foreground block font-mono">Nguyên giá trước thuế</span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 space-y-1 shadow-md">
-          <span className="text-[10px] text-slate-400 uppercase font-semibold block">Tổng Thuế VAT</span>
-          <div className="text-lg font-black text-amber-400 font-mono">{formatVND(kpiStats.sumVAT)}</div>
-          <span className="text-[10px] text-slate-400 block font-mono">Thuế GTGT khấu trừ</span>
+        <div className="p-3.5 rounded-xl bg-card border border-border space-y-1 shadow-md">
+          <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Tổng Thuế VAT</span>
+          <div className="text-lg font-black text-warning font-mono">{formatVND(kpiStats.sumVAT)}</div>
+          <span className="text-[10px] text-muted-foreground block font-mono">Thuế GTGT khấu trừ</span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 border-l-4 border-l-emerald-500 space-y-1 shadow-md">
-          <span className="text-[10px] text-emerald-400 uppercase font-bold block">Tổng Chi Trả Sau VAT</span>
-          <div className="text-lg font-black text-emerald-400 font-mono">{formatVND(kpiStats.sumAfterVAT)}</div>
-          <span className="text-[10px] text-emerald-300/80 block font-mono">Tổng giải ngân trong kỳ ({periodLabel})</span>
+        <div className="p-3.5 rounded-xl bg-card border border-border border-l-4 border-l-success space-y-1 shadow-md">
+          <span className="text-[10px] text-success uppercase font-bold block">Tổng Chi Trả Sau VAT</span>
+          <div className="text-lg font-black text-success font-mono">{formatVND(kpiStats.sumAfterVAT)}</div>
+          <span className="text-[10px] text-success/80 block font-mono">Tổng giải ngân trong kỳ ({periodLabel})</span>
         </div>
       </div>
 
       {/* COMPACT RISK ALERTS CONTAINER */}
-      <div className="p-3 rounded-xl bg-slate-900 border border-amber-500/30 shadow-md flex items-center justify-between gap-3 text-xs">
+      <div className="p-3 rounded-xl bg-card border border-warning/30 shadow-md flex items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2.5 overflow-hidden">
-          <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
-          <span className="font-bold text-amber-300 shrink-0">KIỂM SOÁT RỦI RO:</span>
+          <ShieldAlert className="w-4 h-4 text-warning shrink-0" />
+          <span className="font-bold text-warning/90 shrink-0">KIỂM SOÁT RỦI RO:</span>
           <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap text-[11px] py-0.5">
-            <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold">
+            <span className="px-2 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 font-semibold">
               🔴 Quá hạn: {allAlertItems.filter(a => a.type === 'OVERDUE').length} HĐ
             </span>
-            <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold">
+            <span className="px-2 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 font-semibold">
               ⚠️ Vượt HĐ: {allAlertItems.filter(a => a.type === 'EXCEED_VALUE').length} HĐ
             </span>
-            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">
+            <span className="px-2 py-0.5 rounded bg-warning/20 text-warning border border-warning/30 font-semibold">
               🟠 Tần suất cao: {allAlertItems.filter(a => a.type === 'HIGH_FREQUENCY').length} HĐ
             </span>
           </div>
@@ -480,24 +480,24 @@ export default function PaymentsView({
             setAlertDrawerTab('ALL');
             setIsAlertDrawerOpen(true);
           }}
-          className="px-3 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition shrink-0 cursor-pointer"
+          className="px-3 py-1 rounded-lg bg-warning/15 hover:bg-warning/30 text-warning border border-warning/40 text-xs font-bold transition shrink-0 cursor-pointer"
         >
           Chi tiết rủi ro ({allAlertItems.length})
         </button>
       </div>
 
       {/* FILTER TOOLBAR */}
-      <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="p-3 rounded-xl bg-card border border-border shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-3 flex-1">
           {/* Local Search Input */}
           <div className="relative flex-1 min-w-[220px] max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Tìm theo đợt, nội dung thanh toán, nhà thầu..."
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-medium"
+              className="w-full bg-muted border border-border rounded-xl pl-9 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-success font-medium"
             />
           </div>
 
@@ -506,7 +506,7 @@ export default function PaymentsView({
             <select
               value={contractFilter}
               onChange={(e) => setContractFilter(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
+              className="bg-muted border border-border text-foreground rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-success cursor-pointer"
             >
               <option value="">-- Tất cả Hợp đồng --</option>
               {contracts.map(c => (
@@ -520,7 +520,7 @@ export default function PaymentsView({
             <select
               value={contractorFilter}
               onChange={(e) => setContractorFilter(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-emerald-500 cursor-pointer"
+              className="bg-muted border border-border text-foreground rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-success cursor-pointer"
             >
               <option value="">-- Tất cả Nhà thầu --</option>
               {uniqueContractors.map(c => (
@@ -537,15 +537,15 @@ export default function PaymentsView({
                 setContractorFilter('');
                 setLocalSearch('');
               }}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+              className="px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-warning border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" /> Đặt lại local filter
             </button>
           )}
         </div>
 
-        <div className="text-slate-400 font-mono text-[11px]">
-          Hiển thị: <strong className="text-white">{sortedPayments.length}</strong> / {payments.length} đợt
+        <div className="text-muted-foreground font-mono text-[11px]">
+          Hiển thị: <strong className="text-foreground">{sortedPayments.length}</strong> / {payments.length} đợt
         </div>
       </div>
 
@@ -553,15 +553,15 @@ export default function PaymentsView({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         
         {/* Left (7 Cols): Monthly Combo Chart (Bar + Line + Data Labels + Multi-layer Tooltip + Ref Line) */}
-        <div className="lg:col-span-7 p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3 flex flex-col justify-between h-full">
-          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-emerald-400" />
+        <div className="lg:col-span-7 p-5 rounded-2xl bg-card border border-border shadow-xl space-y-3 flex flex-col justify-between h-full">
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-2.5 gap-2">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-success" />
               Biểu Đồ Giải Ngân Theo Tháng Trong Kỳ ({periodLabel})
             </h3>
             {avgMonthlyDisbursementInPayments > 0 && (
-              <span className="text-[11px] text-slate-300 font-mono bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-700">
-                TB tháng: <strong className="text-emerald-400">{avgMonthlyDisbursementInPayments} Tỷ</strong>
+              <span className="text-[11px] text-foreground/80 font-mono bg-muted px-2.5 py-0.5 rounded-full border border-border">
+                TB tháng: <strong className="text-success">{avgMonthlyDisbursementInPayments} Tỷ</strong>
               </span>
             )}
           </div>
@@ -570,13 +570,13 @@ export default function PaymentsView({
             {comboMonthlyBarData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={comboMonthlyBarData} margin={{ top: 25, right: 15, left: -5, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-                  <XAxis dataKey="month" stroke="#94a3b8" tick={{ fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.5} />
+                  <XAxis dataKey="month" stroke="var(--color-muted-foreground)" tick={{ fontSize: 11 }} />
                   
                   {/* Left Y-Axis for Monthly Disbursement Bars */}
                   <YAxis 
                     yAxisId="left"
-                    stroke="#94a3b8" 
+                    stroke="var(--color-muted-foreground)" 
                     tick={{ fontSize: 11 }} 
                     tickFormatter={(val) => `${val} Tỷ`}
                   />
@@ -585,7 +585,7 @@ export default function PaymentsView({
                   <YAxis 
                     yAxisId="right"
                     orientation="right"
-                    stroke="#f59e0b" 
+                    stroke="var(--color-warning)" 
                     tick={{ fontSize: 11 }} 
                     tickFormatter={(val) => `${val} Tỷ`}
                   />
@@ -598,31 +598,31 @@ export default function PaymentsView({
                       const cumulativeVal = payload.find(p => p.dataKey === 'Lũy kế (Tỷ VNĐ)')?.value || 0;
 
                       return (
-                        <div className="p-3 rounded-xl bg-slate-950 border border-slate-700 shadow-2xl text-xs space-y-1.5 z-50">
-                          <div className="font-bold text-white flex items-center justify-between border-b border-slate-800 pb-1.5 gap-4">
+                        <div className="p-3 rounded-xl bg-background border border-border shadow-2xl text-xs space-y-1.5 z-50">
+                          <div className="font-bold text-foreground flex items-center justify-between border-b border-border pb-1.5 gap-4">
                             <span>📅 {label}</span>
-                            <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 font-mono">
+                            <span className="text-[10px] text-success bg-success/10 px-1.5 py-0.5 rounded border border-success/20 font-mono">
                               Kỳ thanh toán
                             </span>
                           </div>
                           <div className="flex items-center justify-between gap-4 pt-0.5">
-                            <span className="text-slate-300 flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />
+                            <span className="text-foreground/80 flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-sm bg-success inline-block" />
                               Chi trả trong tháng:
                             </span>
-                            <strong className="text-emerald-400 font-mono">{monthVal} Tỷ VNĐ</strong>
+                            <strong className="text-success font-mono">{monthVal} Tỷ VNĐ</strong>
                           </div>
                           <div className="flex items-center justify-between gap-4">
-                            <span className="text-slate-300 flex items-center gap-1.5">
-                              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                            <span className="text-foreground/80 flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full bg-warning inline-block" />
                               Giá trị Lũy kế cộng dồn:
                             </span>
-                            <strong className="text-amber-400 font-mono">{cumulativeVal} Tỷ VNĐ</strong>
+                            <strong className="text-warning font-mono">{cumulativeVal} Tỷ VNĐ</strong>
                           </div>
                           {avgMonthlyDisbursementInPayments > 0 && (
-                            <div className="flex items-center justify-between gap-4 pt-1 border-t border-slate-800 text-[11px] text-slate-400">
+                            <div className="flex items-center justify-between gap-4 pt-1 border-t border-border text-[11px] text-muted-foreground">
                               <span>Mức chi trung bình tháng:</span>
-                              <span className="font-mono text-slate-200">{avgMonthlyDisbursementInPayments} Tỷ VNĐ</span>
+                              <span className="font-mono text-foreground">{avgMonthlyDisbursementInPayments} Tỷ VNĐ</span>
                             </div>
                           )}
                         </div>
@@ -641,11 +641,11 @@ export default function PaymentsView({
                     <ReferenceLine 
                       yAxisId="left"
                       y={avgMonthlyDisbursementInPayments} 
-                      stroke="#cbd5e1" 
+                      stroke="var(--color-muted-foreground)" 
                       strokeDasharray="4 4" 
                       label={{ 
                         value: `TB: ${avgMonthlyDisbursementInPayments} Tỷ`, 
-                        fill: '#cbd5e1', 
+                        fill: 'var(--color-muted-foreground)', 
                         fontSize: 10, 
                         position: 'insideTopRight',
                         fontWeight: 'bold'
@@ -658,7 +658,7 @@ export default function PaymentsView({
                     yAxisId="left"
                     dataKey="Giải ngân (Tỷ VNĐ)" 
                     name="Chi trả trong tháng"
-                    fill="#10b981" 
+                    fill="var(--color-success)" 
                     radius={[4, 4, 0, 0]} 
                     maxBarSize={32}
                   >
@@ -666,7 +666,7 @@ export default function PaymentsView({
                       dataKey="Giải ngân (Tỷ VNĐ)" 
                       position="top" 
                       formatter={(val) => `${val} Tỷ`} 
-                      style={{ fontSize: '10px', fill: '#6ee7b7', fontWeight: 'bold' }} 
+                      style={{ fontSize: '10px', fill: 'var(--color-success)', fontWeight: 'bold' }} 
                     />
                   </Bar>
 
@@ -676,15 +676,15 @@ export default function PaymentsView({
                     type="monotone"
                     dataKey="Lũy kế (Tỷ VNĐ)" 
                     name="Giá trị Lũy kế"
-                    stroke="#f59e0b" 
+                    stroke="var(--color-warning)" 
                     strokeWidth={3}
-                    dot={{ r: 4, fill: '#f59e0b', stroke: '#0f172a', strokeWidth: 2 }}
-                    activeDot={{ r: 6, fill: '#facc15' }}
+                    dot={{ r: 4, fill: 'var(--color-warning)', stroke: 'var(--color-background)', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: 'var(--color-warning)' }}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground italic">
                 Không có dữ liệu chi trả theo tháng trong phạm vi chọn.
               </div>
             )}
@@ -692,13 +692,13 @@ export default function PaymentsView({
         </div>
 
         {/* Right (5 Cols): Contractor Donut Chart with Flexbox 2-part Layout (40% Graphic | 60% Legend) */}
-        <div className="lg:col-span-5 p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3 flex flex-col justify-between h-full">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <PieIcon className="w-4 h-4 text-purple-400" />
+        <div className="lg:col-span-5 p-5 rounded-2xl bg-card border border-border shadow-xl space-y-3 flex flex-col justify-between h-full">
+          <div className="flex items-center justify-between border-b border-border pb-2.5">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+              <PieIcon className="w-4 h-4 text-primary" />
               PHÂN BỔ TỶ TRỌNG THEO NHÀ THẦU
             </h3>
-            <span className="text-[10px] text-purple-300 bg-purple-500/10 border border-purple-500/30 px-2 py-0.5 rounded font-mono">
+            <span className="text-[10px] text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded font-mono">
               {contractorDonutData.length} Nhà thầu
             </span>
           </div>
@@ -730,10 +730,10 @@ export default function PaymentsView({
 
                 {/* Donut Inner Center Text: TỔNG & Value */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-2 select-none">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">
                     TỔNG CHI
                   </span>
-                  <span className="text-xs sm:text-sm font-bold text-white font-mono leading-tight mt-0.5">
+                  <span className="text-xs sm:text-sm font-bold text-foreground font-mono leading-tight mt-0.5">
                     {totalContractorPaidSum} Tỷ
                   </span>
                 </div>
@@ -751,23 +751,23 @@ export default function PaymentsView({
                     <div
                       key={item.name}
                       title={`${item.fullName} - ${item.value} Tỷ VNĐ (${pct.toFixed(1)}%)`}
-                      className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-purple-500/50 hover:bg-slate-800/50 transition cursor-pointer flex items-center justify-between gap-2 group"
+                      className="p-2 rounded-xl bg-muted/60 border border-border/80 hover:border-primary/50 hover:bg-muted/90 transition cursor-pointer flex items-center justify-between gap-2 group"
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span 
                           className="w-3 h-3 rounded-md shrink-0 shadow-sm mt-0.5" 
                           style={{ backgroundColor: itemColor }} 
                         />
-                        <span className="text-xs font-semibold text-slate-200 whitespace-normal break-words leading-snug group-hover:text-purple-300 transition">
+                        <span className="text-xs font-semibold text-foreground/90 whitespace-normal break-words leading-snug group-hover:text-primary transition">
                           {item.fullName}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0 text-xs font-mono">
-                        <span className="font-bold text-white">
+                        <span className="font-bold text-foreground">
                           {item.value} Tỷ
                         </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-purple-300 border border-slate-700 min-w-[44px] text-right">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-muted text-primary border border-border min-w-[44px] text-right">
                           {pct.toFixed(1)}%
                         </span>
                       </div>
@@ -778,7 +778,7 @@ export default function PaymentsView({
 
             </div>
           ) : (
-            <div className="h-56 flex items-center justify-center text-xs text-slate-400 italic">
+            <div className="h-56 flex items-center justify-center text-xs text-muted-foreground italic">
               Chưa có dữ liệu nhà thầu trong phạm vi chọn.
             </div>
           )}
@@ -788,16 +788,16 @@ export default function PaymentsView({
 
 
       {/* DENSE & READABLE PAYMENTS TABLE */}
-      <div className="rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-hidden">
+      <div className="rounded-2xl bg-card border border-border shadow-xl overflow-hidden">
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left text-xs text-slate-300 min-w-[1050px]">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
+          <table className="w-full text-left text-xs text-foreground/80 min-w-[1050px]">
+            <thead className="bg-muted text-muted-foreground uppercase text-[11px] font-semibold border-b border-border">
               <tr>
                 <th className="py-3 px-3.5 text-center w-14">STT</th>
-                <th className="py-3 px-3.5 w-32 cursor-pointer hover:text-white" onClick={() => handleSort('payment_date')}>
+                <th className="py-3 px-3.5 w-32 cursor-pointer hover:text-foreground" onClick={() => handleSort('payment_date')}>
                   <div className="flex items-center gap-1">
                     Ngày Thanh Toán
-                    {sortColumn === 'payment_date' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-emerald-400" /> : <ArrowDown className="w-3 h-3 text-emerald-400" />)}
+                    {sortColumn === 'payment_date' && (sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-success" /> : <ArrowDown className="w-3 h-3 text-success" />)}
                   </div>
                 </th>
                 <th className="py-3 px-3.5 w-36">Dự Án</th>
@@ -806,59 +806,59 @@ export default function PaymentsView({
                 <th className="py-3 px-3.5 text-right w-36">Trước VAT</th>
                 <th className="py-3 px-3.5 text-center w-20">VAT (%)</th>
                 <th className="py-3 px-3.5 text-right w-36">Thuế VAT</th>
-                <th className="py-3 px-3.5 text-right w-36 font-bold text-emerald-400">Sau VAT</th>
-                <th className="py-3 px-3.5 text-right w-40 font-bold text-blue-300">Lũy Kế HĐ</th>
+                <th className="py-3 px-3.5 text-right w-36 font-bold text-success">Sau VAT</th>
+                <th className="py-3 px-3.5 text-right w-40 font-bold text-primary/80">Lũy Kế HĐ</th>
                 <th className="py-3 px-3.5 text-center w-24">Thao Tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/80">
+            <tbody className="divide-y divide-border">
               {paginatedPayments.map((pm, idx) => {
                 const globalIndex = (currentPage - 1) * pageSize + idx + 1;
                 return (
-                  <tr key={pm.id} className="hover:bg-slate-800/50 transition">
-                    <td className="py-3 px-3.5 text-center font-mono text-slate-400">{globalIndex}</td>
+                  <tr key={pm.id} className="hover:bg-muted/50 transition">
+                    <td className="py-3 px-3.5 text-center font-mono text-muted-foreground">{globalIndex}</td>
                     
-                    <td className="py-3 px-3.5 font-mono text-slate-200 font-semibold">
+                    <td className="py-3 px-3.5 font-mono text-foreground font-semibold">
                       {formatDisplayDate(pm.payment_date)}
                     </td>
 
-                    <td className="py-3 px-3.5 font-semibold text-slate-200">
+                    <td className="py-3 px-3.5 font-semibold text-foreground">
                       <div className="line-clamp-1">{pm.projectName}</div>
                     </td>
 
                     <td className="py-3 px-3.5 font-mono">
-                      <div className="font-bold text-white">{pm.contractNumber}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">{pm.contractor}</div>
+                      <div className="font-bold text-foreground">{pm.contractNumber}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{pm.contractor}</div>
                       {pm.costGroup && (
-                        <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 font-sans">
+                        <span className="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-primary/10 text-primary border border-primary/20 font-sans">
                           {pm.costGroup} {pm.costGroup === 'Khác' && pm.costGroupNote ? `(${pm.costGroupNote})` : ''}
                         </span>
                       )}
                     </td>
 
                     <td className="py-3 px-3.5 text-center font-mono">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 font-bold border border-slate-700">
+                      <span className="px-2 py-0.5 rounded bg-muted text-foreground font-bold border border-border">
                         Đợt {pm.payment_phase || 1}
                       </span>
                     </td>
 
-                    <td className="py-3 px-3.5 text-right font-mono text-slate-300 font-medium">
+                    <td className="py-3 px-3.5 text-right font-mono text-foreground/90 font-medium">
                       {formatVND(pm.amount_before_vat)}
                     </td>
 
-                    <td className="py-3 px-3.5 text-center font-mono text-slate-400">
+                    <td className="py-3 px-3.5 text-center font-mono text-muted-foreground">
                       {pm.vat_rate}%
                     </td>
 
-                    <td className="py-3 px-3.5 text-right font-mono text-amber-400/90 font-medium">
+                    <td className="py-3 px-3.5 text-right font-mono text-warning/90 font-medium">
                       {formatVND(pm.vat_amount)}
                     </td>
 
-                    <td className="py-3 px-3.5 text-right font-mono font-extrabold text-emerald-400 bg-emerald-500/5">
+                    <td className="py-3 px-3.5 text-right font-mono font-extrabold text-success bg-success/5">
                       {formatVND(pm.amount_after_vat)}
                     </td>
 
-                    <td className="py-3 px-3.5 text-right font-mono font-bold text-blue-300">
+                    <td className="py-3 px-3.5 text-right font-mono font-bold text-primary/80">
                       {formatVND(pm.cumulativeAfterVat)}
                     </td>
 
@@ -866,17 +866,17 @@ export default function PaymentsView({
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => onEditPayment(pm)}
-                          className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition cursor-pointer"
+                          className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
                           title="Chỉnh sửa đợt thanh toán"
                         >
-                          <Edit className="w-3.5 h-3.5 text-blue-400" />
+                          <Edit className="w-3.5 h-3.5 text-primary" />
                         </button>
                         <button
                           onClick={() => onDeletePayment(pm.id)}
-                          className="p-1 rounded-lg hover:bg-slate-700 text-slate-300 transition cursor-pointer"
+                          className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
                           title="Xóa đợt thanh toán"
                         >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                          <Trash2 className="w-3.5 h-3.5 text-destructive" />
                         </button>
                       </div>
                     </td>
@@ -886,7 +886,7 @@ export default function PaymentsView({
 
               {paginatedPayments.length === 0 && (
                 <tr>
-                  <td colSpan="11" className="py-10 text-center text-slate-400">
+                  <td colSpan="11" className="py-10 text-center text-muted-foreground">
                     Không tìm thấy đợt thanh toán nào thỏa mãn điều kiện lọc.
                   </td>
                 </tr>
@@ -896,8 +896,8 @@ export default function PaymentsView({
         </div>
 
         {/* PAGINATION BAR */}
-        <div className="p-3 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-3 text-slate-400">
+        <div className="p-3 bg-card/80 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-3 text-muted-foreground">
             <span>Hiển thị trang {currentPage} / {totalPages} (Tổng {sortedPayments.length} bản ghi)</span>
             <div className="flex items-center gap-1">
               <span>Hiển thị</span>
@@ -907,7 +907,7 @@ export default function PaymentsView({
                   setPageSize(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="bg-slate-900 border border-slate-700 text-white rounded px-2 py-1 text-xs cursor-pointer font-mono"
+                className="bg-background border border-border text-foreground rounded px-2 py-1 text-xs cursor-pointer font-mono"
               >
                 <option value={20}>20</option>
                 <option value={50}>50</option>
@@ -922,7 +922,7 @@ export default function PaymentsView({
             <button
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 transition cursor-pointer"
+              className="p-1.5 rounded-lg bg-muted hover:bg-muted/80 disabled:opacity-40 text-foreground transition cursor-pointer"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -939,8 +939,8 @@ export default function PaymentsView({
                   onClick={() => setCurrentPage(pNum)}
                   className={`px-3 py-1 rounded-lg text-xs font-bold font-mono transition cursor-pointer ${
                     currentPage === pNum
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      ? 'bg-success text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
                   }`}
                 >
                   {pNum}
@@ -951,7 +951,7 @@ export default function PaymentsView({
             <button
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 transition cursor-pointer"
+              className="p-1.5 rounded-lg bg-muted hover:bg-muted/80 disabled:opacity-40 text-foreground transition cursor-pointer"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -961,24 +961,24 @@ export default function PaymentsView({
 
       {/* RISK CONTROL MODAL DRAWER */}
       {isAlertDrawerOpen && ReactDOM.createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-8">
-            <div className="px-6 py-4 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-card border border-border rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-8">
+            <div className="px-6 py-4 bg-muted/50 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-amber-400" />
-                <h3 className="text-base font-bold text-white">Kiểm Soát Rủi Ro & Bất Thường</h3>
+                <ShieldAlert className="w-5 h-5 text-warning" />
+                <h3 className="text-base font-bold text-foreground">Kiểm Soát Rủi Ro & Bất Thường</h3>
               </div>
-              <button onClick={() => setIsAlertDrawerOpen(false)} className="p-1 text-slate-400 hover:text-white rounded-lg cursor-pointer">
+              <button onClick={() => setIsAlertDrawerOpen(false)} className="p-1 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer transition">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-xs">
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto whitespace-nowrap">
+              <div className="flex items-center gap-2 border-b border-border pb-3 overflow-x-auto whitespace-nowrap">
                 <button
                   onClick={() => setAlertDrawerTab('ALL')}
                   className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
-                    alertDrawerTab === 'ALL' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-slate-300'
+                    alertDrawerTab === 'ALL' ? 'bg-warning text-warning-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
                   Tất cả ({allAlertItems.length})
@@ -986,7 +986,7 @@ export default function PaymentsView({
                 <button
                   onClick={() => setAlertDrawerTab('OVERDUE')}
                   className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
-                    alertDrawerTab === 'OVERDUE' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'
+                    alertDrawerTab === 'OVERDUE' ? 'bg-destructive text-destructive-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
                   Quá hạn ({allAlertItems.filter(a => a.type === 'OVERDUE').length})
@@ -994,7 +994,7 @@ export default function PaymentsView({
                 <button
                   onClick={() => setAlertDrawerTab('EXCEED_VALUE')}
                   className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
-                    alertDrawerTab === 'EXCEED_VALUE' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-300'
+                    alertDrawerTab === 'EXCEED_VALUE' ? 'bg-destructive text-destructive-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
                   Vượt HĐ ({allAlertItems.filter(a => a.type === 'EXCEED_VALUE').length})
@@ -1002,7 +1002,7 @@ export default function PaymentsView({
                 <button
                   onClick={() => setAlertDrawerTab('HIGH_FREQUENCY')}
                   className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
-                    alertDrawerTab === 'HIGH_FREQUENCY' ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-300'
+                    alertDrawerTab === 'HIGH_FREQUENCY' ? 'bg-warning text-warning-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
                   Tần suất cao ({allAlertItems.filter(a => a.type === 'HIGH_FREQUENCY').length})
@@ -1010,7 +1010,7 @@ export default function PaymentsView({
                 <button
                   onClick={() => setAlertDrawerTab('NO_DISBURSEMENT')}
                   className={`px-3 py-1 rounded-lg font-bold transition cursor-pointer ${
-                    alertDrawerTab === 'NO_DISBURSEMENT' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
+                    alertDrawerTab === 'NO_DISBURSEMENT' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:bg-muted/80'
                   }`}
                 >
                   Chưa giải ngân ({allAlertItems.filter(a => a.type === 'NO_DISBURSEMENT').length})
@@ -1023,7 +1023,7 @@ export default function PaymentsView({
                   
                   if (filteredAlerts.length === 0) {
                     return (
-                      <div className="py-8 text-center text-slate-400">
+                      <div className="py-8 text-center text-muted-foreground">
                         Không ghi nhận rủi ro nào trong danh mục này.
                       </div>
                     );
@@ -1034,25 +1034,25 @@ export default function PaymentsView({
                       key={alt.id}
                       className={`p-3.5 rounded-xl border space-y-1 transition ${
                         alt.level === 'danger'
-                          ? 'bg-rose-950/30 border-rose-500/40 text-rose-200'
+                          ? 'bg-destructive/10 border-destructive/30 text-destructive'
                           : alt.level === 'warning'
-                          ? 'bg-amber-950/30 border-amber-500/40 text-amber-200'
-                          : 'bg-blue-950/30 border-blue-500/40 text-blue-200'
+                          ? 'bg-warning/10 border-warning/30 text-warning'
+                          : 'bg-primary/10 border-primary/30 text-primary'
                       }`}
                     >
-                      <div className="font-bold text-white text-xs">{alt.title}</div>
-                      <div className="text-slate-300 leading-relaxed text-[11px]">{alt.desc}</div>
+                      <div className="font-bold text-foreground text-xs">{alt.title}</div>
+                      <div className="text-foreground/80 leading-relaxed text-[11px]">{alt.desc}</div>
                     </div>
                   ));
                 })()}
               </div>
             </div>
 
-            <div className="px-6 py-3 bg-slate-800/90 border-t border-slate-700/80 flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-mono">Tổng số: {allAlertItems.length} ghi nhận</span>
+            <div className="px-6 py-3 bg-muted/50 border-t border-border flex items-center justify-between">
+              <span className="text-xs text-muted-foreground font-mono">Tổng số: {allAlertItems.length} ghi nhận</span>
               <button
                 onClick={() => setIsAlertDrawerOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 border border-border text-foreground text-xs font-semibold transition cursor-pointer"
               >
                 Đóng
               </button>

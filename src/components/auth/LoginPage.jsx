@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Building2, Mail, Lock, LogIn, UserPlus, ShieldCheck, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 
@@ -56,32 +56,32 @@ export default function LoginPage({ onContinueAsGuest }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-background text-slate-100 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
       
       {/* Background Decor Gradients */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-blue-600/20 via-indigo-600/20 to-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Main Login Box */}
-      <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 shadow-2xl backdrop-blur-xl relative z-10">
+      <div className="w-full max-w-md bg-card/90 border border-border rounded-3xl p-8 shadow-2xl backdrop-blur-xl relative z-10">
         
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30 text-white mb-3">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-primary text-foreground mb-3">
             <Building2 className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-white flex items-center gap-1.5">
-            BUILD<span className="text-blue-400">COST</span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-1.5">
+            BUILD<span className="text-primary">COST</span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
               Cloud Enterprise
             </span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">Hệ thống Quản lý Chi phí & Hợp đồng Xây dựng</p>
+          <p className="text-xs text-muted-foreground mt-1">Hệ thống Quản lý Chi phí & Hợp đồng Xây dựng</p>
         </div>
 
         {/* Warning if Supabase Not Configured */}
         {!isConfigured && (
-          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-amber-300 text-xs flex items-start gap-3">
+          <div className="mb-6 p-4 bg-warning/10 border border-warning/30 rounded-2xl text-amber-300 text-xs flex items-start gap-3">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <div>
               <strong>Chưa kết nối Supabase Cloud!</strong>
@@ -89,7 +89,7 @@ export default function LoginPage({ onContinueAsGuest }) {
               {onContinueAsGuest && (
                 <button
                   onClick={onContinueAsGuest}
-                  className="mt-2.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 rounded-lg text-xs font-medium flex items-center gap-1 transition"
+                  className="mt-2.5 px-3 py-1.5 bg-warning/20 hover:bg-warning/30 text-amber-200 rounded-lg text-xs font-medium flex items-center gap-1 transition"
                 >
                   Dùng thử ở chế độ Offline (LocalStorage) <ArrowRight className="w-3.5 h-3.5" />
                 </button>
@@ -104,7 +104,7 @@ export default function LoginPage({ onContinueAsGuest }) {
             <button
               type="button"
               onClick={handleGoogleLogin}
-              className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-700/80 border border-slate-700/80 rounded-2xl text-sm font-semibold text-slate-100 flex items-center justify-center gap-3 transition shadow-md group"
+              className="w-full py-3 px-4 bg-muted hover:bg-muted/80 border border-border/80 rounded-2xl text-sm font-semibold text-slate-100 flex items-center justify-center gap-3 transition shadow-md group"
             >
               {/* Google Icon */}
               <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -130,9 +130,9 @@ export default function LoginPage({ onContinueAsGuest }) {
 
             <div className="relative my-6 text-center">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-800" />
+                <div className="w-full border-t border-border" />
               </div>
-              <span className="relative bg-slate-900 px-3 text-xs text-slate-500 uppercase tracking-widest font-medium">
+              <span className="relative bg-card px-3 text-xs text-muted-foreground uppercase tracking-widest font-medium">
                 hoặc dùng Email
               </span>
             </div>
@@ -140,14 +140,14 @@ export default function LoginPage({ onContinueAsGuest }) {
         )}
 
         {/* Mode Switcher Tabs */}
-        <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800 mb-6">
+        <div className="flex bg-background p-1 rounded-2xl border border-border mb-6">
           <button
             type="button"
             onClick={() => { setMode('login'); setErrorMsg(''); setSuccessMsg(''); }}
             className={`flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 ${
               mode === 'login'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-primary text-foreground shadow-md'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <LogIn className="w-4 h-4" /> Đăng Nhập
@@ -157,8 +157,8 @@ export default function LoginPage({ onContinueAsGuest }) {
             onClick={() => { setMode('register'); setErrorMsg(''); setSuccessMsg(''); }}
             className={`flex-1 py-2.5 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 ${
               mode === 'register'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-primary text-foreground shadow-md'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <UserPlus className="w-4 h-4" /> Đăng Ký Tài Khoản
@@ -167,14 +167,14 @@ export default function LoginPage({ onContinueAsGuest }) {
 
         {/* Feedback Messages */}
         {errorMsg && (
-          <div className="mb-4 p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs flex items-start gap-2.5">
+          <div className="mb-4 p-3.5 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-xs flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-4 p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs flex items-start gap-2.5">
+          <div className="mb-4 p-3.5 bg-success/10 border border-success/30 rounded-xl text-success text-xs flex items-start gap-2.5">
             <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{successMsg}</span>
           </div>
@@ -183,28 +183,28 @@ export default function LoginPage({ onContinueAsGuest }) {
         {/* Form Inputs */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-semibold text-foreground/80 mb-1.5 uppercase tracking-wider">
               Địa chỉ Email
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="chuduan@company.com"
                 required
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-blue-500 transition"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+            <label className="block text-xs font-semibold text-foreground/80 mb-1.5 uppercase tracking-wider">
               Mật khẩu
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 value={password}
@@ -212,7 +212,7 @@ export default function LoginPage({ onContinueAsGuest }) {
                 placeholder="••••••••"
                 required
                 minLength={6}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                className="w-full bg-background border border-border rounded-xl py-3 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-blue-500 transition"
               />
             </div>
           </div>
@@ -220,7 +220,7 @@ export default function LoginPage({ onContinueAsGuest }) {
           <button
             type="submit"
             disabled={loading || !isConfigured}
-            className="w-full mt-2 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-sm rounded-xl transition shadow-lg shadow-blue-500/25 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full mt-2 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-foreground font-bold text-sm rounded-xl transition shadow-lg shadow-primary disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? (
               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -238,10 +238,10 @@ export default function LoginPage({ onContinueAsGuest }) {
 
         {/* Guest Mode Option */}
         {onContinueAsGuest && isConfigured && (
-          <div className="mt-6 text-center border-t border-slate-800/80 pt-4">
+          <div className="mt-6 text-center border-t border-border/80 pt-4">
             <button
               onClick={onContinueAsGuest}
-              className="text-xs text-slate-400 hover:text-slate-200 transition underline underline-offset-4"
+              className="text-xs text-muted-foreground hover:text-foreground transition underline underline-offset-4"
             >
               Xem thử ứng dụng ở chế độ Demo (LocalStorage)
             </button>

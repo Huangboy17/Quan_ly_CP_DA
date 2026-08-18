@@ -62,20 +62,20 @@ export default function ProjectDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full shadow-2xl overflow-hidden my-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      <div className="bg-card border border-border rounded-2xl max-w-5xl w-full shadow-2xl overflow-hidden my-6">
         
         {/* Modal Header */}
-        <div className="px-6 py-4 bg-slate-800/80 border-b border-slate-700/80 flex items-center justify-between">
+        <div className="px-6 py-4 bg-muted/80 border-b border-border/80 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold">
+            <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-bold">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
                 {project.name}
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Bảng Thống Kê Tổng Quan Tài Chính & Tiến Độ Chi Trả Dự Án
               </p>
             </div>
@@ -84,19 +84,19 @@ export default function ProjectDetailModal({
           <div className="flex items-center gap-2">
             <button
               onClick={() => onOpenTmdtAdjustment(project)}
-              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md transition cursor-pointer flex items-center gap-1"
+              className="px-3 py-1.5 rounded-lg bg-success hover:bg-success text-foreground text-xs font-semibold shadow-md transition cursor-pointer flex items-center gap-1"
             >
               + Cập Nhật TMĐT
             </button>
             <button
               onClick={() => onOpenTmdtHistory(project)}
-              className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold transition cursor-pointer flex items-center gap-1"
+              className="px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold transition cursor-pointer flex items-center gap-1"
             >
               <Clock className="w-3.5 h-3.5" /> Lịch Sử TMĐT
             </button>
             <button 
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition ml-2"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition ml-2"
             >
               <X className="w-5 h-5" />
             </button>
@@ -114,8 +114,8 @@ export default function ProjectDetailModal({
                   key={idx} 
                   className={`p-3.5 rounded-xl border flex items-center justify-between text-xs font-semibold ${
                     w.level === 'danger'
-                      ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                      : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                      ? 'bg-destructive/10 border-destructive/30 text-destructive'
+                      : 'bg-warning/10 border-warning/30 text-warning'
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -123,7 +123,7 @@ export default function ProjectDetailModal({
                     <span>{w.message}</span>
                   </div>
                   {w.excess > 0 && (
-                    <span className="font-mono font-bold bg-slate-900/60 px-2.5 py-1 rounded border border-slate-700">
+                    <span className="font-mono font-bold bg-card/60 px-2.5 py-1 rounded border border-border">
                       Chênh lệch: +{formatVND(w.excess)}
                     </span>
                   )}
@@ -133,36 +133,36 @@ export default function ProjectDetailModal({
           )}
 
           {/* SECTION HEADER */}
-          <div className="flex items-center justify-between border-b border-slate-700/60 pb-2">
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <PieIcon className="w-4 h-4 text-emerald-400" />
+          <div className="flex items-center justify-between border-b border-border/60 pb-2">
+            <h4 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+              <PieIcon className="w-4 h-4 text-success" />
               Tổng Quan Tài Chính Dự Án (6 Nhóm Chỉ Tiêu)
             </h4>
-            <span className="text-xs text-slate-400 font-mono">Cập nhật tự động từ HĐ & TT</span>
+            <span className="text-xs text-muted-foreground font-mono">Cập nhật tự động từ HĐ & TT</span>
           </div>
 
           {/* 6 FINANCIAL GROUPS CARDS GRID */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             
             {/* NHÓM 1 - NGÂN SÁCH DỰ ÁN (TMĐT) */}
-            <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/70 shadow-md space-y-2 relative overflow-hidden group hover:border-blue-500/50 transition">
+            <div className="p-4 rounded-xl bg-muted/80 border border-border/70 shadow-md space-y-2 relative overflow-hidden group hover:border-primary/50 transition">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                  NHÓM 1 • NGÂN SÁCH DỰ ÁN
+                <span className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider">
+                  NHÓM 1 — NGÂN SÁCH DỰ ÁN
                 </span>
-                <DollarSign className="w-4 h-4 text-emerald-400" />
+                <DollarSign className="w-4 h-4 text-success" />
               </div>
 
               <div>
-                <span className="text-xs text-slate-300 font-medium block">Tổng mức đầu tư hiện tại:</span>
-                <div className="text-xl font-extrabold text-white font-mono mt-0.5">
+                <span className="text-xs text-foreground/80 font-medium block">Tổng mức đầu tư hiện tại:</span>
+                <div className="text-xl font-extrabold text-foreground font-mono mt-0.5">
                   {formatVND(currentTmdt)}
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between font-mono">
+              <div className="pt-2 border-t border-border/60 text-[11px] text-muted-foreground flex items-center justify-between font-mono">
                 <span>TMĐT Ban đầu: {formatVNDCompact(initialTmdt)}</span>
-                <span className={tmdtDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                <span className={tmdtDelta >= 0 ? 'text-success' : 'text-destructive'}>
                   {tmdtDelta >= 0 ? `+${formatVNDCompact(tmdtDelta)}` : formatVNDCompact(tmdtDelta)}
                 </span>
               </div>
@@ -171,118 +171,118 @@ export default function ProjectDetailModal({
             {/* NHÓM 2 - TÌNH HÌNH HỢP ĐỒNG */}
             <div 
               onClick={handleGoToContracts}
-              className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/70 shadow-md space-y-2 relative overflow-hidden group hover:border-blue-500/50 transition cursor-pointer"
+              className="p-4 rounded-xl bg-muted/80 border border-border/70 shadow-md space-y-2 relative overflow-hidden group hover:border-primary/50 transition cursor-pointer"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                  NHÓM 2 • TÌNH HÌNH HỢP ĐỒNG
+                <span className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider">
+                  NHÓM 2 — TÌNH HÌNH HỢP ĐỒNG
                 </span>
-                <FileText className="w-4 h-4 text-blue-400" />
+                <FileText className="w-4 h-4 text-primary" />
               </div>
 
               <div>
-                <span className="text-xs text-slate-300 font-medium block">Tổng giá trị HĐ đã ký (Sau VAT):</span>
-                <div className="text-xl font-extrabold text-blue-400 font-mono mt-0.5">
+                <span className="text-xs text-foreground/80 font-medium block">Tổng giá trị HĐ đã ký (Sau VAT):</span>
+                <div className="text-xl font-extrabold text-primary font-mono mt-0.5">
                   {formatVND(totalSignedContracts)}
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
-                <span>Số HĐ: <strong className="text-white font-mono">{contractsCount} HĐ</strong></span>
-                <span className="font-mono text-blue-300 font-bold">Ký / TMĐT: {signedContractsRatio}%</span>
+              <div className="pt-2 border-t border-border/60 text-[11px] text-muted-foreground flex items-center justify-between">
+                <span>Số HĐ: <strong className="text-foreground font-mono">{contractsCount} HĐ</strong></span>
+                <span className="font-mono text-primary font-bold">Ký / TMĐT: {signedContractsRatio}%</span>
               </div>
             </div>
 
             {/* NHÓM 3 - TÌNH HÌNH THANH TOÁN */}
             <div 
               onClick={handleGoToPayments}
-              className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/70 shadow-md space-y-2 relative overflow-hidden group hover:border-emerald-500/50 transition cursor-pointer"
+              className="p-4 rounded-xl bg-muted/80 border border-border/70 shadow-md space-y-2 relative overflow-hidden group hover:border-success/50 transition cursor-pointer"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                  NHÓM 3 • TÌNH HÌNH THANH TOÁN
+                <span className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider">
+                  NHÓM 3 — TÌNH HÌNH THANH TOÁN
                 </span>
-                <CreditCard className="w-4 h-4 text-emerald-400" />
+                <CreditCard className="w-4 h-4 text-success" />
               </div>
 
               <div>
-                <span className="text-xs text-slate-300 font-medium block">Đã thanh toán thực tế (Sau VAT):</span>
-                <div className="text-xl font-extrabold text-emerald-400 font-mono mt-0.5">
+                <span className="text-xs text-foreground/80 font-medium block">Đã thanh toán thực tế (Sau VAT):</span>
+                <div className="text-xl font-extrabold text-success font-mono mt-0.5">
                   {formatVND(totalPaid)}
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
-                <span>Đã phát sinh TT: <strong className="text-white font-mono">{project.paidContractsCount || 0} HĐ</strong></span>
-                <span className="font-mono text-emerald-400 font-bold">TT / Quyết toán: {paymentProgressRatio}%</span>
+              <div className="pt-2 border-t border-border/60 text-[11px] text-muted-foreground flex items-center justify-between">
+                <span>Đã phát sinh TT: <strong className="text-foreground font-mono">{project.paidContractsCount || 0} HĐ</strong></span>
+                <span className="font-mono text-success font-bold">TT / Quyết toán: {paymentProgressRatio}%</span>
               </div>
             </div>
 
             {/* NHÓM 4 - DỰ KIẾN QUYẾT TOÁN */}
-            <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/70 shadow-md space-y-2 relative overflow-hidden group hover:border-purple-500/50 transition">
+            <div className="p-4 rounded-xl bg-muted/80 border border-border/70 shadow-md space-y-2 relative overflow-hidden group hover:border-primary/50 transition">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                  NHÓM 4 • DỰ KIẾN QUYẾT TOÁN
+                <span className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider">
+                  NHÓM 4 — DỰ KIẾN QUYẾT TOÁN
                 </span>
-                <TrendingUp className="w-4 h-4 text-purple-400" />
+                <TrendingUp className="w-4 h-4 text-primary" />
               </div>
 
               <div>
-                <span className="text-xs text-slate-300 font-medium block">Dự kiến quyết toán toàn bộ HĐ:</span>
-                <div className="text-xl font-extrabold text-purple-300 font-mono mt-0.5">
+                <span className="text-xs text-foreground/80 font-medium block">Dự kiến quyết toán toàn bộ HĐ:</span>
+                <div className="text-xl font-extrabold text-primary/80 font-mono mt-0.5">
                   {formatVND(projEstimatedSettlement)}
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
+              <div className="pt-2 border-t border-border/60 text-[11px] text-muted-foreground flex items-center justify-between">
                 <span>Chỉ tiêu sử dụng vốn</span>
-                <span className="font-mono text-purple-300 font-bold">Sử dụng TMĐT: {settlementTmdtRatio}%</span>
+                <span className="font-mono text-primary/80 font-bold">Sử dụng TMĐT: {settlementTmdtRatio}%</span>
               </div>
             </div>
 
             {/* NHÓM 5 - CÒN PHẢI THANH TOÁN */}
-            <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/70 shadow-md space-y-2 relative overflow-hidden group hover:border-amber-500/50 transition">
+            <div className="p-4 rounded-xl bg-muted/80 border border-border/70 shadow-md space-y-2 relative overflow-hidden group hover:border-warning/50 transition">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                  NHÓM 5 • CÒN PHẢI THANH TOÁN
+                <span className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider">
+                  NHÓM 5 — CÒN PHẢI THANH TOÁN
                 </span>
-                <Clock className="w-4 h-4 text-amber-400" />
+                <Clock className="w-4 h-4 text-warning" />
               </div>
 
               <div>
-                <span className="text-xs text-slate-300 font-medium block">Còn phải chi (Dự kiến QT - Đã TT):</span>
-                <div className="text-xl font-extrabold text-amber-400 font-mono mt-0.5">
+                <span className="text-xs text-foreground/80 font-medium block">Còn phải chi (Dự kiến QT - Đã TT):</span>
+                <div className="text-xl font-extrabold text-warning font-mono mt-0.5">
                   {formatVND(remainingToPay)}
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
+              <div className="pt-2 border-t border-border/60 text-[11px] text-muted-foreground flex items-center justify-between">
                 <span>Nghĩa vụ chưa giải ngân</span>
-                <span className="font-mono text-amber-300 font-medium">Dư nợ hợp đồng</span>
+                <span className="font-mono text-warning font-medium">Dư nợ hợp đồng</span>
               </div>
             </div>
 
             {/* NHÓM 6 - NGÂN SÁCH CÒN LẠI (TMĐT - DỰ KIẾN QUYẾT TOÁN) */}
-            <div className="p-4 rounded-xl bg-slate-800/80 border border-slate-700/70 shadow-md space-y-2 relative overflow-hidden group border-indigo-500/40 bg-indigo-950/20">
+            <div className="p-4 rounded-xl bg-muted/80 border border-border/70 shadow-md space-y-2 relative overflow-hidden group border-primary/40 bg-primary/10">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase text-indigo-300 tracking-wider">
-                  NHÓM 6 • NGÂN SÁCH CÒN LẠI
+                <span className="text-[11px] font-bold uppercase text-primary/80 tracking-wider">
+                  NHÓM 6 — NGÂN SÁCH CÒN LẠI
                 </span>
-                <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                <CheckCircle2 className="w-4 h-4 text-primary" />
               </div>
 
               <div>
-                <span className="text-xs text-slate-300 font-medium block">Ngân sách còn lại (TMĐT - Dự kiến QT):</span>
+                <span className="text-xs text-foreground/80 font-medium block">Ngân sách còn lại (TMĐT - Dự kiến QT):</span>
                 <div className={`text-xl font-extrabold font-mono mt-0.5 ${
-                  remainingProjectBudget >= 0 ? 'text-indigo-400' : 'text-rose-400'
+                  remainingProjectBudget >= 0 ? 'text-primary' : 'text-destructive'
                 }`}>
                   {formatVND(remainingProjectBudget)}
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-700/60 text-[11px] text-slate-400 flex items-center justify-between">
+              <div className="pt-2 border-t border-border/60 text-[11px] text-muted-foreground flex items-center justify-between">
                 <span>Chỉ tiêu an toàn tài chính</span>
-                <span className={`font-mono font-bold ${remainingProjectBudget >= 0 ? 'text-indigo-300' : 'text-rose-400'}`}>
+                <span className={`font-mono font-bold ${remainingProjectBudget >= 0 ? 'text-primary/80' : 'text-destructive'}`}>
                   {remainingProjectBudget >= 0 ? 'Trong hạn mức' : 'Vượt TMĐT'}
                 </span>
               </div>
@@ -291,9 +291,9 @@ export default function ProjectDetailModal({
           </div>
 
           {/* PROGRESS BARS SECTION */}
-          <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-4">
-            <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-              📈 Các Chỉ Số Tiến Độ Ngân Sách Dự Án
+          <div className="p-5 rounded-2xl bg-muted/60 border border-border/60 space-y-4">
+            <h4 className="text-xs font-bold text-foreground/80 uppercase tracking-wider">
+              📊 Các Chỉ Số Tiến Độ Ngân Sách Dự Án
             </h4>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -301,46 +301,46 @@ export default function ProjectDetailModal({
               {/* Progress 1: Ký HĐ / TMĐT */}
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Tiến độ ký hợp đồng (HĐ/TMĐT)</span>
-                  <span className="font-bold text-blue-400 font-mono">{signedContractsRatio}%</span>
+                  <span className="text-muted-foreground">Tiến độ ký hợp đồng (HĐ/TMĐT)</span>
+                  <span className="font-bold text-primary font-mono">{signedContractsRatio}%</span>
                 </div>
-                <div className="w-full h-2.5 bg-slate-700 rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                    className="h-full bg-primary rounded-full transition-all duration-300"
                     style={{ width: `${Math.min(100, signedContractsRatio)}%` }}
                   />
                 </div>
-                <p className="text-[10px] text-slate-400">{formatVNDCompact(totalSignedContracts)} / {formatVNDCompact(currentTmdt)}</p>
+                <p className="text-[10px] text-muted-foreground">{formatVNDCompact(totalSignedContracts)} / {formatVNDCompact(currentTmdt)}</p>
               </div>
 
               {/* Progress 2: Dự kiến QT / TMĐT */}
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Dự kiến sử dụng TMĐT (Quyết toán/TMĐT)</span>
-                  <span className="font-bold text-purple-300 font-mono">{settlementTmdtRatio}%</span>
+                  <span className="text-muted-foreground">Dự kiến sử dụng TMĐT (Quyết toán/TMĐT)</span>
+                  <span className="font-bold text-primary/80 font-mono">{settlementTmdtRatio}%</span>
                 </div>
-                <div className="w-full h-2.5 bg-slate-700 rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-purple-500 rounded-full transition-all duration-300"
+                    className="h-full bg-primary rounded-full transition-all duration-300"
                     style={{ width: `${Math.min(100, settlementTmdtRatio)}%` }}
                   />
                 </div>
-                <p className="text-[10px] text-slate-400">{formatVNDCompact(projEstimatedSettlement)} / {formatVNDCompact(currentTmdt)}</p>
+                <p className="text-[10px] text-muted-foreground">{formatVNDCompact(projEstimatedSettlement)} / {formatVNDCompact(currentTmdt)}</p>
               </div>
 
               {/* Progress 3: Đã TT / Dự kiến QT */}
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Tiến độ thanh toán (Đã TT/Dự kiến QT)</span>
-                  <span className="font-bold text-emerald-400 font-mono">{paymentProgressRatio}%</span>
+                  <span className="text-muted-foreground">Tiến độ thanh toán (Đã TT/Dự kiến QT)</span>
+                  <span className="font-bold text-success font-mono">{paymentProgressRatio}%</span>
                 </div>
-                <div className="w-full h-2.5 bg-slate-700 rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                    className="h-full bg-success rounded-full transition-all duration-300"
                     style={{ width: `${Math.min(100, paymentProgressRatio)}%` }}
                   />
                 </div>
-                <p className="text-[10px] text-slate-400">{formatVNDCompact(totalPaid)} / {formatVNDCompact(projEstimatedSettlement)}</p>
+                <p className="text-[10px] text-muted-foreground">{formatVNDCompact(totalPaid)} / {formatVNDCompact(projEstimatedSettlement)}</p>
               </div>
 
             </div>
@@ -349,20 +349,20 @@ export default function ProjectDetailModal({
           {/* LIST OF CONTRACTS IN PROJECT */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                📄 Danh Sách Hợp Đồng Thuộc Dự Án ({projContracts.length} HĐ)
+              <h4 className="text-xs font-bold text-foreground/80 uppercase tracking-wider">
+                📝 Danh Sách Hợp Đồng Thuộc Dự Án ({projContracts.length} HĐ)
               </h4>
               <button
                 onClick={handleGoToContracts}
-                className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer"
+                className="text-xs font-semibold text-primary hover:text-primary/80 flex items-center gap-1 cursor-pointer"
               >
                 Quản lý chi tiết danh sách hợp đồng <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="border border-slate-800 rounded-xl overflow-hidden shadow-inner">
-              <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-800 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-700">
+            <div className="border border-border rounded-xl overflow-hidden shadow-inner">
+              <table className="w-full text-left text-xs text-foreground/80">
+                <thead className="bg-muted text-muted-foreground uppercase text-[11px] font-semibold border-b border-border">
                   <tr>
                     <th className="py-2.5 px-3">Số HĐ</th>
                     <th className="py-2.5 px-3">Nhà Thầu</th>
@@ -373,20 +373,20 @@ export default function ProjectDetailModal({
                     <th className="py-2.5 px-3 text-center">Trạng Thái</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800 bg-slate-900/60">
+                <tbody className="divide-y divide-border bg-card/60">
                   {projContracts.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-800/50 transition">
-                      <td className="py-2.5 px-3 font-mono font-bold text-white">{c.contract_number}</td>
-                      <td className="py-2.5 px-3 text-slate-300">{c.contractor}</td>
-                      <td className="py-2.5 px-3 text-right font-mono font-semibold text-blue-300">{formatVND(c.contractValueAfterVAT)}</td>
-                      <td className="py-2.5 px-3 text-right font-mono font-semibold text-purple-300">{formatVND(c.estimated_settlement_value || c.contractValueAfterVAT)}</td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-emerald-400">{formatVND(c.totalPaidAfterVAT)}</td>
-                      <td className="py-2.5 px-3 text-right font-mono text-amber-400">{formatVND(c.remainingAfterVAT)}</td>
+                    <tr key={c.id} className="hover:bg-muted/50 transition">
+                      <td className="py-2.5 px-3 font-mono font-bold text-foreground">{c.contract_number}</td>
+                      <td className="py-2.5 px-3 text-foreground/80">{c.contractor}</td>
+                      <td className="py-2.5 px-3 text-right font-mono font-semibold text-primary">{formatVND(c.contractValueAfterVAT)}</td>
+                      <td className="py-2.5 px-3 text-right font-mono font-semibold text-primary/80">{formatVND(c.estimated_settlement_value || c.contractValueAfterVAT)}</td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold text-success">{formatVND(c.totalPaidAfterVAT)}</td>
+                      <td className="py-2.5 px-3 text-right font-mono text-warning">{formatVND(c.remainingAfterVAT)}</td>
                       <td className="py-2.5 px-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                           c.status === 'settled'
-                            ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-                            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            ? 'bg-primary/10 text-primary border-primary/30'
+                            : 'bg-success/10 text-success border-success/30'
                         }`}>
                           {c.status === 'settled' ? 'Đã quyết toán' : 'Đang thực hiện'}
                         </span>
@@ -396,7 +396,7 @@ export default function ProjectDetailModal({
 
                   {projContracts.length === 0 && (
                     <tr>
-                      <td colSpan="7" className="py-6 text-center text-slate-400">
+                      <td colSpan="7" className="py-6 text-center text-muted-foreground">
                         Chưa có hợp đồng nào được thêm cho dự án này.
                       </td>
                     </tr>
@@ -409,13 +409,13 @@ export default function ProjectDetailModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3 bg-slate-800/80 border-t border-slate-700/80 flex items-center justify-between">
-          <div className="text-xs text-slate-400 font-mono">
+        <div className="px-6 py-3 bg-muted/80 border-t border-border/80 flex items-center justify-between">
+          <div className="text-xs text-muted-foreground font-mono">
             Mô hình 3 Giá trị & Quản lý TMĐT tự động
           </div>
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition cursor-pointer"
+            className="px-5 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold transition cursor-pointer"
           >
             Đóng Cửa Sổ
           </button>

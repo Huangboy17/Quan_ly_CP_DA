@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { X, LogIn, UserPlus, Mail, Lock, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../services/supabase';
 
@@ -75,19 +75,19 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative">
+      <div className="bg-card border border-border rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative">
         
         {/* Header Gradient */}
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 text-white relative">
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 text-foreground relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-white/80 hover:text-white bg-black/20 hover:bg-black/40 rounded-full p-1 transition"
+            className="absolute top-4 right-4 text-foreground/80 hover:text-foreground bg-black/20 hover:bg-black/40 rounded-full p-1 transition"
           >
             <X className="w-5 h-5" />
           </button>
           
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-white/10 backdrop-blur-md rounded-xl">
+            <div className="p-2.5 bg-card/10 backdrop-blur-md rounded-xl">
               <ShieldCheck className="w-6 h-6 text-blue-200" />
             </div>
             <div>
@@ -101,7 +101,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
         <div className="p-6">
           
           {!isSupabaseConfigured && (
-            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-start gap-2">
+            <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-xl text-amber-300 text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <div>
                 <strong>Chưa cấu hình Supabase API Key!</strong>
@@ -111,14 +111,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           )}
 
           {/* Mode Switcher Tabs */}
-          <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 mb-6">
+          <div className="flex bg-background p-1 rounded-xl border border-border mb-6">
             <button
               type="button"
               onClick={() => { setMode('login'); setErrorMsg(''); setSuccessMsg(''); }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
                 mode === 'login'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-primary text-foreground shadow-md'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <LogIn className="w-4 h-4" /> Đăng Nhập
@@ -128,8 +128,8 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
               onClick={() => { setMode('register'); setErrorMsg(''); setSuccessMsg(''); }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-2 ${
                 mode === 'register'
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-primary text-foreground shadow-md'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <UserPlus className="w-4 h-4" /> Đăng Ký
@@ -138,7 +138,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
 
           {/* Error Message */}
           {errorMsg && (
-            <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs flex items-start gap-2">
+            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-xs flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{errorMsg}</span>
             </div>
@@ -146,7 +146,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
 
           {/* Success Message */}
           {successMsg && (
-            <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs flex items-start gap-2">
+            <div className="mb-4 p-3 bg-success/10 border border-success/30 rounded-xl text-success text-xs flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{successMsg}</span>
             </div>
@@ -154,28 +154,28 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-foreground/80 mb-1.5 uppercase tracking-wider">
                 Địa chỉ Email
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
                   required
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                  className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-blue-500 transition"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-foreground/80 mb-1.5 uppercase tracking-wider">
                 Mật khẩu
               </label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="password"
                   value={password}
@@ -183,7 +183,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition"
+                  className="w-full bg-background border border-border rounded-xl py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-blue-500 transition"
                 />
               </div>
             </div>
@@ -191,7 +191,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             <button
               type="submit"
               disabled={loading || !isSupabaseConfigured}
-              className="w-full mt-2 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-sm rounded-xl transition shadow-lg shadow-blue-500/20 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full mt-2 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-foreground font-semibold text-sm rounded-xl transition shadow-lg shadow-primary disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

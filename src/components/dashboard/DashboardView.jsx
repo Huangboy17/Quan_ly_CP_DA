@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import { 
   Building2, 
   FileText, 
@@ -154,21 +154,21 @@ export default function DashboardView({
     <div className="space-y-6 animate-fade-in pb-12">
       
       {/* Time & Project Analytics Scope Banner */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950/80 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 sm:p-6 rounded-2xl bg-card border border-border shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold font-mono">
+            <span className="px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold font-mono">
               📅 KỲ PHÂN TÍCH: {(periodLabel || 'TẤT CẢ THỜI GIAN').toUpperCase()}
             </span>
 
             {/* Global Project Scope Badge */}
             {selectedProjectObj ? (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/10 text-success border border-success/30 text-xs font-bold">
                 <span>🏢 DỰ ÁN: {selectedProjectObj.name}</span>
                 {setSelectedProjectId && (
                   <button 
                     onClick={() => setSelectedProjectId('')}
-                    className="p-0.5 hover:bg-emerald-500/20 rounded-full transition cursor-pointer text-emerald-300 ml-1"
+                    className="p-0.5 hover:bg-success/20 rounded-full transition cursor-pointer text-emerald-300 ml-1"
                     title="Bỏ lọc dự án (Xem tất cả)"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -176,7 +176,7 @@ export default function DashboardView({
                 )}
               </div>
             ) : (
-              <span className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold">
+              <span className="px-3 py-1 rounded-full bg-muted text-foreground border border-border text-xs font-bold">
                 🏢 TẤT CẢ DỰ ÁN
               </span>
             )}
@@ -184,8 +184,8 @@ export default function DashboardView({
             {totals.hasPrevPeriod && totals.prevPeriodLabel && totals.periodGrowthPct !== null && !isNaN(totals.periodGrowthPct) && (
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 border ${
                 totals.periodGrowthPct >= 0 
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                  : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                  ? 'bg-success/10 text-success border-success/20' 
+                  : 'bg-destructive/10 text-destructive border-destructive/20'
               }`}>
                 {totals.periodGrowthPct >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
                 {totals.periodGrowthPct >= 0 ? `+${totals.periodGrowthPct}%` : `${totals.periodGrowthPct}%`} so với {totals.prevPeriodLabel}
@@ -193,30 +193,30 @@ export default function DashboardView({
             )}
 
             {!totals.hasPrevPeriod && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold text-slate-300 bg-slate-800 border border-slate-700">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold text-foreground bg-muted border border-border">
                 ♾️ Lũy kế toàn thời gian
               </span>
             )}
           </div>
 
-          <h2 className="text-xl lg:text-2xl font-bold text-white tracking-tight mt-2 flex items-center gap-2">
+          <h2 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight mt-2 flex items-center gap-2">
             📊 Phân Tích Dòng Tiền & Tiến Độ Giải Ngân
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Số liệu tài chính được lọc đồng thời theo dự án <span className="text-emerald-300 font-semibold">{selectedProjectObj ? selectedProjectObj.name : 'Tất cả dự án'}</span> và phạm vi thời gian <span className="text-blue-300 font-semibold">{periodLabel || 'Tất cả thời gian'}</span>.
+          <p className="text-xs text-muted-foreground mt-1">
+            Số liệu tài chính được lọc đồng thời theo dự án <span className="text-primary font-semibold">{selectedProjectObj ? selectedProjectObj.name : 'Tất cả dự án'}</span> và phạm vi thời gian <span className="text-primary font-semibold">{periodLabel || 'Tất cả thời gian'}</span>.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={onNewContract}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition cursor-pointer flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/20 transition cursor-pointer flex items-center gap-2"
           >
             + Nhập Hợp Đồng Mới
           </button>
           <button
             onClick={onNewPayment}
-            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-lg shadow-emerald-600/20 transition cursor-pointer flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground text-xs font-semibold shadow-lg shadow-success/20 transition cursor-pointer flex items-center gap-2"
           >
             + Nhập Thanh Toán Đợt
           </button>
@@ -233,7 +233,7 @@ export default function DashboardView({
           icon={Calendar}
           color="emerald"
           badge={
-            <div className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+            <div className="text-[10px] font-mono text-success bg-success/10 px-2 py-0.5 rounded border border-success/20">
               {periodLabel || 'Tất cả thời gian'}
             </div>
           }
@@ -327,14 +327,14 @@ export default function DashboardView({
         </div>
 
         {/* Row 1 - Right Chart (50% Width): "Phân bổ chi trả trong kỳ" */}
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between h-full">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="p-5 rounded-2xl bg-card border border-border shadow-xl space-y-4 flex flex-col justify-between h-full">
+          <div className="flex items-center justify-between border-b border-border pb-3">
             <div>
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <PieIcon className="w-5 h-5 text-purple-400" />
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <PieIcon className="w-5 h-5 text-primary" />
                 {selectedProjectObj ? `Phân Bổ Chi Trả Theo Nhà Thầu` : `Phân Bổ Chi Trả Trong Kỳ`}
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {selectedProjectObj 
                   ? `Tỷ trọng giải ngân từng nhà thầu thuộc ${selectedProjectObj.name}`
                   : `Tỷ trọng giải ngân từng dự án trong ${periodLabel}`}
@@ -370,10 +370,10 @@ export default function DashboardView({
 
                 {/* Perfect Center Inner Text (Centered Vertically & Horizontally) */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-2 select-none">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">
                     TỔNG CHI
                   </span>
-                  <span className="text-xs sm:text-sm font-bold text-white font-mono leading-tight mt-0.5">
+                  <span className="text-xs sm:text-sm font-bold text-foreground font-mono leading-tight mt-0.5">
                     {totalAllocationValue} Tỷ
                   </span>
                 </div>
@@ -391,23 +391,23 @@ export default function DashboardView({
                     <div
                       key={item.name}
                       title={`${item.fullName} - ${item.value} Tỷ VNĐ (${pct.toFixed(1)}%)`}
-                      className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-purple-500/50 hover:bg-slate-800/50 transition cursor-pointer flex items-center justify-between gap-2 group"
+                      className="p-2 rounded-xl bg-background/60 border border-border/80 hover:border-primary/50 hover:bg-muted/50 transition cursor-pointer flex items-center justify-between gap-2 group"
                     >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span 
                           className="w-3 h-3 rounded-md shrink-0 shadow-sm mt-0.5" 
                           style={{ backgroundColor: itemColor }} 
                         />
-                        <span className="text-xs font-semibold text-slate-200 whitespace-normal break-words leading-snug group-hover:text-purple-300 transition">
+                        <span className="text-xs font-semibold text-foreground whitespace-normal break-words leading-snug group-hover:text-primary transition">
                           {item.fullName}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-3 shrink-0 text-xs font-mono">
-                        <span className="font-bold text-white">
+                        <span className="font-bold text-foreground">
                           {item.value} Tỷ
                         </span>
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-purple-300 border border-slate-700 min-w-[44px] text-right">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-muted text-primary border border-border min-w-[44px] text-right">
                           {pct.toFixed(1)}%
                         </span>
                       </div>
@@ -418,7 +418,7 @@ export default function DashboardView({
 
             </div>
           ) : (
-            <div className="h-56 w-full flex items-center justify-center text-xs text-slate-400 italic">
+            <div className="h-56 w-full flex items-center justify-center text-xs text-muted-foreground italic">
               Chưa có phát sinh chi trong kỳ này
             </div>
           )}
@@ -427,22 +427,22 @@ export default function DashboardView({
       </div>
 
       {/* ROW 2 (BOTTOM): 100% WIDTH COMBO CHART (BAR + LINE + DATA LABELS + MULTI-LAYER TOOLTIP + REF LINE) */}
-      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 w-full">
-        <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-3 gap-2">
+      <div className="p-5 rounded-2xl bg-card border border-border shadow-xl space-y-4 w-full">
+        <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border pb-3 gap-2">
           <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-emerald-400" />
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-success" />
               Dòng Tiền Giải Ngân Theo Thời Gian ({periodLabel})
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Biểu đồ kết hợp Chi trả hàng tháng (Cột) & Giá trị Lũy kế cộng dồn (Đường) cho <strong className="text-emerald-300">{selectedProjectObj ? selectedProjectObj.name : 'Tất cả dự án'}</strong> (Tỷ VNĐ)
             </p>
           </div>
 
           {avgMonthlyDisbursement > 0 && (
             <div className="flex items-center gap-2 text-xs font-mono self-start md:self-auto">
-              <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-semibold">
-                📊 Trung bình tháng: <strong className="text-emerald-400">{avgMonthlyDisbursement} Tỷ</strong>
+              <span className="px-2.5 py-1 rounded-full bg-muted text-foreground border border-border font-semibold">
+                📊 Trung bình tháng: <strong className="text-success">{avgMonthlyDisbursement} Tỷ</strong>
               </span>
             </div>
           )}
@@ -482,31 +482,31 @@ export default function DashboardView({
                     const cumulativeVal = payload.find(p => p.dataKey === 'Lũy kế (Tỷ VNĐ)')?.value || 0;
 
                     return (
-                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-700 shadow-2xl text-xs space-y-1.5 z-50">
-                        <div className="font-bold text-white flex items-center justify-between border-b border-slate-800 pb-1.5 gap-4">
+                      <div className="p-3 rounded-xl bg-popover border border-border shadow-2xl text-xs space-y-1.5 z-50">
+                        <div className="font-bold text-popover-foreground flex items-center justify-between border-b border-border pb-1.5 gap-4">
                           <span>📅 {label}</span>
-                          <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20 font-mono">
+                          <span className="text-[10px] text-success bg-success/10 px-1.5 py-0.5 rounded border border-success/20 font-mono">
                             Kỳ thanh toán
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-4 pt-0.5">
-                          <span className="text-slate-300 flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />
+                          <span className="text-muted-foreground flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-sm bg-success inline-block" />
                             Chi trả trong tháng:
                           </span>
-                          <strong className="text-emerald-400 font-mono">{monthVal} Tỷ VNĐ</strong>
+                          <strong className="text-success font-mono">{monthVal} Tỷ VNĐ</strong>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <span className="text-slate-300 flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                          <span className="text-muted-foreground flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-warning inline-block" />
                             Giá trị Lũy kế cộng dồn:
                           </span>
-                          <strong className="text-amber-400 font-mono">{cumulativeVal} Tỷ VNĐ</strong>
+                          <strong className="text-warning font-mono">{cumulativeVal} Tỷ VNĐ</strong>
                         </div>
                         {avgMonthlyDisbursement > 0 && (
-                          <div className="flex items-center justify-between gap-4 pt-1 border-t border-slate-800 text-[11px] text-slate-400">
+                          <div className="flex items-center justify-between gap-4 pt-1 border-t border-border text-[11px] text-muted-foreground">
                             <span>Mức chi trung bình tháng:</span>
-                            <span className="font-mono text-slate-200">{avgMonthlyDisbursement} Tỷ VNĐ</span>
+                            <span className="font-mono text-foreground">{avgMonthlyDisbursement} Tỷ VNĐ</span>
                           </div>
                         )}
                       </div>
@@ -568,7 +568,7 @@ export default function DashboardView({
               </ComposedChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
+            <div className="h-full flex items-center justify-center text-xs text-muted-foreground italic">
               Không có phát sinh chi cho {selectedProjectObj ? selectedProjectObj.name : 'phạm vi này'} trong {periodLabel}.
             </div>
           )}
@@ -576,29 +576,29 @@ export default function DashboardView({
       </div>
 
       {/* Projects Progress Table */}
-      <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-5">
+      <div className="p-6 rounded-2xl bg-card border border-border shadow-xl space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-blue-400" />
+            <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-primary" />
               Bảng Tiến Độ Chi Trả Chi Tiết Các Dự Án
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Thống kê chi trả trong kỳ <span className="text-emerald-400 font-semibold">{periodLabel}</span> và tổng lũy kế toàn thời gian
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Thống kê chi trả trong kỳ <span className="text-success font-semibold">{periodLabel}</span> và tổng lũy kế toàn thời gian
             </p>
           </div>
 
           <button
             onClick={() => setActiveTab('projects')}
-            className="text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+            className="text-xs font-semibold text-primary hover:text-blue-300 flex items-center gap-1 self-start sm:self-auto cursor-pointer"
           >
             Quản lý tất cả dự án <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left text-xs text-slate-300 min-w-[850px]">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
+          <table className="w-full text-left text-xs text-muted-foreground min-w-[850px]">
+            <thead className="bg-muted text-muted-foreground uppercase text-[11px] font-semibold border-b border-border">
               <tr>
                 <th className="py-3 px-4">Tên Dự Án</th>
                 <th className="py-3 px-4 text-center">Số HĐ</th>
@@ -610,64 +610,64 @@ export default function DashboardView({
                 <th className="py-3 px-4 text-center">Thao Tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/80">
+            <tbody className="divide-y divide-border/80">
               {displayProjectsList.map((proj) => {
                 const isSelected = selectedProjectId && String(proj.id) === String(selectedProjectId);
                 return (
                   <tr 
                     key={proj.id} 
-                    className={`transition ${isSelected ? 'bg-emerald-950/30 border-l-4 border-emerald-500' : 'hover:bg-slate-800/50'}`}
+                    className={`transition ${isSelected ? 'bg-success/10 border-l-4 border-success' : 'hover:bg-muted/50'}`}
                   >
-                    <td className="py-3.5 px-4 font-semibold text-white">
+                    <td className="py-3.5 px-4 font-semibold text-foreground">
                       <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-emerald-400 animate-pulse' : 'bg-blue-500'}`} />
-                        <span className={isSelected ? 'text-emerald-300 font-bold' : ''}>{proj.name}</span>
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${isSelected ? 'bg-success animate-pulse' : 'bg-primary'}`} />
+                        <span className={isSelected ? 'text-success font-bold' : ''}>{proj.name}</span>
                         {isSelected && (
-                          <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono">
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-success/10 text-success border border-success/40 font-mono">
                             🟢 Đang lọc
                           </span>
                         )}
                       </div>
                       {proj.description && (
-                        <p className="text-[11px] font-normal text-slate-400 line-clamp-1 ml-4 mt-0.5">
+                        <p className="text-[11px] font-normal text-muted-foreground line-clamp-1 ml-4 mt-0.5">
                           {proj.description}
                         </p>
                       )}
                     </td>
 
-                    <td className="py-3.5 px-4 text-center font-mono text-slate-300">
-                      <span className="px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-300">
+                    <td className="py-3.5 px-4 text-center font-mono text-muted-foreground">
+                      <span className="px-2 py-0.5 rounded-full bg-muted border border-border text-foreground">
                         {proj.contractsCount} HĐ
                       </span>
                     </td>
 
                     {/* GIÁ TRỊ KÝ (Tỷ VNĐ) */}
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-white">
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-foreground">
                       {((Number(proj.totalContractValue) || 0) / 1_000_000_000).toFixed(2)}
                     </td>
 
                     {/* CHI TRẢ TRONG KỲ (Tỷ VNĐ) */}
-                    <td className="py-3.5 px-4 text-right font-mono text-emerald-400 font-bold bg-emerald-500/5">
+                    <td className="py-3.5 px-4 text-right font-mono text-success font-bold bg-success/5">
                       {((Number(proj.totalPaidInPeriod) || 0) / 1_000_000_000).toFixed(2)}
                     </td>
 
                     {/* LŨY KẾ ĐÃ CHI (Tỷ VNĐ) */}
-                    <td className="py-3.5 px-4 text-right font-mono text-blue-300 font-semibold">
+                    <td className="py-3.5 px-4 text-right font-mono text-primary font-semibold">
                       {((Number(proj.totalPaid) || 0) / 1_000_000_000).toFixed(2)}
                     </td>
 
                     {/* CÒN LẠI (Tỷ VNĐ) */}
-                    <td className="py-3.5 px-4 text-right font-mono text-amber-400 font-medium">
+                    <td className="py-3.5 px-4 text-right font-mono text-warning font-medium">
                       {((Number(proj.totalRemaining) || 0) / 1_000_000_000).toFixed(2)}
                     </td>
 
                     <td className="py-3.5 px-4">
                       <div className="space-y-1">
                         <div className="flex justify-between text-[11px]">
-                          <span className="text-slate-400">Đã chi</span>
-                          <span className="font-bold text-slate-200">{proj.paidPercentage}%</span>
+                          <span className="text-muted-foreground">Đã chi</span>
+                          <span className="font-bold text-foreground">{proj.paidPercentage}%</span>
                         </div>
-                        <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden border border-border">
                           <div
                             className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 rounded-full transition-all duration-300"
                             style={{ width: `${proj.paidPercentage}%` }}
@@ -682,7 +682,7 @@ export default function DashboardView({
                           if (setSelectedProjectId) setSelectedProjectId(proj.id);
                           setActiveTab('contracts');
                         }}
-                        className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-medium border border-slate-700 transition cursor-pointer"
+                        className="px-2.5 py-1 rounded bg-muted hover:bg-muted/80 text-foreground text-[11px] font-medium border border-border transition cursor-pointer"
                       >
                         Xem Hợp Đồng
                       </button>
@@ -693,7 +693,7 @@ export default function DashboardView({
 
               {displayProjectsList.length === 0 && (
                 <tr>
-                  <td colSpan="8" className="py-8 text-center text-slate-400">
+                  <td colSpan="8" className="py-8 text-center text-muted-foreground">
                     Chưa có dự án nào thuộc bộ lọc này.
                   </td>
                 </tr>

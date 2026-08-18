@@ -10,16 +10,16 @@ import {
 import { formatVND, formatVNDCompact } from '../../utils/formatters';
 
 const COST_GROUP_COLORS = {
-  'Xây dựng - Thiết bị': '#06b6d4', // Cyan
-  'Chi phí QLDA': '#3b82f6',       // Blue
-  'Tư vấn': '#10b981',             // Emerald
-  'Chi phí khác': '#8b5cf6',       // Purple
-  'Lãi vay': '#f59e0b',             // Amber
-  'Khác': '#ec4899',                // Pink
-  'Chưa phân loại': '#64748b',     // Slate
+  'Xây dựng - Thiết bị': 'var(--primary)', 
+  'Chi phí QLDA': '#06b6d4',       
+  'Tư vấn': 'var(--success)',             
+  'Chi phí khác': '#8b5cf6',       
+  'Lãi vay': 'var(--warning)',             
+  'Khác': 'var(--destructive)',                
+  'Chưa phân loại': 'var(--muted-foreground)',     
 };
 
-const PALETTE = ['#06b6d4', '#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#64748b', '#14b8a6', '#6366f1'];
+const PALETTE = ['var(--primary)', '#06b6d4', 'var(--success)', '#8b5cf6', 'var(--warning)', 'var(--destructive)', 'var(--muted-foreground)', '#14b8a6', '#6366f1'];
 
 export default function ContractCostGroupChart({ 
   contracts = [], 
@@ -78,25 +78,25 @@ export default function ContractCostGroupChart({
   // EMPTY STATE
   if (!contracts || contracts.length === 0 || chartData.length === 0 || grandTotalValue === 0) {
     return (
-      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between h-full">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="p-5 rounded-2xl bg-card border border-border shadow-xl space-y-4 flex flex-col justify-between h-full">
+        <div className="flex items-center justify-between border-b border-border pb-3">
           <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <PieIcon className="w-5 h-5 text-cyan-400" />
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <PieIcon className="w-5 h-5 text-primary" />
               {title}
             </h3>
-            {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+            {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
           </div>
         </div>
 
         <div className="h-60 w-full flex flex-col items-center justify-center text-center space-y-2 p-4">
-          <div className="w-12 h-12 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-500">
+          <div className="w-12 h-12 rounded-full bg-muted border border-border flex items-center justify-center text-muted-foreground">
             <PieIcon className="w-6 h-6" />
           </div>
-          <span className="text-xs font-semibold text-slate-400">
+          <span className="text-xs font-semibold text-muted-foreground">
             Chưa có dữ liệu hợp đồng để phân tích
           </span>
-          <span className="text-[11px] text-slate-500 max-w-xs">
+          <span className="text-[11px] text-muted-foreground max-w-xs">
             Khởi tạo hợp đồng mới và phân loại Nhóm chi phí để xem biểu đồ cơ cấu.
           </span>
         </div>
@@ -105,21 +105,21 @@ export default function ContractCostGroupChart({
   }
 
   return (
-    <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between h-full">
+    <div className="p-5 rounded-2xl bg-card border border-border shadow-xl space-y-4 flex flex-col justify-between h-full">
       
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      <div className="flex items-center justify-between border-b border-border pb-3">
         <div>
-          <h3 className="text-base font-bold text-white flex items-center gap-2">
-            <PieIcon className="w-5 h-5 text-cyan-400" />
+          <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+            <PieIcon className="w-5 h-5 text-primary" />
             {title}
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {subtitle || `Cơ cấu giá trị sau VAT theo nhóm chi phí (${chartData.length} nhóm)`}
           </p>
         </div>
-        <span className="text-[10px] text-cyan-300 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded font-mono">
-          Click xem HĐ
+        <span className="text-[10px] text-primary bg-primary/10 border border-primary/30 px-2 py-0.5 rounded font-mono">
+          Click xem HD
         </span>
       </div>
 
@@ -154,16 +154,16 @@ export default function ContractCostGroupChart({
                   if (!active || !payload || !payload.length) return null;
                   const d = payload[0].payload;
                   return (
-                    <div className="p-3 rounded-xl bg-slate-950 border border-slate-700 shadow-2xl text-xs space-y-1 z-50">
-                      <div className="font-bold text-white flex items-center gap-2">
+                    <div className="p-3 rounded-xl bg-popover border border-border shadow-2xl text-xs space-y-1 z-50">
+                      <div className="font-bold text-popover-foreground flex items-center gap-2">
                         <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
                         {d.name}
                       </div>
-                      <div className="text-slate-300 font-mono pt-1">
-                        Giá trị: <strong className="text-cyan-300">{formatVNDCompact(d.value)}</strong> ({formatVND(d.value)})
+                      <div className="text-muted-foreground font-mono pt-1">
+                        Giá trị: <strong className="text-primary">{formatVNDCompact(d.value)}</strong> ({formatVND(d.value)})
                       </div>
-                      <div className="text-slate-300 font-mono">
-                        Tỷ trọng: <strong className="text-emerald-400">{d.pct.toFixed(2)}%</strong>
+                      <div className="text-muted-foreground font-mono">
+                        Tỷ trọng: <strong className="text-success">{d.pct.toFixed(2)}%</strong>
                       </div>
                     </div>
                   );
@@ -174,10 +174,10 @@ export default function ContractCostGroupChart({
 
           {/* Perfect Center Inner Text (Centered Vertically & Horizontally) */}
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center p-2 select-none">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider leading-tight">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider leading-tight">
               TỔNG GIÁ TRỊ
             </span>
-            <span className="text-xs sm:text-sm font-bold text-white font-mono leading-tight mt-0.5">
+            <span className="text-xs sm:text-sm font-bold text-foreground font-mono leading-tight mt-0.5">
               {formatVNDCompact(grandTotalValue)}
             </span>
           </div>
@@ -190,26 +190,26 @@ export default function ContractCostGroupChart({
               key={item.name}
               onClick={() => handleItemClick(item.name)}
               title={`${item.name} - ${formatVND(item.value)} (${item.pct.toFixed(2)}%)`}
-              className="p-2 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-cyan-500/50 hover:bg-slate-800/50 transition cursor-pointer flex items-center justify-between gap-2 group"
+              className="p-2 rounded-xl bg-background/60 border border-border/80 hover:border-primary/50 hover:bg-muted/50 transition cursor-pointer flex items-center justify-between gap-2 group"
             >
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <span 
                   className="w-3 h-3 rounded-md shrink-0 shadow-sm mt-0.5" 
                   style={{ backgroundColor: item.color }} 
                 />
-                <span className="text-xs font-semibold text-slate-200 whitespace-normal break-words leading-snug group-hover:text-cyan-300 transition">
+                <span className="text-xs font-semibold text-foreground whitespace-normal break-words leading-snug group-hover:text-primary transition">
                   {item.name}
                 </span>
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0 text-xs font-mono">
-                <span className="font-bold text-white">
+                <span className="font-bold text-foreground">
                   {formatVNDCompact(item.value)}
                 </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-cyan-300 border border-slate-700 min-w-[48px] text-right">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-muted text-primary border border-border min-w-[48px] text-right">
                   {item.pct.toFixed(1)}%
                 </span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 group-hover:translate-x-0.5 transition shrink-0" />
+                <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition shrink-0" />
               </div>
             </div>
           ))}

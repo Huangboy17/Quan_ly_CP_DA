@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Building2, Lock, Mail, LogIn, UserPlus, KeyRound, AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../services/supabase';
 
@@ -61,38 +61,38 @@ export default function LoginView({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
       
       {/* Dynamic Background Glow Effect */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-emerald-600/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-success/20 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 backdrop-blur-xl relative z-10 space-y-6">
+      <div className="w-full max-w-md bg-card/90 border border-border rounded-3xl shadow-2xl p-6 sm:p-8 backdrop-blur-xl relative z-10 space-y-6">
         
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30 text-white font-bold mx-auto">
-            <Building2 className="w-8 h-8 text-white" />
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-primary text-foreground font-bold mx-auto">
+            <Building2 className="w-8 h-8 text-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center justify-center gap-1.5 pt-1">
-            BUILD<span className="text-blue-400 font-black">COST</span>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center justify-center gap-1.5 pt-1">
+            BUILD<span className="text-primary font-black">COST</span>
           </h1>
-          <p className="text-xs text-slate-400 font-medium">
+          <p className="text-xs text-muted-foreground font-medium">
             Hệ thống Quản lý Chi phí & Hợp đồng Xây dựng
           </p>
         </div>
 
         {/* Warning if .env is missing */}
         {!isSupabaseConfigured && (
-          <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/50 text-amber-300 text-xs space-y-2">
-            <div className="flex items-center gap-2 font-bold text-amber-200">
-              <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+          <div className="p-4 rounded-2xl bg-warning/10 border border-warning/50 text-warning text-xs space-y-2">
+            <div className="flex items-center gap-2 font-bold text-warning-foreground/90">
+              <AlertCircle className="w-4 h-4 shrink-0 text-warning" />
               <span>Chưa phát hiện cấu hình Supabase (.env)</span>
             </div>
-            <p className="text-slate-300 leading-relaxed text-[11px]">
-              Vui lòng tạo file <code className="bg-slate-900 px-1.5 py-0.5 rounded text-amber-300 font-mono">.env</code> tại thư mục gốc dự án với nội dung:
+            <p className="text-warning-foreground/80 leading-relaxed text-[11px]">
+              Vui lòng tạo file <code className="bg-background px-1.5 py-0.5 rounded text-warning font-mono">.env</code> tại thư mục gốc dự án với nội dung:
             </p>
-            <pre className="bg-slate-950 p-2.5 rounded-lg text-[10px] font-mono text-emerald-400 overflow-x-auto border border-slate-800">
+            <pre className="bg-background p-2.5 rounded-lg text-[10px] font-mono text-success overflow-x-auto border border-border">
               VITE_SUPABASE_URL=https://your-project.supabase.co{'\n'}
               VITE_SUPABASE_ANON_KEY=your-anon-key-here
             </pre>
@@ -100,7 +100,7 @@ export default function LoginView({ onLoginSuccess }) {
         )}
 
         {/* Auth Toggle Tabs */}
-        <div className="flex rounded-xl bg-slate-950 p-1 border border-slate-800 text-xs font-semibold">
+        <div className="flex rounded-xl bg-background p-1 border border-border text-xs font-semibold">
           <button
             type="button"
             onClick={() => {
@@ -109,7 +109,7 @@ export default function LoginView({ onLoginSuccess }) {
               setSuccessMsg('');
             }}
             className={`flex-1 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              !isSignUp ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+              !isSignUp ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <LogIn className="w-3.5 h-3.5" /> Đăng nhập
@@ -122,7 +122,7 @@ export default function LoginView({ onLoginSuccess }) {
               setSuccessMsg('');
             }}
             className={`flex-1 py-2 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 ${
-              isSignUp ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+              isSignUp ? 'bg-primary text-primary-foreground shadow-md' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <UserPlus className="w-3.5 h-3.5" /> Đăng ký
@@ -131,14 +131,14 @@ export default function LoginView({ onLoginSuccess }) {
 
         {/* Status Alerts */}
         {errorMsg && (
-          <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-500/50 text-rose-300 text-xs flex items-center gap-2 animate-fade-in">
+          <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/50 text-destructive text-xs flex items-center gap-2 animate-fade-in">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 rounded-xl bg-emerald-950/50 border border-emerald-500/50 text-emerald-300 text-xs flex items-center gap-2 animate-fade-in">
+          <div className="p-3 rounded-xl bg-success/10 border border-success/50 text-success text-xs flex items-center gap-2 animate-fade-in">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{successMsg}</span>
           </div>
@@ -148,35 +148,35 @@ export default function LoginView({ onLoginSuccess }) {
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           
           <div className="space-y-1.5">
-            <label className="text-slate-300 font-semibold uppercase text-[10px] tracking-wider block">
+            <label className="text-foreground/80 font-semibold uppercase text-[10px] tracking-wider block">
               Email đăng nhập
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
                 placeholder="vd: kythuat@duan.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition font-medium"
+                className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition font-medium"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-slate-300 font-semibold uppercase text-[10px] tracking-wider block">
+            <label className="text-foreground/80 font-semibold uppercase text-[10px] tracking-wider block">
               Mật khẩu
             </label>
             <div className="relative">
-              <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <KeyRound className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition font-medium"
+                className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition font-medium"
               />
             </div>
           </div>
@@ -184,7 +184,7 @@ export default function LoginView({ onLoginSuccess }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-foreground font-bold text-xs shadow-lg shadow-primary/30 transition cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {loading ? (
               <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -200,8 +200,8 @@ export default function LoginView({ onLoginSuccess }) {
           </button>
         </form>
 
-        <div className="pt-2 text-center text-[11px] text-slate-400 border-t border-slate-800/80 flex items-center justify-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="pt-2 text-center text-[11px] text-muted-foreground border-t border-border/80 flex items-center justify-center gap-1.5">
+          <ShieldCheck className="w-3.5 h-3.5 text-success" />
           <span>Bảo mật bằng Supabase Auth & PostgreSQL Data Layer</span>
         </div>
 

@@ -1,16 +1,96 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
 @layer base {
   :root {
-    --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    /* Light Mode */
+    --background: #f8fafc; /* slate-50 */
+    --foreground: #0f172a; /* slate-900 */
+    --card: #ffffff;
+    --card-foreground: #0f172a;
+    --popover: #ffffff;
+    --popover-foreground: #0f172a;
+    --primary: #3b82f6; /* blue-500 */
+    --primary-foreground: #ffffff;
+    --secondary: #e2e8f0; /* slate-200 */
+    --secondary-foreground: #1e293b; /* slate-800 */
+    --muted: #f1f5f9; /* slate-100 */
+    --muted-foreground: #64748b; /* slate-500 */
+    --accent: #f1f5f9; /* slate-100 */
+    --accent-foreground: #0f172a;
+    --destructive: #ef4444; /* red-500 */
+    --destructive-foreground: #f8fafc;
+    --success: #10b981; /* emerald-500 */
+    --success-foreground: #f8fafc;
+    --warning: #f59e0b; /* amber-500 */
+    --warning-foreground: #f8fafc;
+    --border: #cbd5e1; /* slate-300 */
+    --input: #e2e8f0; /* slate-200 */
+    --ring: #94a3b8; /* slate-400 */
   }
+
+  .dark {
+    /* Dark Mode (Baseline) */
+    --background: #0f172a; /* slate-900 */
+    --foreground: #f8fafc; /* slate-50 */
+    --card: #0f172a; /* Typically bg-slate-900 */
+    --card-foreground: #f8fafc;
+    --popover: #1e293b; /* bg-slate-800 */
+    --popover-foreground: #f8fafc;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --secondary: #1e293b; /* slate-800 */
+    --secondary-foreground: #f8fafc;
+    --muted: #1e293b; /* slate-800 */
+    --muted-foreground: #94a3b8; /* slate-400 */
+    --accent: #1e293b; /* slate-800 */
+    --accent-foreground: #f8fafc;
+    --destructive: #f43f5e; /* rose-500 */
+    --destructive-foreground: #f8fafc;
+    --success: #10b981; /* emerald-500 */
+    --success-foreground: #f8fafc;
+    --warning: #f59e0b; /* amber-500 */
+    --warning-foreground: #f8fafc;
+    --border: #1e293b; /* slate-800 */
+    --input: #1e293b; /* slate-800 */
+    --ring: #334155; /* slate-700 */
+  }
+
   body {
     font-family: var(--font-sans);
-    background-color: #0f172a;
-    color: #f8fafc;
+    background-color: var(--background);
+    color: var(--foreground);
     margin: 0;
     padding: 0;
     min-height: 100vh;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 }
 

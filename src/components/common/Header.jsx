@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { 
   Building2, 
   PlusCircle, 
@@ -16,6 +16,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { resetStorage, exportData, importData } from '../../services/storage';
+import ThemeToggle from './ThemeToggle';
 
 export default function Header({ 
   activeTab, 
@@ -68,23 +69,23 @@ export default function Header({
   };
 
   return (
-    <header className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-30 px-4 lg:px-6 py-3.5 shadow-lg w-full">
+    <header className="bg-background/95 backdrop-blur-md border-b border-border sticky top-0 z-30 px-4 lg:px-6 py-3.5 shadow-lg w-full transition-colors">
       <div className="w-full max-w-full flex flex-col md:flex-row items-center justify-between gap-4">
         
         {/* Logo & Brand */}
         <div className="flex items-center gap-3 w-full md:w-auto justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white font-bold">
-              <Building2 className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-primary text-foreground font-bold">
+              <Building2 className="w-6 h-6 text-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                BUILD<span className="text-blue-400 font-extrabold">COST</span>
-                <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1 font-mono">
-                  <Database className="w-3 h-3 text-emerald-400" /> Supabase Database
+              <h1 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
+                BUILD<span className="text-primary font-extrabold">COST</span>
+                <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20 flex items-center gap-1 font-mono">
+                  <Database className="w-3 h-3 text-success" /> Supabase Database
                 </span>
               </h1>
-              <p className="text-xs text-slate-400">Quản lý Chi phí & Hợp đồng Xây dựng</p>
+              <p className="text-xs text-muted-foreground">Quản lý Chi phí & Hợp đồng Xây dựng</p>
             </div>
           </div>
 
@@ -92,14 +93,14 @@ export default function Header({
           <div className="flex items-center gap-2 md:hidden">
             <button 
               onClick={onNewContract}
-              className="p-2 rounded-lg bg-blue-600 text-white text-xs flex items-center gap-1 font-medium hover:bg-blue-500 transition cursor-pointer"
+              className="p-2 rounded-lg bg-primary text-primary-foreground text-xs flex items-center gap-1 font-medium hover:bg-primary/90 transition cursor-pointer"
               title="Thêm hợp đồng"
             >
               <FileText className="w-4 h-4" />
             </button>
             <button 
               onClick={onNewPayment}
-              className="p-2 rounded-lg bg-emerald-600 text-white text-xs flex items-center gap-1 font-medium hover:bg-emerald-500 transition cursor-pointer"
+              className="p-2 rounded-lg bg-success text-success-foreground text-xs flex items-center gap-1 font-medium hover:bg-success/90 transition cursor-pointer"
               title="Thêm thanh toán"
             >
               <Wallet className="w-4 h-4" />
@@ -107,29 +108,30 @@ export default function Header({
             {userSession && (
               <button
                 onClick={onLogout}
-                className="p-2 rounded-lg bg-slate-800 text-rose-400 hover:bg-slate-700 text-xs transition cursor-pointer"
+                className="p-2 rounded-lg bg-card text-destructive hover:bg-muted text-xs transition cursor-pointer"
                 title="Đăng xuất"
               >
                 <LogOut className="w-4 h-4" />
               </button>
             )}
+            <ThemeToggle />
           </div>
         </div>
 
         {/* Global Search Bar */}
         <div className="w-full md:w-80 relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Tìm theo số HĐ, nhà thầu, dự án..."
             value={globalSearch}
             onChange={(e) => setGlobalSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-1.5 bg-slate-800/80 border border-slate-700/80 rounded-lg text-sm text-slate-200 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition font-medium"
+            className="w-full pl-9 pr-4 py-1.5 bg-background/80 border border-border/80 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition font-medium"
           />
           {globalSearch && (
             <button 
               onClick={() => setGlobalSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-200 cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
             >
               ✕
             </button>
@@ -141,7 +143,7 @@ export default function Header({
           {/* Quick Excel Import Button */}
           <button
             onClick={() => onOpenExcelImport && onOpenExcelImport('projects')}
-            className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition cursor-pointer"
+            className="px-3.5 py-2 rounded-lg bg-success hover:bg-success/90 text-success-foreground text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-success/20 transition cursor-pointer"
             title="Import dữ liệu hàng loạt từ tệp Excel (Dự án, Hợp đồng, Thanh toán)"
           >
             <FileSpreadsheet className="w-4 h-4" />
@@ -152,7 +154,7 @@ export default function Header({
           {userProfile?.role === 'admin' && (
             <button
               onClick={() => setActiveTab('admin')}
-              className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition cursor-pointer ${activeTab === 'admin' ? 'bg-amber-600 text-white' : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30'}`}
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition cursor-pointer ${activeTab === 'admin' ? 'bg-warning text-warning-foreground' : 'bg-warning/10 hover:bg-warning/20 text-warning border border-warning/30'}`}
               title="Quản trị hệ thống (Phê duyệt tài khoản)"
             >
               <ShieldCheck className="w-4 h-4" />
@@ -162,7 +164,7 @@ export default function Header({
 
           <button
             onClick={onNewContract}
-            className="px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition cursor-pointer"
+            className="px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-primary/20 transition cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
             + Hợp Đồng Mới
@@ -170,63 +172,66 @@ export default function Header({
 
           <button
             onClick={onNewPayment}
-            className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 transition cursor-pointer"
+            className="px-3.5 py-2 rounded-lg bg-success hover:bg-success/90 text-success-foreground text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-success/20 transition cursor-pointer"
           >
             <Wallet className="w-4 h-4" />
             + Thanh Toán Mới
           </button>
 
-          <div className="h-6 w-px bg-slate-800 my-auto mx-1" />
+          <div className="h-6 w-px bg-border my-auto mx-1" />
 
           {/* Backup / Export / Reset Tools */}
-          <div className="flex items-center gap-1 bg-slate-800/60 p-1 rounded-lg border border-slate-700/50">
+          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-lg border border-border/50">
             <button
               onClick={handleExport}
               title="Xuất file JSON sao lưu (Backup)"
-              className="p-1.5 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition flex items-center gap-1 text-xs cursor-pointer"
+              className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition flex items-center gap-1 text-xs cursor-pointer"
             >
-              <Download className="w-4 h-4 text-cyan-400" />
+              <Download className="w-4 h-4 text-primary" />
             </button>
 
-            <label title="Phục hồi dữ liệu từ file JSON (Restore)" className="p-1.5 rounded text-slate-400 hover:text-slate-100 hover:bg-slate-700 transition cursor-pointer flex items-center gap-1 text-xs">
-              <Upload className="w-4 h-4 text-emerald-400" />
+            <label title="Phục hồi dữ liệu từ file JSON (Restore)" className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition cursor-pointer flex items-center gap-1 text-xs">
+              <Upload className="w-4 h-4 text-success" />
               <input type="file" accept=".json" onChange={handleImport} className="hidden" />
             </label>
 
             <button
               onClick={handleReset}
               title="Khôi phục dữ liệu mẫu ban đầu"
-              className="p-1.5 rounded text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10 transition cursor-pointer"
+              className="p-1.5 rounded text-warning/80 hover:text-warning hover:bg-warning/10 transition cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="h-6 w-px bg-slate-800 my-auto mx-1" />
+          <div className="h-6 w-px bg-border my-auto mx-1" />
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
 
           {/* User Session & Logout Badge */}
           {userSession ? (
-            <div className="flex items-center gap-2 bg-slate-800/80 border border-emerald-500/30 px-3 py-1.5 rounded-lg text-xs" title={`Đã đăng nhập: ${userSession.user?.email}`}>
-              <UserCheck className="w-4 h-4 text-emerald-400" />
+            <div className="flex items-center gap-2 bg-card border border-success/30 px-3 py-1.5 rounded-lg text-xs" title={`Đã đăng nhập: ${userSession.user?.email}`}>
+              <UserCheck className="w-4 h-4 text-success" />
               <div className="text-left max-w-[130px] truncate">
-                <p className="font-mono text-emerald-300 font-bold truncate text-[11px]">{userSession.user?.email}</p>
-                <p className="text-[10px] text-slate-400">Đã xác thực</p>
+                <p className="font-mono text-success font-bold truncate text-[11px]">{userSession.user?.email}</p>
+                <p className="text-[10px] text-muted-foreground">Đã xác thực</p>
               </div>
               <button 
                 onClick={onLogout}
-                className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded transition cursor-pointer ml-1"
+                className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition cursor-pointer ml-1"
                 title="Đăng xuất khỏi hệ thống"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
           ) : (
-            <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700 px-3 py-1.5 rounded-lg">
-              <HardDrive className="w-4 h-4 text-blue-400" />
+            <div className="flex items-center gap-2 bg-card border border-border px-3 py-1.5 rounded-lg">
+              <HardDrive className="w-4 h-4 text-primary" />
               <div className="text-left">
-                <p className="text-xs font-semibold text-slate-200">Supabase Connected</p>
-                <p className="text-[10px] text-emerald-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Đã kết nối DB
+                <p className="text-xs font-semibold text-foreground">Supabase Connected</p>
+                <p className="text-[10px] text-success flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> Đã kết nối DB
                 </p>
               </div>
             </div>

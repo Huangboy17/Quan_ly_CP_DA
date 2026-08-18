@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   AlertCircle,
   Activity,
@@ -204,27 +204,27 @@ export default function ContractsView({
     <div className="space-y-4 animate-fade-in pb-12">
       
       {/* Banner */}
-      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 rounded-2xl bg-card border border-border shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            <FileText className="w-6 h-6 text-blue-400" />
+          <h2 className="text-xl font-bold text-foreground tracking-tight flex items-center gap-2">
+            <FileText className="w-6 h-6 text-primary" />
             Quản Lý Hợp Đồng & Nhập Liệu
           </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Nhấn vào bất kỳ dòng hợp đồng nào để mở <strong className="text-blue-300">Chi tiết hợp đồng</strong>. Thống kê chi trả trong kỳ <span className="text-emerald-400 font-semibold">{periodLabel}</span>.
+          <p className="text-xs text-muted-foreground mt-1">
+            Nhấn vào bất kỳ dòng hợp đồng nào để mở <strong className="text-primary font-semibold">Chi tiết hợp đồng</strong>. Thống kê chi trả trong kỳ <span className="text-success font-semibold">{periodLabel}</span>.
           </p>
         </div>
 
         <div className="flex items-center gap-2 self-start md:self-auto">
           <button
             onClick={() => onOpenExcelImport && onOpenExcelImport('contracts')}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 text-xs font-semibold border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-muted hover:bg-muted/80 text-success hover:text-success/90 text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1.5"
           >
             📥 Import Excel HĐ
           </button>
           <button
             onClick={onNewContract}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition cursor-pointer flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-lg shadow-primary/30 transition cursor-pointer flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" /> + Thêm Hợp Đồng Mới
           </button>
@@ -236,34 +236,34 @@ export default function ContractsView({
       
       {/* 1. KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-center">
-          <div className="flex items-center gap-2 text-slate-400 mb-1"><Target className="w-4 h-4" /> <span className="text-xs font-semibold uppercase">Tổng số hợp đồng</span></div>
-          <div className="text-xl font-bold text-white">{kpiTotalContracts}</div>
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-lg flex flex-col justify-center">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1"><Target className="w-4 h-4" /> <span className="text-xs font-semibold uppercase">Tổng số hợp đồng</span></div>
+          <div className="text-xl font-bold text-foreground">{kpiTotalContracts}</div>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-center">
-          <div className="flex items-center gap-2 text-slate-400 mb-1"><Building2 className="w-4 h-4 text-blue-400" /> <span className="text-xs font-semibold uppercase">Tổng giá trị HĐ</span></div>
-          <div className="text-xl font-bold text-blue-400 font-mono">{formatVND(kpiTotalValue)}</div>
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-lg flex flex-col justify-center">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1"><Building2 className="w-4 h-4 text-primary" /> <span className="text-xs font-semibold uppercase">Tổng giá trị HĐ</span></div>
+          <div className="text-xl font-bold text-primary font-mono">{formatVND(kpiTotalValue)}</div>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-center">
-          <div className="flex items-center gap-2 text-slate-400 mb-1"><Activity className="w-4 h-4 text-emerald-400" /> <span className="text-xs font-semibold uppercase">Đang thực hiện</span></div>
-          <div className="text-xl font-bold text-emerald-400">{kpiInProgress} <span className="text-xs text-slate-500 font-normal">hợp đồng</span></div>
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-lg flex flex-col justify-center">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1"><Activity className="w-4 h-4 text-success" /> <span className="text-xs font-semibold uppercase">Đang thực hiện</span></div>
+          <div className="text-xl font-bold text-success">{kpiInProgress} <span className="text-xs text-muted-foreground font-normal">hợp đồng</span></div>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-center">
-          <div className="flex items-center gap-2 text-slate-400 mb-1"><CheckCircle className="w-4 h-4 text-cyan-400" /> <span className="text-xs font-semibold uppercase">Đã quyết toán</span></div>
-          <div className="text-xl font-bold text-cyan-400">{kpiSettled} <span className="text-xs text-slate-500 font-normal">hợp đồng</span></div>
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-lg flex flex-col justify-center">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1"><CheckCircle className="w-4 h-4 text-primary/80" /> <span className="text-xs font-semibold uppercase">Đã quyết toán</span></div>
+          <div className="text-xl font-bold text-primary/80">{kpiSettled} <span className="text-xs text-muted-foreground font-normal">hợp đồng</span></div>
         </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg flex flex-col justify-center">
-          <div className="flex items-center gap-2 text-slate-400 mb-1"><AlertCircle className="w-4 h-4 text-rose-400" /> <span className="text-xs font-semibold uppercase">Quá hạn</span></div>
-          <div className="text-xl font-bold text-rose-400">{kpiOverdue} <span className="text-xs text-slate-500 font-normal">hợp đồng</span></div>
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-lg flex flex-col justify-center">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1"><AlertCircle className="w-4 h-4 text-destructive" /> <span className="text-xs font-semibold uppercase">Quá hạn</span></div>
+          <div className="text-xl font-bold text-destructive">{kpiOverdue} <span className="text-xs text-muted-foreground font-normal">hợp đồng</span></div>
         </div>
       </div>
 
       {isChartFiltered && (
-        <div className="flex items-center justify-between bg-blue-900/20 border border-blue-500/30 rounded-xl p-3">
-          <div className="text-xs text-blue-300 flex items-center gap-2">
+        <div className="flex items-center justify-between bg-primary/10 border border-primary/30 rounded-xl p-3">
+          <div className="text-xs text-primary flex items-center gap-2">
             <Sparkles className="w-4 h-4" /> Đang áp dụng bộ lọc từ Biểu đồ.
           </div>
-          <button onClick={clearChartFilters} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
+          <button onClick={clearChartFilters} className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
             <X className="w-3.5 h-3.5" /> Xóa bộ lọc biểu đồ
           </button>
         </div>
@@ -273,41 +273,41 @@ export default function ContractsView({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
         
         {/* Chart 1: Cost Group */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col min-h-[320px] h-full">
-          <h3 className="text-xs font-bold text-white uppercase mb-3 flex items-center gap-2">
-            <Layers className="w-4 h-4 text-purple-400" /> Cơ cấu Giá Trị / Nhóm CP
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-xl flex flex-col min-h-[320px] h-full">
+          <h3 className="text-xs font-bold text-foreground uppercase mb-3 flex items-center gap-2">
+            <Layers className="w-4 h-4 text-primary" /> Cơ cấu Giá Trị / Nhóm CP
           </h3>
           <div className="flex-1 w-full">
             {costGroupData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={costGroupData} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                  <XAxis type="number" tick={{fill: '#94a3b8', fontSize: 10}} tickFormatter={v => `${v} Tỷ`} />
-                  <YAxis dataKey="name" type="category" width={80} tick={{fill: '#cbd5e1', fontSize: 10}} />
-                  <RechartsTooltip cursor={{fill: '#1e293b'}} contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', fontSize: '11px'}} formatter={(val) => [`${val} Tỷ`, 'Giá trị']} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" horizontal={false} />
+                  <XAxis type="number" tick={{fill: 'var(--color-muted-foreground)', fontSize: 10}} tickFormatter={v => `${v} Tỷ`} />
+                  <YAxis dataKey="name" type="category" width={80} tick={{fill: 'var(--color-foreground)', fontSize: 10}} />
+                  <RechartsTooltip cursor={{fill: 'var(--color-muted)'}} contentStyle={{backgroundColor: 'var(--color-popover)', borderColor: 'var(--color-border)', color: 'var(--color-popover-foreground)', fontSize: '11px'}} formatter={(val) => [`${val} Tỷ`, 'Giá trị']} />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]} onClick={(data) => setChartCostGroupFilter(chartCostGroupFilter === data.name ? '' : data.name)} className="cursor-pointer hover:opacity-80 transition">
                     {costGroupData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={chartCostGroupFilter === entry.name ? '#f59e0b' : CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
-                    <LabelList dataKey="value" position="right" formatter={(v)=>`${v} Tỷ`} style={{fill: '#cbd5e1', fontSize: '10px'}} />
+                    <LabelList dataKey="value" position="right" formatter={(v)=>`${v} Tỷ`} style={{fill: 'var(--color-foreground)', fontSize: '10px'}} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-slate-500">Không có dữ liệu</div>
+              <div className="h-full flex items-center justify-center text-xs text-muted-foreground">Không có dữ liệu</div>
             )}
           </div>
         </div>
 
         {/* Chart 2: Status */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col min-h-[320px] h-full">
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-xl flex flex-col min-h-[320px] h-full">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-bold text-white uppercase flex items-center gap-2">
-              <PieIcon className="w-4 h-4 text-cyan-400" /> Cơ Cấu Trạng Thái
+            <h3 className="text-xs font-bold text-foreground uppercase flex items-center gap-2">
+              <PieIcon className="w-4 h-4 text-primary/80" /> Cơ Cấu Trạng Thái
             </h3>
-            <div className="flex bg-slate-800 p-0.5 rounded-lg shrink-0 ml-2">
-              <button onClick={() => setStatusChartMetric('count')} className={`px-2 py-1 text-[10px] rounded-md font-semibold transition cursor-pointer ${statusChartMetric === 'count' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}>Số HĐ</button>
-              <button onClick={() => setStatusChartMetric('value')} className={`px-2 py-1 text-[10px] rounded-md font-semibold transition cursor-pointer ${statusChartMetric === 'value' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}>Giá trị</button>
+            <div className="flex bg-muted p-0.5 rounded-lg shrink-0 ml-2 border border-border">
+              <button onClick={() => setStatusChartMetric('count')} className={`px-2 py-1 text-[10px] rounded-md font-semibold transition cursor-pointer ${statusChartMetric === 'count' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Số HĐ</button>
+              <button onClick={() => setStatusChartMetric('value')} className={`px-2 py-1 text-[10px] rounded-md font-semibold transition cursor-pointer ${statusChartMetric === 'value' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>Giá trị</button>
             </div>
           </div>
           <div className="flex-1 w-full flex items-center justify-between gap-2 mt-2">
@@ -328,7 +328,7 @@ export default function ContractsView({
                       <Cell key={`cell-${index}`} fill={chartStatusFilter === entry.name ? '#f59e0b' : (entry.name === 'Đã quyết toán' ? '#06b6d4' : '#3b82f6')} className="hover:opacity-80 transition" />
                     ))}
                   </Pie>
-                  <RechartsTooltip contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', fontSize: '11px'}} formatter={(val, name, props) => {
+                  <RechartsTooltip contentStyle={{backgroundColor: 'var(--color-popover)', borderColor: 'var(--color-border)', color: 'var(--color-popover-foreground)', fontSize: '11px'}} formatter={(val, name, props) => {
                      const total = statusChartMetric === 'count' ? kpiTotalContracts : kpiTotalValue;
                      const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
                      return [statusChartMetric === 'count' ? `${val} HĐ (${pct}%)` : `${val} Tỷ (${pct}%)`, statusChartMetric === 'count' ? 'Số lượng' : 'Giá trị'];
@@ -336,8 +336,8 @@ export default function ContractsView({
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">Tổng HĐ</span>
-                <span className="text-sm font-bold text-white font-mono leading-none mt-0.5">{kpiTotalContracts}</span>
+                <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Tổng HĐ</span>
+                <span className="text-sm font-bold text-foreground font-mono leading-none mt-0.5">{kpiTotalContracts}</span>
               </div>
             </div>
             {/* Custom Legend */}
@@ -350,18 +350,18 @@ export default function ContractsView({
                    <div 
                      key={item.name} 
                      onClick={() => setChartStatusFilter(chartStatusFilter === item.name ? '' : item.name)}
-                     className={`flex flex-col p-1.5 rounded-lg border text-[10px] cursor-pointer transition ${isActive ? 'bg-amber-500/10 border-amber-500/50' : 'bg-slate-800/50 border-slate-700/50 hover:border-slate-500'}`}
+                     className={`flex flex-col p-1.5 rounded-lg border text-[10px] cursor-pointer transition ${isActive ? 'bg-warning/10 border-warning/50' : 'bg-muted/50 border-border/50 hover:border-border'}`}
                    >
                      <div className="flex items-center justify-between mb-0.5">
                        <div className="flex items-center gap-1.5">
                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: isActive ? '#f59e0b' : color }}></span>
-                         <span className={`font-semibold ${isActive ? 'text-amber-400' : 'text-slate-200'}`}>{item.name}</span>
+                         <span className={`font-semibold ${isActive ? 'text-warning' : 'text-foreground/90'}`}>{item.name}</span>
                        </div>
-                       <span className="font-mono text-slate-300 font-bold">{item.count} HĐ</span>
+                       <span className="font-mono text-foreground font-bold">{item.count} HĐ</span>
                      </div>
                      <div className="flex items-center justify-between pl-4">
-                       <span className="text-slate-400">{item.value} tỷ</span>
-                       <span className="text-emerald-400 font-mono font-semibold">{pct}%</span>
+                       <span className="text-muted-foreground">{item.value} tỷ</span>
+                       <span className="text-success font-mono font-semibold">{pct}%</span>
                      </div>
                    </div>
                  );
@@ -371,9 +371,9 @@ export default function ContractsView({
         </div>
 
         {/* Chart 3: Schedule */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col min-h-[320px] h-full">
-          <h3 className="text-xs font-bold text-white uppercase mb-3 flex items-center gap-2">
-            <ClockIcon className="w-4 h-4 text-emerald-400" /> Tình Trạng Tiến Độ
+        <div className="bg-card border border-border rounded-2xl p-4 shadow-xl flex flex-col min-h-[320px] h-full">
+          <h3 className="text-xs font-bold text-foreground uppercase mb-3 flex items-center gap-2">
+            <ClockIcon className="w-4 h-4 text-success" /> Tình Trạng Tiến Độ
           </h3>
           <div className="flex-1 w-full flex flex-col justify-between mt-2 gap-2">
             <div className="flex-1 flex items-center justify-between gap-2">
@@ -395,7 +395,7 @@ export default function ContractsView({
                       ))}
                     </Pie>
                     <RechartsTooltip 
-                      contentStyle={{backgroundColor: '#0f172a', borderColor: '#334155', fontSize: '11px'}} 
+                      contentStyle={{backgroundColor: 'var(--color-popover)', borderColor: 'var(--color-border)', color: 'var(--color-popover-foreground)', fontSize: '11px'}} 
                       formatter={(val) => {
                         const pct = kpiTotalContracts > 0 ? ((val / kpiTotalContracts) * 100).toFixed(1) : 0;
                         return [`${val} HĐ (${pct}%)`, 'Tiến độ'];
@@ -404,8 +404,8 @@ export default function ContractsView({
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-wider">Tổng HĐ</span>
-                  <span className="text-xs font-bold text-white font-mono leading-none mt-0.5">{kpiTotalContracts}</span>
+                  <span className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wider">Tổng HĐ</span>
+                  <span className="text-xs font-bold text-foreground font-mono leading-none mt-0.5">{kpiTotalContracts}</span>
                 </div>
               </div>
               {/* Custom Legend */}
@@ -417,15 +417,15 @@ export default function ContractsView({
                      <div 
                        key={item.name} 
                        onClick={() => setChartScheduleFilter(chartScheduleFilter === item.name ? '' : item.name)}
-                       className={`flex items-center justify-between p-1.5 rounded-lg border text-[10px] cursor-pointer transition ${isActive ? 'bg-pink-500/10 border-pink-500/50' : 'bg-slate-800/50 border-slate-700/50 hover:border-slate-500'}`}
+                       className={`flex items-center justify-between p-1.5 rounded-lg border text-[10px] cursor-pointer transition ${isActive ? 'bg-destructive/10 border-destructive' : 'bg-muted/50 border-border/50 hover:border-border'}`}
                      >
                        <div className="flex items-center gap-1 min-w-0">
                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: isActive ? '#ec4899' : item.fill }}></span>
-                         <span className={`font-semibold truncate ${isActive ? 'text-pink-400' : 'text-slate-200'}`}>{item.name}</span>
+                         <span className={`font-semibold truncate ${isActive ? 'text-destructive' : 'text-foreground'}`}>{item.name}</span>
                        </div>
                        <div className="flex items-center gap-1 shrink-0 font-mono">
-                         <span className="text-slate-300">{item.count}</span>
-                         <span className="text-emerald-400 font-semibold w-7 text-right">{pct}%</span>
+                         <span className="text-muted-foreground">{item.count}</span>
+                         <span className="text-success font-semibold w-7 text-right">{pct}%</span>
                        </div>
                      </div>
                    );
@@ -438,13 +438,13 @@ export default function ContractsView({
                const warningCount = (scheduleMap['Sắp hết hạn'] || 0) + (scheduleMap['Quá hạn'] || 0);
                if (warningCount > 0) {
                  return (
-                   <div className="mt-0.5 pt-1 border-t border-slate-800 text-[11px] font-semibold text-rose-400 flex items-center justify-center gap-1.5 bg-rose-950/20 py-1.5 rounded-lg">
+                   <div className="mt-0.5 pt-1 border-t border-border text-[11px] font-semibold text-destructive flex items-center justify-center gap-1.5 bg-destructive/10 py-1.5 rounded-lg">
                      <AlertTriangle className="w-3.5 h-3.5" /> HĐ cần chú ý: {warningCount}
                    </div>
                  );
                }
                return (
-                 <div className="mt-0.5 pt-1 border-t border-slate-800 text-[11px] font-semibold text-emerald-400 flex items-center justify-center gap-1.5 bg-emerald-950/20 py-1.5 rounded-lg">
+                 <div className="mt-0.5 pt-1 border-t border-border text-[11px] font-semibold text-success flex items-center justify-center gap-1.5 bg-success/10 py-1.5 rounded-lg">
                    <CheckCircle className="w-3.5 h-3.5" /> Không có HĐ cần chú ý
                  </div>
                );
@@ -457,18 +457,18 @@ export default function ContractsView({
       {/* --- END DASHBOARD SECTION --- */}
 
       {/* Streamlined Filter Toolbar */}
-      <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="p-3.5 rounded-xl bg-card border border-border shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-3 flex-1">
           
           {/* Search Input */}
           <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Tìm theo số HĐ, nội dung, nhà thầu, nhóm chi phí..."
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 font-medium"
+              className="w-full bg-background border border-border rounded-xl pl-9 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary font-medium"
             />
           </div>
 
@@ -477,7 +477,7 @@ export default function ContractsView({
             <select
               value={contractorFilter}
               onChange={(e) => setContractorFilter(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
+              className="bg-background border border-border text-foreground rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary cursor-pointer"
             >
               <option value="">-- Tất cả Nhà thầu ({contractorsList.length}) --</option>
               {contractorsList.map(c => (
@@ -491,7 +491,7 @@ export default function ContractsView({
             <select
               value={costGroupFilter}
               onChange={(e) => setCostGroupFilter(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-cyan-400 cursor-pointer"
+              className="bg-background border border-border text-foreground rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary cursor-pointer"
             >
               <option value="">-- Tất cả Nhóm Chi Phí --</option>
               <option value="unassigned">Chưa phân loại</option>
@@ -506,7 +506,7 @@ export default function ContractsView({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-800 border border-slate-700 text-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-blue-500 cursor-pointer"
+              className="bg-background border border-border text-foreground rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary cursor-pointer"
             >
               <option value="">-- Tất cả Trạng thái --</option>
               <option value="in_progress">🟢 Đang thực hiện</option>
@@ -523,7 +523,7 @@ export default function ContractsView({
                 setStatusFilter('');
                 setLocalSearch('');
               }}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+              className="px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-warning border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" /> Đặt lại tìm kiếm
             </button>
@@ -531,17 +531,17 @@ export default function ContractsView({
 
         </div>
 
-        <div className="text-slate-400 font-mono text-[11px]">
-          Hiển thị: <strong className="text-white">{filteredContracts.length}</strong> / {contracts.length} HĐ
+        <div className="text-muted-foreground font-mono text-[11px]">
+          Hiển thị: <strong className="text-foreground">{filteredContracts.length}</strong> / {contracts.length} HĐ
         </div>
       </div>
 
       {/* Contracts Data Table */}
-      <div className="rounded-2xl bg-slate-900 border border-slate-800 shadow-xl overflow-visible">
+      <div className="rounded-2xl bg-card border border-border shadow-xl overflow-visible">
         <div className="overflow-x-auto w-full" style={{ overflow: 'visible' }}>
           <div style={{ minWidth: '1050px' }}>
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
+            <table className="w-full text-left text-xs text-muted-foreground">
+              <thead className="bg-muted text-muted-foreground uppercase text-[11px] font-semibold border-b border-border">
                 <tr>
                   <th className="py-3.5 px-4 w-32">Số HĐ / Ngày Ký</th>
                   <th className="py-3.5 px-4">Tên HĐ & Nhà Thầu</th>
@@ -554,23 +554,23 @@ export default function ContractsView({
                   <th className="py-3.5 px-4 text-center w-20">Thao Tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80">
+              <tbody className="divide-y divide-border/80">
               {filteredContracts.map((c) => {
                 const appendicesCount = Array.isArray(c.appendices) ? c.appendices.length : 0;
                 return (
                   <tr 
                     key={c.id} 
                     onClick={() => handleRowClick(c.id)}
-                    className="hover:bg-slate-800/70 transition cursor-pointer group"
+                    className="hover:bg-muted/50 transition cursor-pointer group"
                     title="Click để xem chi tiết hợp đồng"
                   >
                     
                     {/* Số HĐ / Ngày Ký */}
                     <td className="py-3.5 px-4 font-mono">
-                      <div className="font-bold text-white text-xs group-hover:text-blue-300 transition">{c.contract_number}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">{formatDisplayDate(c.signing_date)}</div>
+                      <div className="font-bold text-foreground text-xs group-hover:text-primary transition">{c.contract_number}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{formatDisplayDate(c.signing_date)}</div>
                       {appendicesCount > 0 && (
-                        <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-semibold">
+                        <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 text-[10px] font-semibold">
                           +{appendicesCount} Phụ lục
                         </span>
                       )}
@@ -581,11 +581,11 @@ export default function ContractsView({
                       className="py-3.5 px-4 max-w-[250px]" 
                       title={`${c.content}\nNhà thầu: ${c.contractor || 'Chưa cập nhật'}`}
                     >
-                      <div className="font-bold text-slate-100 text-xs truncate group-hover:text-blue-300 transition">{c.content}</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1.5 truncate">
-                        <span className="text-slate-300 font-medium truncate">{c.contractor || 'Chưa cập nhật'}</span>
-                        <span className="text-slate-500 shrink-0">•</span>
-                        <span className="text-blue-400 font-semibold shrink-0">{c.projectName}</span>
+                      <div className="font-bold text-foreground text-xs truncate group-hover:text-primary transition">{c.content}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5 truncate">
+                        <span className="text-foreground/80 font-medium truncate">{c.contractor || 'Chưa cập nhật'}</span>
+                        <span className="text-muted-foreground shrink-0">•</span>
+                        <span className="text-primary font-semibold shrink-0">{c.projectName}</span>
                       </div>
                     </td>
 
@@ -593,34 +593,34 @@ export default function ContractsView({
                     <td className="py-3.5 px-4">
                       {c.costGroup ? (
                         <div className="flex flex-col items-start gap-0.5">
-                          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 inline-block">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-primary/10 text-primary border border-primary/30 inline-block">
                             {c.costGroup}
                           </span>
                           {c.costGroup === 'Khác' && c.costGroupNote && (
-                            <span className="text-[10px] text-purple-300 italic font-mono truncate max-w-[120px]" title={c.costGroupNote}>
+                            <span className="text-[10px] text-primary italic font-mono truncate max-w-[120px]" title={c.costGroupNote}>
                               ({c.costGroupNote})
                             </span>
                           )}
                         </div>
                       ) : (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700 inline-block font-mono">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground border border-border inline-block font-mono">
                           Chưa phân loại
                         </span>
                       )}
                     </td>
 
                     {/* Giá trị HĐ sau VAT */}
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-white">
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-foreground">
                       {formatVND(c.contractValueAfterVAT || c.contract_value)}
                     </td>
 
                     {/* Chi trả trong kỳ */}
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-400 bg-emerald-500/5">
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-success bg-success/5">
                       {formatVND(c.inPeriodPaidAfterVAT || 0)}
                     </td>
 
                     {/* Lũy kế đã chi */}
-                    <td className="py-3.5 px-4 text-right font-mono font-semibold text-blue-300">
+                    <td className="py-3.5 px-4 text-right font-mono font-semibold text-primary">
                       {formatVND(c.totalPaidAfterVAT || c.totalPaid || 0)}
                     </td>
 
@@ -629,7 +629,7 @@ export default function ContractsView({
                       const remainingVal = c.remainingAfterVAT || c.remainingValue || 0;
                       const isZeroRemaining = remainingVal <= 0;
                       return (
-                        <td className={`py-3.5 px-4 text-right font-mono font-medium ${isZeroRemaining ? 'text-emerald-400/70' : 'text-amber-400'}`}>
+                        <td className={`py-3.5 px-4 text-right font-mono font-medium ${isZeroRemaining ? 'text-success/70' : 'text-warning'}`}>
                           {formatVND(remainingVal)}
                         </td>
                       );
@@ -639,8 +639,8 @@ export default function ContractsView({
                     <td className="py-3.5 px-4 text-center">
                       <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-block border ${
                         c.status === 'settled'
-                          ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
-                          : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          ? 'bg-primary/10 text-primary border-primary/30'
+                          : 'bg-success/10 text-success border-success/30'
                       }`}>
                         {c.status === 'settled' ? '🔵 Đã quyết toán' : '🟢 Đang thực hiện'}
                       </span>
@@ -651,7 +651,7 @@ export default function ContractsView({
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => handleRowClick(c.id)}
-                          className="p-1.5 rounded-lg bg-blue-600/10 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-500/20 transition cursor-pointer"
+                          className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/30 text-primary border border-primary/20 transition cursor-pointer"
                           title="Xem Chi Tiết"
                         >
                           <Eye className="w-4 h-4" />
@@ -663,23 +663,23 @@ export default function ContractsView({
                               e.stopPropagation();
                               setOpenActionMenuId(openActionMenuId === c.id ? null : c.id);
                             }}
-                            className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition cursor-pointer"
+                            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition cursor-pointer"
                             title="Thêm thao tác"
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
 
                           {openActionMenuId === c.id && (
-                            <div className="absolute right-0 top-full mt-1 w-32 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-50 overflow-hidden py-1">
+                            <div className="absolute right-0 top-full mt-1 w-32 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden py-1">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setOpenActionMenuId(null);
                                   onEditContract(c);
                                 }}
-                                className="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-white transition flex items-center gap-2 cursor-pointer"
+                                className="w-full text-left px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition flex items-center gap-2 cursor-pointer"
                               >
-                                <Edit className="w-3.5 h-3.5 text-blue-400" /> Sửa hợp đồng
+                                <Edit className="w-3.5 h-3.5 text-primary" /> Sửa hợp đồng
                               </button>
                               <button
                                 onClick={(e) => {
@@ -687,9 +687,9 @@ export default function ContractsView({
                                   setOpenActionMenuId(null);
                                   onDeleteContract(c.id);
                                 }}
-                                className="w-full text-left px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-rose-400 transition flex items-center gap-2 cursor-pointer"
+                                className="w-full text-left px-3 py-2 text-xs font-medium text-foreground hover:bg-muted hover:text-destructive transition flex items-center gap-2 cursor-pointer"
                               >
-                                <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Xóa hợp đồng
+                                <Trash2 className="w-3.5 h-3.5 text-destructive" /> Xóa hợp đồng
                               </button>
                             </div>
                           )}
@@ -703,7 +703,7 @@ export default function ContractsView({
 
               {filteredContracts.length === 0 && (
                 <tr>
-                  <td colSpan="9" className="py-10 text-center text-slate-400">
+                  <td colSpan="9" className="py-10 text-center text-muted-foreground">
                     Không tìm thấy hợp đồng nào phù hợp với bộ lọc đã chọn.
                   </td>
                 </tr>

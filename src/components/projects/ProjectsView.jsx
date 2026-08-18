@@ -149,28 +149,28 @@ export default function ProjectsView({
     return (
       <div className="space-y-4 animate-fade-in">
         {toastMsg && (
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-between shadow-lg">
+          <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success text-xs font-bold flex items-center justify-between shadow-lg">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5" />
               <span>{toastMsg}</span>
             </div>
-            <button onClick={() => setToastMsg('')} className="text-emerald-400 hover:text-white">✕</button>
+            <button onClick={() => setToastMsg('')} className="text-success hover:text-foreground">✕</button>
           </div>
         )}
-        <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-2xl space-y-4 shadow-xl">
-          <FolderKanban className="w-12 h-12 text-slate-500 mx-auto" />
-          <h3 className="text-base font-bold text-white">Chưa có dữ liệu dự án trong hệ thống</h3>
-          <p className="text-xs text-slate-400">Vui lòng khởi tạo dự án đầu tiên hoặc Import từ Excel để bắt đầu xem Tổng quan dự án.</p>
+        <div className="p-8 text-center bg-card border border-border rounded-2xl space-y-4 shadow-xl">
+          <FolderKanban className="w-12 h-12 text-muted-foreground mx-auto" />
+          <h3 className="text-base font-bold text-foreground">Chưa có dữ liệu dự án trong hệ thống</h3>
+          <p className="text-xs text-muted-foreground">Vui lòng khởi tạo dự án đầu tiên hoặc Import từ Excel để bắt đầu xem Tổng quan dự án.</p>
           <div className="flex items-center justify-center gap-3 pt-2">
             <button
               onClick={() => onOpenExcelImport && onOpenExcelImport('projects')}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 text-xs font-semibold cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 text-success border border-border text-xs font-semibold cursor-pointer"
             >
               📥 Import Excel
             </button>
             <button
               onClick={onNewProject}
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/30 cursor-pointer"
             >
               + Thêm Dự Án Mới
             </button>
@@ -383,39 +383,39 @@ export default function ProjectsView({
     return (
       <div className="space-y-6 animate-fade-in pb-12">
         {toastMsg && (
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-between shadow-lg">
+          <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success text-xs font-bold flex items-center justify-between shadow-lg">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5" />
               <span>{toastMsg}</span>
             </div>
-            <button onClick={() => setToastMsg('')} className="text-emerald-400 hover:text-white cursor-pointer">✕</button>
+            <button onClick={() => setToastMsg('')} className="text-success hover:text-foreground cursor-pointer">✕</button>
           </div>
         )}
 
-        <div className="p-10 rounded-2xl bg-slate-900 border border-slate-800 text-center space-y-4 shadow-xl my-6">
+        <div className="p-10 rounded-2xl bg-card border border-border text-center space-y-4 shadow-xl my-6">
           <Building2 className="w-12 h-12 text-slate-600 mx-auto" />
-          <h3 className="text-lg font-bold text-white">Chưa có dự án nào trong hệ thống</h3>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
+          <h3 className="text-lg font-bold text-foreground">Chưa có dự án nào trong hệ thống</h3>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
             Tất cả dữ liệu dự án và các dữ liệu liên quan đã được xóa hoàn toàn. Nhấn nút "+ Thêm dự án mới" để bắt đầu khởi tạo dự án đầu tiên.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <button
               onClick={onNewProject}
-              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" /> + Thêm dự án mới
             </button>
             <button
               onClick={() => onOpenExcelImport && onOpenExcelImport('projects')}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-semibold border border-slate-700 transition cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-2.5 rounded-xl bg-muted hover:bg-muted/80 text-success text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1.5"
             >
               📥 Import từ Excel
             </button>
             <button
               onClick={() => setIsDeleteAllModalOpen(true)}
-              className="px-3.5 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold border border-rose-500/40 transition cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold border border-destructive/40 transition cursor-pointer flex items-center gap-1.5"
             >
-              <Trash2 className="w-4 h-4 text-rose-400" /> 🗑️ Xóa tất cả dự án
+              <Trash2 className="w-4 h-4 text-destructive" /> 🗑️ Xóa tất cả dự án
             </button>
           </div>
         </div>
@@ -444,27 +444,27 @@ export default function ProjectsView({
       
       {/* Toast Notification Banner */}
       {toastMsg && (
-        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold flex items-center justify-between shadow-lg">
+        <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success text-xs font-bold flex items-center justify-between shadow-lg">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5" />
             <span>{toastMsg}</span>
           </div>
-          <button onClick={() => setToastMsg('')} className="text-emerald-400 hover:text-white cursor-pointer">✕</button>
+          <button onClick={() => setToastMsg('')} className="text-success hover:text-foreground cursor-pointer">✕</button>
         </div>
       )}
 
       {/* HEADER DỰ ÁN COMPACT */}
-      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
+      <div className="p-5 rounded-2xl bg-card border border-border shadow-xl space-y-4 transition-colors">
         
         {/* Row 1: Action Buttons & Project Title Indicator */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-3.5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-3.5">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center text-primary font-bold shrink-0">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">DỰ ÁN ĐANG QUẢN TRỊ TÀI CHÍNH</span>
-              <h2 className="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">DỰ ÁN ĐANG QUẢN TRỊ TÀI CHÍNH</span>
+              <h2 className="text-base font-extrabold text-foreground tracking-tight flex items-center gap-2">
                 {activeProj.name}
               </h2>
             </div>
@@ -473,39 +473,39 @@ export default function ProjectsView({
           <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
             <button
               onClick={() => onOpenExcelImport && onOpenExcelImport('projects')}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 text-xs font-semibold border border-slate-700 transition cursor-pointer flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success hover:text-success/90 text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
             >
               📥 Import Excel
             </button>
             <button
               onClick={() => onEditProject(activeProj)}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition cursor-pointer flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
             >
-              <Edit className="w-3.5 h-3.5 text-blue-400" /> Chỉnh sửa dự án
+              <Edit className="w-3.5 h-3.5 text-primary" /> Chỉnh sửa dự án
             </button>
             <button
               onClick={() => handleOpenTmdtHistory(activeProj)}
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-semibold border border-slate-700 transition cursor-pointer flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-success/90 text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
             >
               <Clock className="w-3.5 h-3.5" /> Lịch sử TMĐT
             </button>
             <button
               onClick={() => handleOpenDeleteModal(activeProj)}
-              className="px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold border border-rose-500/40 transition cursor-pointer flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 text-xs font-semibold border border-destructive/40 transition cursor-pointer flex items-center gap-1"
               title="Xóa dự án hiện tại"
             >
-              <Trash2 className="w-3.5 h-3.5 text-rose-400" /> Xóa DA
+              <Trash2 className="w-3.5 h-3.5 text-destructive" /> Xóa DA
             </button>
             <button
               onClick={() => setIsDeleteAllModalOpen(true)}
-              className="px-3 py-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900 text-rose-300 text-xs font-semibold border border-rose-500/50 shadow-sm transition cursor-pointer flex items-center gap-1"
+              className="px-3 py-1.5 rounded-xl bg-rose-950/70 hover:bg-rose-900 text-rose-300 text-xs font-semibold border border-destructive/50 shadow-sm transition cursor-pointer flex items-center gap-1"
               title="Xóa toàn bộ dự án và các hợp đồng, thanh toán liên quan"
             >
-              <Trash2 className="w-3.5 h-3.5 text-rose-400" /> 🗑️ Xóa tất cả dự án
+              <Trash2 className="w-3.5 h-3.5 text-destructive" /> 🗑️ Xóa tất cả dự án
             </button>
             <button
               onClick={onNewProject}
-              className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1"
+              className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1"
             >
               <Plus className="w-4 h-4" /> + Thêm dự án
             </button>
@@ -514,76 +514,76 @@ export default function ProjectsView({
 
         {/* Global Filter Project Status Banner */}
         {selectedProjectId ? (
-          <div className="text-[11px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl font-medium flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span>🟢 Đang hiển thị chi tiết theo dự án chọn trên Header: <strong className="text-white font-bold">{activeProj.name}</strong></span>
+          <div className="text-[11px] text-emerald-300 bg-success/10 border border-success/30 px-3 py-1.5 rounded-xl font-medium flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-success shrink-0" />
+            <span>🟢 Đang hiển thị chi tiết theo dự án chọn trên Header: <strong className="text-foreground font-bold">{activeProj.name}</strong></span>
           </div>
         ) : (
-          <div className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl font-medium flex items-center justify-between gap-2">
+          <div className="text-[11px] text-amber-300 bg-warning/10 border border-warning/30 px-3 py-1.5 rounded-xl font-medium flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Info className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>ℹ️ Bạn đang chọn "Tất cả dự án" trên Header. Đang hiển thị chi tiết dự án đầu tiên: <strong className="text-white font-bold">{activeProj.name}</strong></span>
+              <Info className="w-4 h-4 text-warning shrink-0" />
+              <span>ℹ️ Bạn đang chọn "Tất cả dự án" trên Header. Đang hiển thị chi tiết dự án đầu tiên: <strong className="text-foreground font-bold">{activeProj.name}</strong></span>
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">Chọn 1 dự án trên Header để xem cụ thể</span>
+            <span className="text-[10px] text-muted-foreground font-mono">Chọn 1 dự án trên Header để xem cụ thể</span>
           </div>
         )}
 
         {/* Row 2: Project Identification & Metadata Grid */}
         <div className="space-y-3">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-xl font-extrabold text-white tracking-tight">
+            <h1 className="text-xl font-extrabold text-foreground tracking-tight">
               {activeProj.name}
             </h1>
             {activeProj.code && (
-              <span className="px-2.5 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300 text-xs font-mono font-bold">
+              <span className="px-2.5 py-0.5 rounded-md bg-muted border border-border text-foreground text-xs font-mono font-bold">
                 Mã: {activeProj.code}
               </span>
             )}
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="px-2.5 py-0.5 rounded-full bg-success/10 text-success border border-success/30 text-xs font-bold flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
               {activeProj.status || 'Đang triển khai'}
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs pt-1">
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Chủ Đầu Tư:</span>
-              <span className="font-semibold text-slate-200 truncate block" title={activeProj.investor || activeProj.manager || 'N/A'}>
+              <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Chủ Đầu Tư:</span>
+              <span className="font-semibold text-foreground truncate block" title={activeProj.investor || activeProj.manager || 'N/A'}>
                 {activeProj.investor || activeProj.manager || 'Ban QLDA'}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Địa Chỉ:</span>
-              <span className="font-semibold text-slate-200 truncate block" title={formattedAddress}>
+              <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Địa Chỉ:</span>
+              <span className="font-semibold text-foreground truncate block" title={formattedAddress}>
                 {formattedAddress}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Ngày Khởi Tạo:</span>
-              <span className="font-mono font-bold text-slate-200 block">
+              <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Ngày Khởi Tạo:</span>
+              <span className="font-mono font-bold text-foreground block">
                 {formatDisplayDate(activeProj.created_at || activeProj.start_date)}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Thời Gian Thực Hiện:</span>
-              <span className="font-semibold text-slate-200 truncate block">
+              <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Thời Gian Thực Hiện:</span>
+              <span className="font-semibold text-foreground truncate block">
                 {activeProj.execution_time || activeProj.timeline || 'Chưa cập nhật'}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-semibold">TMĐT Gần Nhất:</span>
-              <span className="font-mono font-bold text-emerald-400 truncate block">
+              <span className="text-muted-foreground block text-[10px] uppercase font-semibold">TMĐT Gần Nhất:</span>
+              <span className="font-mono font-bold text-success truncate block">
                 {formatVND(currentTmdt)}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Tổng Hợp Đồng:</span>
-              <span className="font-mono font-bold text-cyan-300 block">
+              <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Tổng Hợp Đồng:</span>
+              <span className="font-mono font-bold text-primary block">
                 {projContracts.length} Hợp đồng
               </span>
             </div>
@@ -595,11 +595,11 @@ export default function ProjectsView({
       {/* 6 KPI TÀI CHÍNH CỐT LÕI */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-4 h-4 text-blue-400" />
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-primary" />
             6 CHỈ TIÊU TÀI CHÍNH CỐT LÕI ({periodLabel})
           </h3>
-          <span className="text-[11px] text-slate-400 font-mono">Bấm vào card để chuyển sang module chi tiết</span>
+          <span className="text-[11px] text-muted-foreground font-mono">Bấm vào card để chuyển sang module chi tiết</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -607,22 +607,22 @@ export default function ProjectsView({
           {/* KPI 1: TMĐT */}
           <div 
             onClick={() => handleOpenTmdtHistory(activeProj)}
-            className="p-4 rounded-xl bg-slate-900 border border-emerald-500/40 hover:border-emerald-400 transition cursor-pointer space-y-1.5 group shadow-md"
+            className="p-4 rounded-xl bg-card border border-success/40 hover:border-success transition cursor-pointer space-y-1.5 group shadow-md"
           >
-            <div className="flex items-center justify-between text-emerald-400">
+            <div className="flex items-center justify-between text-success">
               <span className="text-[11px] font-bold uppercase tracking-wider">1. TỔNG MỨC ĐẦU TƯ (TMĐT)</span>
-              <span className="text-[10px] font-mono text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded font-bold">
+              <span className="text-[10px] font-mono text-success bg-success/20 px-2 py-0.5 rounded font-bold">
                 {activeProj.latestPhaseLabel || 'Hiện tại'}
               </span>
             </div>
 
-            <div className="text-xl font-black text-white font-mono group-hover:text-emerald-300 transition">
+            <div className="text-xl font-black text-foreground font-mono group-hover:text-success/90 transition">
               {formatVND(currentTmdt)}
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+            <div className="pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
               <span className="text-[10px] font-mono">Hạn mức ngân sách phê duyệt</span>
-              <span className="text-emerald-400 font-bold text-[10px] flex items-center gap-1">
+              <span className="text-success font-bold text-[10px] flex items-center gap-1">
                 Lịch sử TMĐT <ArrowUpRight className="w-3 h-3" />
               </span>
             </div>
@@ -631,105 +631,105 @@ export default function ProjectsView({
           {/* KPI 2: GIÁ TRỊ HỢP ĐỒNG ĐÃ KÝ */}
           <div 
             onClick={navigateToContractsWithFilter}
-            className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-blue-500/60 transition cursor-pointer space-y-1.5 group shadow-md"
+            className="p-4 rounded-xl bg-card border border-border hover:border-primary/60 transition cursor-pointer space-y-1.5 group shadow-md"
           >
-            <div className="flex items-center justify-between text-blue-400">
+            <div className="flex items-center justify-between text-primary">
               <span className="text-[11px] font-bold uppercase tracking-wider">2. GIÁ TRỊ HỢP ĐỒNG ĐÃ KÝ</span>
               <FileText className="w-4 h-4" />
             </div>
 
-            <div className="text-xl font-black text-blue-300 font-mono group-hover:text-blue-200 transition">
+            <div className="text-xl font-black text-primary font-mono group-hover:text-primary/90 transition">
               {formatVND(signedContracts)}
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-400 text-[10px]">{projContracts.length} HĐ đã ký</span>
-              <span className="text-blue-400 font-bold text-[11px]">{signedRatio.toFixed(1)}% TMĐT</span>
+            <div className="pt-2 border-t border-border flex items-center justify-between text-xs font-mono">
+              <span className="text-muted-foreground text-[10px]">{projContracts.length} HĐ đã ký</span>
+              <span className="text-primary font-bold text-[11px]">{signedRatio.toFixed(1)}% TMĐT</span>
             </div>
           </div>
 
           {/* KPI 3: ĐÃ THANH TOÁN THỰC TẾ */}
           <div 
             onClick={navigateToPaymentsWithFilter}
-            className="p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/60 transition cursor-pointer space-y-1.5 group shadow-md"
+            className="p-4 rounded-xl bg-card border border-border hover:border-success/60 transition cursor-pointer space-y-1.5 group shadow-md"
           >
-            <div className="flex items-center justify-between text-emerald-400">
+            <div className="flex items-center justify-between text-success">
               <span className="text-[11px] font-bold uppercase tracking-wider">
                 3. {isTimeRangeFilterActive ? `CHI TRẢ TRONG KỲ` : `ĐÃ THANH TOÁN THỰC TẾ`}
               </span>
               <CreditCard className="w-4 h-4" />
             </div>
 
-            <div className="text-xl font-black text-emerald-400 font-mono group-hover:text-emerald-300 transition">
+            <div className="text-xl font-black text-success font-mono group-hover:text-success/90 transition">
               {formatVND(isTimeRangeFilterActive ? totalPaidInPeriod : totalPaidAllTime)}
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-400 text-[10px]">
+            <div className="pt-2 border-t border-border flex items-center justify-between text-xs font-mono">
+              <span className="text-muted-foreground text-[10px]">
                 {isTimeRangeFilterActive ? `Lũy kế all-time: ${formatVNDCompact(totalPaidAllTime)}` : `${projAllPayments.length} đợt phát sinh`}
               </span>
-              <span className="text-emerald-400 font-bold text-[11px]">{paidTmdtRatio.toFixed(1)}% TMĐT</span>
+              <span className="text-success font-bold text-[11px]">{paidTmdtRatio.toFixed(1)}% TMĐT</span>
             </div>
           </div>
 
           {/* KPI 4: DỰ KIẾN QUYẾT TOÁN */}
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5 shadow-md">
-            <div className="flex items-center justify-between text-purple-400">
+          <div className="p-4 rounded-xl bg-card border border-border space-y-1.5 shadow-md">
+            <div className="flex items-center justify-between text-primary">
               <span className="text-[11px] font-bold uppercase tracking-wider">4. DỰ KIẾN QUYẾT TOÁN</span>
               <TrendingUp className="w-4 h-4" />
             </div>
 
-            <div className="text-xl font-black text-purple-300 font-mono">
+            <div className="text-xl font-black text-primary font-mono">
               {formatVND(estimatedSettlement)}
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-400 text-[10px]">Dự toán sau cùng</span>
-              <span className="text-purple-300 font-bold text-[11px]">{settlementRatio.toFixed(1)}% TMĐT</span>
+            <div className="pt-2 border-t border-border flex items-center justify-between text-xs font-mono">
+              <span className="text-muted-foreground text-[10px]">Dự toán sau cùng</span>
+              <span className="text-primary font-bold text-[11px]">{settlementRatio.toFixed(1)}% TMĐT</span>
             </div>
           </div>
 
           {/* KPI 5: CÒN PHẢI THANH TOÁN */}
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5 shadow-md">
-            <div className="flex items-center justify-between text-amber-400">
+          <div className="p-4 rounded-xl bg-card border border-border space-y-1.5 shadow-md">
+            <div className="flex items-center justify-between text-warning">
               <span className="text-[11px] font-bold uppercase tracking-wider">5. CÒN PHẢI THANH TOÁN</span>
-              <CreditCard className="w-4 h-4 text-amber-400" />
+              <CreditCard className="w-4 h-4 text-warning" />
             </div>
 
-            <div className="text-xl font-black text-amber-400 font-mono">
+            <div className="text-xl font-black text-warning font-mono">
               {formatVND(remainingToPay)}
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-400 text-[10px]">Dự kiến QT − Đã TT</span>
-              <span className="text-amber-400 font-bold text-[11px]">Dư nợ cam kết</span>
+            <div className="pt-2 border-t border-border flex items-center justify-between text-xs font-mono">
+              <span className="text-muted-foreground text-[10px]">Dự kiến QT − Đã TT</span>
+              <span className="text-warning font-bold text-[11px]">Dư nợ cam kết</span>
             </div>
           </div>
 
           {/* KPI 6: NGÂN SÁCH CÒN LẠI */}
-          <div className={`p-4 rounded-xl bg-slate-900 border space-y-1.5 shadow-md ${
+          <div className={`p-4 rounded-xl bg-card border space-y-1.5 shadow-md ${
             remainingBudget < 0 
-              ? 'border-rose-500/80 bg-rose-950/20' 
-              : 'border-emerald-500/50 bg-emerald-950/20'
+              ? 'border-destructive/80 bg-destructive/20' 
+              : 'border-success/50 bg-success/10'
           }`}>
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400">6. NGÂN SÁCH CÒN LẠI</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-primary">6. NGÂN SÁCH CÒN LẠI</span>
               <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-mono ${
-                remainingBudget < 0 ? 'bg-rose-500/20 text-rose-300' : 'bg-emerald-500/20 text-emerald-300'
+                remainingBudget < 0 ? 'bg-destructive/20 text-destructive' : 'bg-success/20 text-success'
               }`}>
                 {remainingBudget < 0 ? '⚠️ Vượt ngân sách' : '🟢 An toàn'}
               </span>
             </div>
 
             <div className={`text-xl font-black font-mono ${
-              remainingBudget < 0 ? 'text-rose-400' : 'text-cyan-300'
+              remainingBudget < 0 ? 'text-destructive' : 'text-primary'
             }`}>
               {remainingBudget < 0 ? `Vượt ${formatVND(Math.abs(remainingBudget))}` : formatVND(remainingBudget)}
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
-              <span className="text-slate-400 text-[10px]">TMĐT − Dự kiến QT</span>
-              <span className={`font-bold text-[11px] ${remainingBudget < 0 ? 'text-rose-400' : 'text-cyan-400'}`}>
+            <div className="pt-2 border-t border-border flex items-center justify-between text-xs font-mono">
+              <span className="text-muted-foreground text-[10px]">TMĐT − Dự kiến QT</span>
+              <span className={`font-bold text-[11px] ${remainingBudget < 0 ? 'text-destructive' : 'text-primary'}`}>
                 {currentTmdt > 0 ? (remainingBudget / currentTmdt * 100).toFixed(1) : 0}% TMĐT
               </span>
             </div>
@@ -759,13 +759,13 @@ export default function ProjectsView({
         </div>
 
         {/* CARD 2: CƠ CẤU NGÂN SÁCH DỰ ÁN */}
-        <div className="lg:col-span-1 p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <PieIcon className="w-4 h-4 text-emerald-400" />
+        <div className="lg:col-span-1 p-5 rounded-2xl bg-card border border-border shadow-xl space-y-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <PieIcon className="w-4 h-4 text-success" />
               CƠ CẤU NGÂN SÁCH DỰ ÁN
             </h3>
-            <span className="text-[11px] text-slate-400 font-mono">Phân bổ chi phí vs TMĐT</span>
+            <span className="text-[11px] text-muted-foreground font-mono">Phân bổ chi phí vs TMĐT</span>
           </div>
 
           <div className="h-44 w-full relative flex items-center justify-center">
@@ -792,37 +792,37 @@ export default function ProjectsView({
             </ResponsiveContainer>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[10px] text-slate-400 uppercase font-semibold">TỔNG TMĐT</span>
-              <span className="text-xs font-black text-white font-mono">{formatVNDCompact(currentTmdt)}</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">TỔNG TMĐT</span>
+              <span className="text-xs font-black text-foreground font-mono">{formatVNDCompact(currentTmdt)}</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-800">
+          <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-border">
             <div 
               onClick={navigateToPaymentsWithFilter}
-              className="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-emerald-500/50 cursor-pointer transition"
+              className="p-2 rounded-lg bg-background/60 border border-border/80 hover:border-success/50 cursor-pointer transition"
             >
-              <div className="flex items-center gap-1.5 text-slate-300 text-[11px]">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" /> Đã thanh toán:
+              <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-success inline-block" /> Đã thanh toán:
               </div>
-              <div className="font-mono font-bold text-emerald-400 text-xs mt-0.5">{formatVND(totalPaidAllTime)}</div>
+              <div className="font-mono font-bold text-success text-xs mt-0.5">{formatVND(totalPaidAllTime)}</div>
             </div>
 
             <div 
               onClick={navigateToContractsWithFilter}
-              className="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 hover:border-amber-500/50 cursor-pointer transition"
+              className="p-2 rounded-lg bg-background/60 border border-border/80 hover:border-warning/50 cursor-pointer transition"
             >
-              <div className="flex items-center gap-1.5 text-slate-300 text-[11px]">
-                <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> Còn phải thanh toán:
+              <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-warning inline-block" /> Còn phải thanh toán:
               </div>
-              <div className="font-mono font-bold text-amber-400 text-xs mt-0.5">{formatVND(remainingToPay)}</div>
+              <div className="font-mono font-bold text-warning text-xs mt-0.5">{formatVND(remainingToPay)}</div>
             </div>
 
-            <div className="p-2 rounded-lg bg-slate-950/60 border border-slate-800/80 col-span-2 flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-slate-300 text-[11px]">
-                <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" /> Ngân sách còn lại:
+            <div className="p-2 rounded-lg bg-background/60 border border-border/80 col-span-2 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                <span className="w-2 h-2 rounded-full bg-primary inline-block" /> Ngân sách còn lại:
               </div>
-              <div className={`font-mono font-bold text-xs ${remainingBudget < 0 ? 'text-rose-400' : 'text-blue-400'}`}>
+              <div className={`font-mono font-bold text-xs ${remainingBudget < 0 ? 'text-destructive' : 'text-primary'}`}>
                 {formatVND(remainingBudget)}
               </div>
             </div>
@@ -830,84 +830,84 @@ export default function ProjectsView({
         </div>
 
         {/* CARD 2: TÌNH HÌNH HỢP ĐỒNG */}
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-              <FileText className="w-4 h-4 text-blue-400" />
+        <div className="p-5 rounded-2xl bg-card border border-border shadow-xl space-y-4 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <FileText className="w-4 h-4 text-primary" />
               TÌNH HÌNH HỢP ĐỒNG
             </h3>
-            <span className="text-[11px] text-slate-400 font-mono">Tổng cộng: <strong className="text-white">{projContracts.length}</strong> hợp đồng</span>
+            <span className="text-[11px] text-muted-foreground font-mono">Tổng cộng: <strong className="text-foreground">{projContracts.length}</strong> hợp đồng</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2.5 text-xs">
             
             <div 
               onClick={navigateToContractsWithFilter}
-              className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-blue-500/60 cursor-pointer transition flex items-center justify-between"
+              className="p-3 rounded-xl bg-background/60 border border-border/80 hover:border-primary/60 cursor-pointer transition flex items-center justify-between"
             >
               <div>
-                <span className="text-[11px] text-slate-400 block font-medium">Đang thực hiện</span>
-                <span className="font-mono font-bold text-blue-400 text-sm mt-0.5 block">{countInExecution} HĐ</span>
+                <span className="text-[11px] text-muted-foreground block font-medium">Đang thực hiện</span>
+                <span className="font-mono font-bold text-primary text-sm mt-0.5 block">{countInExecution} HĐ</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-500" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground" />
             </div>
 
             <div 
               onClick={navigateToContractsWithFilter}
-              className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-emerald-500/60 cursor-pointer transition flex items-center justify-between"
+              className="p-3 rounded-xl bg-background/60 border border-border/80 hover:border-success/60 cursor-pointer transition flex items-center justify-between"
             >
               <div>
-                <span className="text-[11px] text-slate-400 block font-medium">Đang giải ngân</span>
-                <span className="font-mono font-bold text-emerald-400 text-sm mt-0.5 block">{countDisbursing} HĐ</span>
+                <span className="text-[11px] text-muted-foreground block font-medium">Đang giải ngân</span>
+                <span className="font-mono font-bold text-success text-sm mt-0.5 block">{countDisbursing} HĐ</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-500" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground" />
             </div>
 
             <div 
               onClick={navigateToContractsWithFilter}
-              className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-blue-500/60 cursor-pointer transition flex items-center justify-between"
+              className="p-3 rounded-xl bg-background/60 border border-border/80 hover:border-primary/60 cursor-pointer transition flex items-center justify-between"
             >
               <div>
-                <span className="text-[11px] text-slate-400 block font-medium">Đã quyết toán</span>
-                <span className="font-mono font-bold text-cyan-300 text-sm mt-0.5 block">{countSettled} HĐ</span>
+                <span className="text-[11px] text-muted-foreground block font-medium">Đã quyết toán</span>
+                <span className="font-mono font-bold text-primary text-sm mt-0.5 block">{countSettled} HĐ</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-500" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground" />
             </div>
 
             <div 
               onClick={navigateToContractsWithFilter}
-              className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-amber-500/60 cursor-pointer transition flex items-center justify-between"
+              className="p-3 rounded-xl bg-background/60 border border-border/80 hover:border-warning/60 cursor-pointer transition flex items-center justify-between"
             >
               <div>
-                <span className="text-[11px] text-slate-400 block font-medium">Chưa giải ngân</span>
-                <span className="font-mono font-bold text-amber-400 text-sm mt-0.5 block">{countNotDisbursed} HĐ</span>
+                <span className="text-[11px] text-muted-foreground block font-medium">Chưa giải ngân</span>
+                <span className="font-mono font-bold text-warning text-sm mt-0.5 block">{countNotDisbursed} HĐ</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-slate-500" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground" />
             </div>
 
             <div 
               onClick={navigateToContractsWithFilter}
-              className="col-span-2 p-3 rounded-xl bg-slate-950/60 border border-rose-500/40 hover:border-rose-500 cursor-pointer transition flex items-center justify-between"
+              className="col-span-2 p-3 rounded-xl bg-background/60 border border-destructive/40 hover:border-destructive cursor-pointer transition flex items-center justify-between"
             >
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                <span className="w-2.5 h-2.5 rounded-full bg-destructive" />
                 <div>
-                  <span className="text-[11px] text-slate-300 font-bold block">Quá hạn chưa quyết toán</span>
-                  <span className="text-[10px] text-slate-400">Đã quá ngày hoàn thành hợp đồng</span>
+                  <span className="text-[11px] text-foreground font-bold block">Quá hạn chưa quyết toán</span>
+                  <span className="text-[10px] text-muted-foreground">Đã quá ngày hoàn thành hợp đồng</span>
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <span className="font-mono font-bold text-rose-400 text-sm">{countOverdue} HĐ</span>
-                <ArrowRight className="w-4 h-4 text-rose-400" />
+                <span className="font-mono font-bold text-destructive text-sm">{countOverdue} HĐ</span>
+                <ArrowRight className="w-4 h-4 text-destructive" />
               </div>
             </div>
 
           </div>
 
-          <div className="pt-2 border-t border-slate-800 flex justify-end">
+          <div className="pt-2 border-t border-border flex justify-end">
             <button
               onClick={navigateToContractsWithFilter}
-              className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition cursor-pointer"
+              className="text-xs font-bold text-primary hover:text-primary/90 flex items-center gap-1 transition cursor-pointer"
             >
               Quản lý hợp đồng chi tiết <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -917,13 +917,13 @@ export default function ProjectsView({
       </div>
 
       {/* BIỂU ĐỒ DÒNG TIỀN THEO THỜI GIAN */}
-      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
+      <div className="p-5 rounded-2xl bg-card border border-border shadow-xl space-y-4">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <TrendingUp className="w-4 h-4 text-success" />
             DÒNG TIỀN DỰ ÁN (GIẢI NGÂN THEO THỜI GIAN - {periodLabel})
           </h3>
-          <span className="text-[11px] text-slate-400 font-mono">Bấm vào điểm dữ liệu để chuyển sang Quản lý Thanh toán</span>
+          <span className="text-[11px] text-muted-foreground font-mono">Bấm vào điểm dữ liệu để chuyển sang Quản lý Thanh toán</span>
         </div>
 
         {cashflowChartData.length > 0 ? (
@@ -972,28 +972,28 @@ export default function ProjectsView({
                     const cVal = payload.find(p => p.dataKey === 'cumulativeVal')?.value || 0;
 
                     return (
-                      <div className="p-3 rounded-xl bg-slate-950 border border-slate-700 shadow-2xl text-xs space-y-1.5 z-50 font-sans">
-                        <div className="font-bold text-white border-b border-slate-800 pb-1.5 flex items-center justify-between gap-4">
+                      <div className="p-3 rounded-xl bg-popover border border-border shadow-2xl text-xs space-y-1.5 z-50 font-sans">
+                        <div className="font-bold text-popover-foreground border-b border-border pb-1.5 flex items-center justify-between gap-4">
                           <span>📅 {label}</span>
-                          <span className="text-[10px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 font-mono">
+                          <span className="text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20 font-mono">
                             Dòng tiền dự án
                           </span>
                         </div>
                         <div className="flex items-center justify-between gap-4 pt-0.5">
-                          <span className="text-slate-300 flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-sm bg-blue-500 inline-block" />
+                          <span className="text-muted-foreground flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-sm bg-primary inline-block" />
                             Thanh toán trong kỳ:
                           </span>
-                          <strong className="text-blue-400 font-mono">
+                          <strong className="text-primary font-mono">
                             {((Number(pVal) || 0) / 1_000_000_000).toFixed(2)} Tỷ VNĐ
                           </strong>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <span className="text-slate-300 flex items-center gap-1.5">
-                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+                          <span className="text-muted-foreground flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-success inline-block" />
                             Lũy kế giải ngân:
                           </span>
-                          <strong className="text-emerald-400 font-mono">
+                          <strong className="text-success font-mono">
                             {((Number(cVal) || 0) / 1_000_000_000).toFixed(2)} Tỷ VNĐ
                           </strong>
                         </div>
@@ -1027,11 +1027,11 @@ export default function ProjectsView({
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="h-48 flex items-center justify-center text-slate-500 text-xs italic bg-slate-950/40 rounded-xl border border-slate-800 space-y-2">
+          <div className="h-48 flex items-center justify-center text-muted-foreground text-xs italic bg-background/40 rounded-xl border border-border space-y-2">
             <div className="text-center">
-              <CreditCard className="w-8 h-8 text-slate-600 mx-auto mb-1" />
-              <p className="font-semibold text-slate-400">Chưa đủ dữ liệu thanh toán trong phạm vi chọn để vẽ biểu đồ dòng tiền.</p>
-              <p className="text-[11px] text-slate-500 mt-0.5">Vui lòng chọn phạm vi thời gian khác hoặc nhập đợt thanh toán cho dự án này.</p>
+              <CreditCard className="w-8 h-8 text-muted-foreground/50 mx-auto mb-1" />
+              <p className="font-semibold text-muted-foreground">Chưa đủ dữ liệu thanh toán trong phạm vi chọn để vẽ biểu đồ dòng tiền.</p>
+              <p className="text-[11px] text-muted-foreground/80 mt-0.5">Vui lòng chọn phạm vi thời gian khác hoặc nhập đợt thanh toán cho dự án này.</p>
             </div>
           </div>
         )}
@@ -1043,48 +1043,48 @@ export default function ProjectsView({
         {/* CARD 1: SỨC KHỎE TÀI CHÍNH DỰ ÁN */}
         <div className={`p-5 rounded-2xl border shadow-xl flex flex-col justify-between space-y-4 ${
           healthStatus === 'DANGER'
-            ? 'bg-slate-900 border-rose-500/60'
+            ? 'bg-card border-destructive/60'
             : healthStatus === 'WARNING'
-            ? 'bg-slate-900 border-amber-500/60'
-            : 'bg-slate-900 border-emerald-500/60'
+            ? 'bg-card border-warning/60'
+            : 'bg-card border-success/60'
         }`}>
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Activity className="w-4 h-4 text-emerald-400" />
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                <Activity className="w-4 h-4 text-success" />
                 SỨC KHỎE TÀI CHÍNH DỰ ÁN
               </h3>
 
               <span className={`px-3 py-1 rounded-full text-xs font-extrabold border ${
                 healthStatus === 'DANGER'
-                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/50'
+                  ? 'bg-destructive/20 text-destructive border-destructive/50'
                   : healthStatus === 'WARNING'
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
-                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                  ? 'bg-warning/20 text-warning border-warning/50'
+                  : 'bg-success/20 text-success border-success/50'
               }`}>
                 {healthStatus === 'DANGER' ? '🔴 NGUY CƠ VƯỢT TMĐT' : healthStatus === 'WARNING' ? '🟠 CẦN THEO DÕI' : '🟢 TRONG NGÂN SÁCH'}
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Đã thanh toán / TMĐT</span>
-                <span className="font-mono font-bold text-emerald-400 text-sm mt-0.5 block">{paidTmdtRatio.toFixed(1)}%</span>
+              <div className="p-3 rounded-xl bg-background/60 border border-border/80">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Đã thanh toán / TMĐT</span>
+                <span className="font-mono font-bold text-success text-sm mt-0.5 block">{paidTmdtRatio.toFixed(1)}%</span>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Giá trị HĐ đã ký / TMĐT</span>
-                <span className="font-mono font-bold text-blue-400 text-sm mt-0.5 block">{signedRatio.toFixed(1)}%</span>
+              <div className="p-3 rounded-xl bg-background/60 border border-border/80">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Giá trị HĐ đã ký / TMĐT</span>
+                <span className="font-mono font-bold text-primary text-sm mt-0.5 block">{signedRatio.toFixed(1)}%</span>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Dự kiến quyết toán / TMĐT</span>
-                <span className="font-mono font-bold text-purple-300 text-sm mt-0.5 block">{settlementRatio.toFixed(1)}%</span>
+              <div className="p-3 rounded-xl bg-background/60 border border-border/80">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Dự kiến quyết toán / TMĐT</span>
+                <span className="font-mono font-bold text-primary text-sm mt-0.5 block">{settlementRatio.toFixed(1)}%</span>
               </div>
 
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                <span className="text-[10px] text-slate-400 uppercase font-semibold block">Ngân sách còn lại</span>
-                <span className={`font-mono font-bold text-sm mt-0.5 block ${remainingBudget < 0 ? 'text-rose-400' : 'text-cyan-300'}`}>
+              <div className="p-3 rounded-xl bg-background/60 border border-border/80">
+                <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Ngân sách còn lại</span>
+                <span className={`font-mono font-bold text-sm mt-0.5 block ${remainingBudget < 0 ? 'text-destructive' : 'text-primary'}`}>
                   {formatVNDCompact(remainingBudget)}
                 </span>
               </div>
@@ -1092,13 +1092,13 @@ export default function ProjectsView({
 
             <div className="space-y-1.5 pt-1">
               <div className="flex justify-between text-[11px] font-mono">
-                <span className="text-slate-400">Tiến độ sử dụng ngân sách dự kiến:</span>
-                <span className="font-bold text-white">{settlementRatio.toFixed(1)}%</span>
+                <span className="text-muted-foreground">Tiến độ sử dụng ngân sách dự kiến:</span>
+                <span className="font-bold text-foreground">{settlementRatio.toFixed(1)}%</span>
               </div>
-              <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-muted h-2.5 rounded-full overflow-hidden border border-border">
                 <div 
                   className={`h-full rounded-full transition-all duration-500 ${
-                    settlementRatio > 100 ? 'bg-rose-500' : settlementRatio >= 95 ? 'bg-amber-500' : 'bg-emerald-500'
+                    settlementRatio > 100 ? 'bg-destructive' : settlementRatio >= 95 ? 'bg-warning' : 'bg-success'
                   }`}
                   style={{ width: `${Math.min(100, settlementRatio)}%` }}
                 />
@@ -1108,17 +1108,17 @@ export default function ProjectsView({
         </div>
 
         {/* CARD 2: CẦN QUAN TÂM */}
-        <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 flex flex-col justify-between">
+        <div className="p-5 rounded-2xl bg-card border border-border shadow-xl space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-amber-400" />
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-warning" />
                 CẦN QUAN TÂM ({detailedRiskAlerts.length} Cảnh báo & Vấn đề)
               </h3>
 
               <button
                 onClick={() => setIsAlertModalOpen(true)}
-                className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition cursor-pointer"
+                className="text-xs font-bold text-primary hover:text-primary/90 flex items-center gap-1 transition cursor-pointer"
               >
                 Xem tất cả cảnh báo <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -1131,10 +1131,10 @@ export default function ProjectsView({
                   onClick={navigateToContractsWithFilter}
                   className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition shadow-sm ${
                     alt.level === 'danger'
-                      ? 'bg-rose-950/30 border-rose-500/40 text-rose-200 hover:border-rose-400'
+                      ? 'bg-destructive/10 border-destructive/40 text-destructive hover:border-destructive/80'
                       : alt.level === 'warning'
-                      ? 'bg-amber-950/30 border-amber-500/40 text-amber-200 hover:border-amber-400'
-                      : 'bg-blue-950/30 border-blue-500/40 text-blue-200 hover:border-blue-400'
+                      ? 'bg-warning/10 border-warning/40 text-warning hover:border-warning/80'
+                      : 'bg-primary/10 border-primary/40 text-primary hover:border-primary/80'
                   }`}
                 >
                   <div className="flex items-center gap-2 pr-2">
@@ -1145,8 +1145,8 @@ export default function ProjectsView({
               ))}
 
               {detailedRiskAlerts.length === 0 && (
-                <div className="py-8 text-center text-emerald-400 text-xs font-semibold flex items-center justify-center gap-2 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
-                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                <div className="py-8 text-center text-success text-xs font-semibold flex items-center justify-center gap-2 bg-success/5 border border-success/20 rounded-xl">
+                  <CheckCircle className="w-5 h-5 text-success" />
                   <span>Không phát sinh vấn đề rủi ro. Tất cả hợp đồng đều an toàn.</span>
                 </div>
               )}
@@ -1157,48 +1157,48 @@ export default function ProjectsView({
       </div>
 
       {/* TÓM TẮT THANH TOÁN */}
-      <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800 shadow-xl space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div className="p-5 rounded-2xl bg-card border border-border shadow-xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
           <div>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-success" />
               TÌNH HÌNH THANH TOÁN TỔNG HỢP ({periodLabel})
             </h3>
-            <p className="text-[11px] text-slate-400">Tóm tắt tiến độ giải ngân của dự án trong phạm vi lọc đã chọn</p>
+            <p className="text-[11px] text-muted-foreground">Tóm tắt tiến độ giải ngân của dự án trong phạm vi lọc đã chọn</p>
           </div>
 
           <button
             onClick={navigateToPaymentsWithFilter}
-            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
+            className="px-4 py-2 rounded-xl bg-success hover:bg-success/90 text-success-foreground text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
           >
             Quản Lý Thanh Toán Chi Tiết <ArrowRight className="w-4 h-4" />
           </button>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 text-xs font-mono">
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-            <span className="text-[10px] text-slate-400 font-sans uppercase font-semibold block mb-0.5">Số Đợt Chi Trong Kỳ</span>
-            <span className="font-bold text-white text-sm">{activePaymentsForScope.length} đợt</span>
+          <div className="p-3 rounded-xl bg-background/60 border border-border/80">
+            <span className="text-[10px] text-muted-foreground font-sans uppercase font-semibold block mb-0.5">Số Đợt Chi Trong Kỳ</span>
+            <span className="font-bold text-foreground text-sm">{activePaymentsForScope.length} đợt</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-            <span className="text-[10px] text-slate-400 font-sans uppercase font-semibold block mb-0.5">Chi Trả Trong Kỳ</span>
-            <span className="font-bold text-emerald-400 text-sm">{formatVND(totalPaidInPeriod)}</span>
+          <div className="p-3 rounded-xl bg-background/60 border border-border/80">
+            <span className="text-[10px] text-muted-foreground font-sans uppercase font-semibold block mb-0.5">Chi Trả Trong Kỳ</span>
+            <span className="font-bold text-success text-sm">{formatVND(totalPaidInPeriod)}</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-            <span className="text-[10px] text-slate-400 font-sans uppercase font-semibold block mb-0.5">HĐ Đã Giải Ngân</span>
-            <span className="font-bold text-blue-300 text-sm">{contractsWithPaymentsCount} / {projContracts.length} HĐ</span>
+          <div className="p-3 rounded-xl bg-background/60 border border-border/80">
+            <span className="text-[10px] text-muted-foreground font-sans uppercase font-semibold block mb-0.5">HĐ Đã Giải Ngân</span>
+            <span className="font-bold text-primary text-sm">{contractsWithPaymentsCount} / {projContracts.length} HĐ</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-            <span className="text-[10px] text-slate-400 font-sans uppercase font-semibold block mb-0.5">HĐ Chưa Giải Ngân</span>
-            <span className="font-bold text-amber-400 text-sm">{projContracts.length - contractsWithPaymentsCount} HĐ</span>
+          <div className="p-3 rounded-xl bg-background/60 border border-border/80">
+            <span className="text-[10px] text-muted-foreground font-sans uppercase font-semibold block mb-0.5">HĐ Chưa Giải Ngân</span>
+            <span className="font-bold text-warning text-sm">{projContracts.length - contractsWithPaymentsCount} HĐ</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80">
-            <span className="text-[10px] text-slate-400 font-sans uppercase font-semibold block mb-0.5">Thanh Toán Gần Nhất</span>
-            <span className="font-bold text-cyan-300 text-sm">
+          <div className="p-3 rounded-xl bg-background/60 border border-border/80">
+            <span className="text-[10px] text-muted-foreground font-sans uppercase font-semibold block mb-0.5">Thanh Toán Gần Nhất</span>
+            <span className="font-bold text-primary text-sm">
               {latestPayment ? `${formatVNDCompact(latestPayment.amount_after_vat)} (${formatDisplayDate(latestPayment.payment_date)})` : 'Chưa có'}
             </span>
           </div>
@@ -1207,14 +1207,14 @@ export default function ProjectsView({
 
       {/* ALL ALERTS MODAL */}
       {isAlertModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-8">
-            <div className="px-6 py-4 bg-slate-800/90 border-b border-slate-700/80 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in">
+          <div className="bg-card border border-border rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden my-8">
+            <div className="px-6 py-4 bg-muted/50 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-amber-400" />
-                <h3 className="text-base font-bold text-white">Danh Sách Cảnh Báo & Vấn Đề Cần Quan Tâm</h3>
+                <ShieldAlert className="w-5 h-5 text-warning" />
+                <h3 className="text-base font-bold text-foreground">Danh Sách Cảnh Báo & Vấn Đề Cần Quan Tâm</h3>
               </div>
-              <button onClick={() => setIsAlertModalOpen(false)} className="p-1.5 text-slate-400 hover:text-white rounded-lg cursor-pointer">
+              <button onClick={() => setIsAlertModalOpen(false)} className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1229,34 +1229,34 @@ export default function ProjectsView({
                   }}
                   className={`p-4 rounded-xl border space-y-1.5 cursor-pointer transition ${
                     alt.level === 'danger'
-                      ? 'bg-rose-950/30 border-rose-500/50 text-rose-200 hover:border-rose-400'
+                      ? 'bg-destructive/10 border-destructive/50 text-destructive hover:border-destructive'
                       : alt.level === 'warning'
-                      ? 'bg-amber-950/30 border-amber-500/50 text-amber-200 hover:border-amber-400'
-                      : 'bg-blue-950/30 border-blue-500/50 text-blue-200 hover:border-blue-400'
+                      ? 'bg-warning/10 border-warning/50 text-warning hover:border-warning'
+                      : 'bg-primary/10 border-primary/50 text-primary hover:border-primary'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-white">{alt.title}</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-slate-900 border border-slate-700">
+                    <span className="font-bold text-sm text-foreground">{alt.title}</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono uppercase bg-background border border-border">
                       {alt.badge}
                     </span>
                   </div>
-                  <p className="text-slate-300 leading-relaxed">{alt.desc}</p>
+                  <p className="text-muted-foreground leading-relaxed">{alt.desc}</p>
                 </div>
               ))}
 
               {detailedRiskAlerts.length === 0 && (
-                <div className="py-12 text-center text-slate-400">
+                <div className="py-12 text-center text-muted-foreground">
                   Không ghi nhận cảnh báo nào.
                 </div>
               )}
             </div>
 
-            <div className="px-6 py-3 bg-slate-800/90 border-t border-slate-700/80 flex items-center justify-between">
-              <span className="text-xs text-slate-400 font-mono">Tổng số: {detailedRiskAlerts.length} ghi nhận</span>
+            <div className="px-6 py-3 bg-muted/50 border-t border-border flex items-center justify-between">
+              <span className="text-xs text-muted-foreground font-mono">Tổng số: {detailedRiskAlerts.length} ghi nhận</span>
               <button
                 onClick={() => setIsAlertModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 text-foreground border border-border text-xs font-semibold transition cursor-pointer"
               >
                 Đóng
               </button>
