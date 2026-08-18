@@ -218,6 +218,14 @@ export default function App() {
 
   // Handlers for Contract Appendices
   const handleOpenAppendixModal = (cId = '') => {
+    // Guard: block adding appendix if contract is settled
+    if (cId) {
+      const contract = data.contracts.find(c => c.id === cId);
+      if (contract && contract.status === 'settled') {
+        alert('Hợp đồng đã quyết toán, không thể thêm phụ lục mới.');
+        return;
+      }
+    }
     setAppendixToEdit(null);
     setAppendixInitialContractId(typeof cId === 'string' ? cId : '');
     setIsAppendixModalOpen(true);
@@ -230,6 +238,12 @@ export default function App() {
   };
 
   const handleSaveContractAppendix = async (cId, appendixData) => {
+    // Guard: block saving new appendix if contract is settled
+    const contract = data.contracts.find(c => c.id === cId);
+    if (contract && contract.status === 'settled' && !appendixData.id) {
+      alert('Hợp đồng đã quyết toán, không thể thêm phụ lục mới.');
+      return;
+    }
     await saveContractAppendix(cId, appendixData, currentUserId);
     await refreshData();
   };

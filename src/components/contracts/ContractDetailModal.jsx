@@ -155,12 +155,21 @@ export default function ContractDetailModal({
                   Diễn biến điều chỉnh giá trị từ Hợp đồng ban đầu đến Giá trị Hợp đồng hiện tại
                 </p>
               </div>
-              <button
-                onClick={() => onOpenAddAppendix && onOpenAddAppendix(contract.id)}
-                className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1 transition cursor-pointer self-start sm:self-auto shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" /> + Thêm Phụ Lục
-              </button>
+              {contract.status === 'settled' ? (
+                <span
+                  className="px-3 py-1.5 rounded-lg bg-muted text-muted-foreground text-xs font-semibold flex items-center gap-1 cursor-not-allowed opacity-60 self-start sm:self-auto shrink-0"
+                  title="Hợp đồng đã quyết toán, không thể thêm phụ lục mới."
+                >
+                  <Lock className="w-3.5 h-3.5" /> Đã khóa
+                </span>
+              ) : (
+                <button
+                  onClick={() => onOpenAddAppendix && onOpenAddAppendix(contract.id)}
+                  className="px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold flex items-center gap-1 transition cursor-pointer self-start sm:self-auto shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" /> + Thêm Phụ Lục
+                </button>
+              )}
             </div>
 
             {/* TIMELINE PROGRESSION BANNER (Giá trị HD ban đầu -> PL01 -> PL02 -> Giá trị HD hiện tại) */}
