@@ -39,6 +39,8 @@ import {
 
 export default function ContractsView({
   data,
+  currentUserRole,
+  userSession,
   selectedProjectId = '',
   setSelectedProjectId,
   onNewContract,

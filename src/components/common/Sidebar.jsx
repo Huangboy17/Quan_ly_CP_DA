@@ -1,7 +1,7 @@
 import React from 'react';
-import { LayoutDashboard, FileText, CreditCard, FolderKanban, Plus } from 'lucide-react';
+import { LayoutDashboard, FileText, CreditCard, FolderKanban, Plus , Users} from 'lucide-react';
 
-export default function Sidebar({ activeTab, setActiveTab, counts, onNewProject, isMobileMenuOpen, setIsMobileMenuOpen }) {
+export default function Sidebar({ activeTab, currentUserRole, setActiveTab, counts, onNewProject, isMobileMenuOpen, setIsMobileMenuOpen }) {
   const navItems = [
     {
       id: 'dashboard',
@@ -32,6 +32,16 @@ export default function Sidebar({ activeTab, setActiveTab, counts, onNewProject,
       badge: counts?.projectsCount || 0,
     },
   ];
+
+  if (currentUserRole === 'level_1') {
+    navItems.push({
+      id: 'members',
+      label: 'Quản lý thành viên',
+      sublabel: 'Theo dõi khối lượng công việc',
+      icon: Users,
+      badge: null,
+    });
+  }
 
   return (
     <>

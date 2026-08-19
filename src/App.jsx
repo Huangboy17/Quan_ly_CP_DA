@@ -11,6 +11,7 @@ import ContractDossierView from './components/contracts/ContractDossierView';
 import PaymentsView from './components/payments/PaymentsView';
 import PaymentModal from './components/payments/PaymentModal';
 import ProjectsView from './components/projects/ProjectsView';
+import MemberManagementView from './components/members/MemberManagementView';
 import ProjectModal from './components/projects/ProjectModal';
 import ExcelImportModal from './components/common/ExcelImportModal';
 import LoginView from './components/auth/LoginView';
@@ -458,6 +459,7 @@ export default function App() {
         {/* Left Navigation Sidebar */}
         <Sidebar
           activeTab={activeTab}
+          currentUserRole={userProfile?.role}
           setActiveTab={(tab) => {
             setActiveTab(tab);
             setIsMobileMenuOpen(false); // Close sidebar on mobile when navigating
@@ -493,9 +495,15 @@ export default function App() {
             <AdminDashboard userSession={userSession} />
           )}
 
+          {activeTab === 'members' && userProfile?.role === 'level_1' && (
+            <MemberManagementView currentUserId={userSession?.user?.id} activeTab={activeTab} />
+          )}
+
           {activeTab === 'contracts' && (
             <ContractsView
               data={data}
+              currentUserRole={userProfile?.role}
+              userSession={userSession}
               selectedProjectId={selectedProjectId}
               setSelectedProjectId={handleSetSelectedProjectId}
               onNewContract={handleOpenNewContract}
@@ -545,6 +553,7 @@ export default function App() {
           {activeTab === 'projects' && (
             <ProjectsView
               data={data}
+              currentUserRole={userProfile?.role}
               userSession={userSession}
               onNewProject={handleOpenNewProject}
               onEditProject={handleOpenEditProject}

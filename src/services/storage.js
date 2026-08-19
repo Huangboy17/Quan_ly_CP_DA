@@ -25,8 +25,7 @@ export async function syncFromSupabase(userId) {
     // 1. Fetch from 'du_an' table
     const { data: duAnRows, error: projErr } = await supabase
       .from('du_an')
-      .select('*')
-      .eq('user_id', userId);
+      .select('*');
 
     if (projErr) {
       console.warn('Supabase fetch du_an info:', projErr.message);
@@ -73,8 +72,7 @@ export async function syncFromSupabase(userId) {
     // 2. Fetch from 'hop_dong' table
     const { data: hopDongRows, error: cErr } = await supabase
       .from('hop_dong')
-      .select('*, profiles:assignee_id(full_name)')
-      .eq('user_id', userId);
+      .select('*, profiles:assignee_id(full_name)');
 
     if (cErr) {
       console.warn('Supabase fetch hop_dong info:', cErr.message);
@@ -124,8 +122,7 @@ export async function syncFromSupabase(userId) {
     // 3. Fetch from 'thanh_toan_chi_phi' table
     const { data: thanhToanRows, error: pErr } = await supabase
       .from('thanh_toan_chi_phi')
-      .select('*')
-      .eq('user_id', userId);
+      .select('*');
 
     if (pErr) {
       console.warn('Supabase fetch thanh_toan_chi_phi info:', pErr.message);
@@ -166,7 +163,6 @@ export async function syncFromSupabase(userId) {
     const { data: phuLucRows, error: plErr } = await supabase
       .from('phu_luc_hop_dong')
       .select('*')
-      .eq('user_id', userId)
       .order('created_at', { ascending: true });
 
     if (plErr) {
@@ -2247,3 +2243,36 @@ export async function updateProfileQuota(targetUserId, newQuota) {
   return true;
 }
 
+
+
+export async function getMemberStats() {
+  if (!isSupabaseConfigured || !supabase) return [];
+  try {
+    const { data, error } = await supabase.rpc('rpc_get_member_stats');
+    if (error) {
+      console.error('Lỗi khi lấy thống kê thành viên:', error);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.error('Exception lấy thống kê:', e);
+    return [];
+  }
+}
+
+
+export async function fetchSubordinates(userId) {
+  if (!isSupabaseConfigured || !supabase || !userId) return [];
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, email, role')
+      .eq('parent_id', userId)
+      .eq('status', 'active');
+    if (error) throw error;
+    return data || [];
+  } catch (e) {
+    console.error('Error fetching subordinates:', e);
+    return [];
+  }
+}

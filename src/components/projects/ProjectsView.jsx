@@ -52,9 +52,7 @@ import ContractCostGroupChart from '../common/ContractCostGroupChart';
 import PdfPreviewModal from '../common/PdfPreviewModal';
 import ProjectMembersModal from './ProjectMembersModal';
 
-export default function ProjectsView({ 
-  data, 
-  userSession,
+export default function ProjectsView({ data, userSession, currentUserRole,
   onNewProject, 
   onEditProject, 
   onDeleteProject, 
