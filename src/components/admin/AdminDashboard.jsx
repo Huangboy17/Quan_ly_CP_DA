@@ -75,7 +75,11 @@ export default function AdminDashboard({ userSession }) {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Edge Function Error:", error);
+        if (error.context) console.error("Error Context:", await error.context.json().catch(() => error.context));
+        throw error;
+      }
       if (data?.error) throw new Error(data.error);
 
       alert("Tạo tài khoản Cấp 2 thành công!");
@@ -83,7 +87,16 @@ export default function AdminDashboard({ userSession }) {
       setCreateForm({ email: '', password: '', fullName: '' });
       loadProfiles();
     } catch (err) {
-      alert(err.message || 'Lỗi khi tạo tài khoản');
+      console.error("Caught error in handleCreateUser:", err);
+      // Try to parse Supabase edge function error context if available
+      let errorMessage = err.message || 'Lỗi khi tạo tài khoản';
+      if (err.context && typeof err.context.json === 'function') {
+        try {
+          const contextData = await err.context.json();
+          if (contextData.error) errorMessage = contextData.error;
+        } catch(e) {}
+      }
+      alert(errorMessage);
     } finally {
       setIsCreating(false);
     }

@@ -8,27 +8,74 @@ export default function ProjectModal({ isOpen, onClose, onSaveProject, editingPr
     location: '',
     description: '',
     initial_tmdt: '',
+    member_ids: [],
   });
 
+  const [availableLevel2, setAvailableLevel2] = useState([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
   useEffect(() => {
-    if (editingProject) {
-      setFormData({
-        name: editingProject.name || '',
-        location: editingProject.location || editingProject.address || '',
-        description: editingProject.description || '',
-        initial_tmdt: editingProject.initial_tmdt !== undefined && editingProject.initial_tmdt !== null ? editingProject.initial_tmdt : '',
-      });
-    } else {
-      setFormData({
-        name: '',
-        location: '',
-        description: '',
-        initial_tmdt: '',
-      });
-    }
+    const loadMembersData = async () => {
+      if (!isOpen) return;
+      setIsLoadingMembers(true);
+      try {
+        // Fetch all Level 2 profiles managed by the current user
+        const { supabase } = await import('../../services/supabase');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profiles, error: profErr } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, status')
+          .eq('role', 'level_2')
+          .eq('parent_id', user.id)
+          .eq('status', 'active');
+        
+        if (profErr) throw profErr;
+        setAvailableLevel2(profiles || []);
+
+        // If editing, fetch current members
+        let currentMemberIds = [];
+        if (editingProject && editingProject.id) {
+          const { data: currentMembers, error: memErr } = await supabase
+            .from('project_members')
+            .select('user_id')
+            .eq('project_id', editingProject.id);
+          
+          if (memErr) throw memErr;
+          currentMemberIds = currentMembers?.map(m => m.user_id) || [];
+        }
+
+        setFormData({
+          name: editingProject?.name || '',
+          location: editingProject?.location || editingProject?.address || '',
+          description: editingProject?.description || '',
+          initial_tmdt: editingProject?.initial_tmdt !== undefined && editingProject.initial_tmdt !== null ? editingProject.initial_tmdt : '',
+          member_ids: currentMemberIds,
+        });
+
+      } catch (err) {
+        console.error('Error loading members data:', err);
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
+
+    loadMembersData();
   }, [editingProject, isOpen]);
 
-  const handleSubmit = (e) => {
+  const toggleMember = (userId) => {
+    setFormData(prev => {
+      const isSelected = prev.member_ids.includes(userId);
+      if (isSelected) {
+        return { ...prev, member_ids: prev.member_ids.filter(id => id !== userId) };
+      } else {
+        return { ...prev, member_ids: [...prev.member_ids, userId] };
+      }
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       alert('Vui lòng nhập Tên Dự Án!');
@@ -36,16 +83,25 @@ export default function ProjectModal({ isOpen, onClose, onSaveProject, editingPr
     }
 
     const locVal = formData.location.trim();
-    onSaveProject({
-      ...editingProject,
-      name: formData.name.trim(),
-      location: locVal,
-      address: locVal,
-      description: formData.description.trim(),
-      initial_tmdt: formData.initial_tmdt ? Number(formData.initial_tmdt) : 0,
-    });
-
-    onClose();
+    try {
+      await onSaveProject({
+        ...editingProject,
+        name: formData.name.trim(),
+        location: locVal,
+        address: locVal,
+        description: formData.description.trim(),
+        initial_tmdt: formData.initial_tmdt ? Number(formData.initial_tmdt) : 0,
+        member_ids: formData.member_ids,
+      });
+      onClose();
+    } catch (err) {
+      console.error(err);
+      if (err.message && err.message.includes('MEMBER_HAS_CONTRACTS')) {
+        alert('Không thể xóa thành viên này khỏi dự án vì đang được giao hợp đồng. Vui lòng chuyển giao hợp đồng trước.');
+      } else {
+        alert('Lỗi khi lưu dự án: ' + (err.message || 'Unknown error'));
+      }
+    }
   };
 
   const initialTmdtNum = Number(formData.initial_tmdt || 0);
@@ -173,6 +229,49 @@ export default function ProjectModal({ isOpen, onClose, onSaveProject, editingPr
                 className="w-full px-3 py-2 bg-muted/50 border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-primary transition resize-none"
               />
             </div>
+
+            {/* Thành viên tham gia dự án (Level 2) */}
+            <div className="pt-2">
+              <label className="block text-xs font-semibold text-foreground/80 mb-2">
+                Thành Viên Tham Gia Dự Án (Cấp 2)
+              </label>
+              
+              <div className="bg-muted/30 border border-border rounded-xl p-3 max-h-40 overflow-y-auto">
+                {isLoadingMembers ? (
+                  <div className="text-center text-xs text-muted-foreground py-2">Đang tải danh sách thành viên...</div>
+                ) : availableLevel2.length === 0 ? (
+                  <div className="text-center text-xs text-muted-foreground py-2">Bạn chưa có tài khoản Cấp 2 nào đang hoạt động.</div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {availableLevel2.map(user => {
+                      const isSelected = formData.member_ids.includes(user.id);
+                      return (
+                        <label 
+                          key={user.id} 
+                          className={`flex items-center gap-2 p-2 rounded-lg border transition cursor-pointer ${
+                            isSelected ? 'bg-primary/10 border-primary/30' : 'bg-card border-transparent hover:border-border'
+                          }`}
+                        >
+                          <input 
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleMember(user.id)}
+                            className="w-4 h-4 rounded text-primary focus:ring-primary cursor-pointer"
+                          />
+                          <div className="flex flex-col">
+                            <span className={`text-xs font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                              {user.full_name || 'Chưa cập nhật tên'}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">{user.email}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
           </div>
 
           {/* Modal Footer (Fixed) */}

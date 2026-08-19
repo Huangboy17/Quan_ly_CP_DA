@@ -73,7 +73,7 @@ export async function syncFromSupabase(userId) {
     // 2. Fetch from 'hop_dong' table
     const { data: hopDongRows, error: cErr } = await supabase
       .from('hop_dong')
-      .select('*')
+      .select('*, profiles:assignee_id(full_name)')
       .eq('user_id', userId);
 
     if (cErr) {
@@ -103,6 +103,7 @@ export async function syncFromSupabase(userId) {
           costGroup: row.nhom_chi_phi || '',
           costGroupNote: '',
           assignee_id: row.assignee_id || null,
+          assigneeName: row.profiles?.full_name || '',
           estimated_settlement_value: afterVAT,
           // Settlement / status fields
           // NOTE: trang_thai, ngay_quyet_toan, gia_tri_quyet_toan, gia_tri_quyet_toan_truoc_vat
@@ -224,7 +225,6 @@ export async function asyncSaveProjectToSupabase(project, userId) {
     const latestTmdt = Number(project.currentTmdt || project.initial_tmdt || 0);
     const payload = {
       id: project.id,
-      user_id: userId,
       ma_du_an: project.code || '',
       ten_du_an: project.name || '',
       dia_chi: project.address || project.location || '',
@@ -234,12 +234,28 @@ export async function asyncSaveProjectToSupabase(project, userId) {
       tmdt_history: Array.isArray(project.tmdt_history) ? project.tmdt_history : [],
     };
 
-    const { data, error } = await supabase.from('du_an').upsert(payload);
+    // Ensure member_ids is passed, default to empty array if undefined
+    const member_ids = Array.isArray(project.member_ids) ? project.member_ids : [];
+
+    const { data, error } = await supabase.rpc('rpc_upsert_project_with_members', {
+      p_project: payload,
+      p_member_ids: member_ids
+    });
+
     if (error) {
       console.error('Supabase save du_an error:', error.message, error);
       throw error;
     }
-    return data;
+    
+    // The RPC returns the project UUID. We should fetch the saved row to return it like upsert did.
+    const { data: savedProject, error: fetchErr } = await supabase
+      .from('du_an')
+      .select('*')
+      .eq('id', data)
+      .single();
+      
+    if (fetchErr) throw fetchErr;
+    return [savedProject];
   } catch (e) {
     console.error('Lỗi asyncSaveProjectToSupabase:', e);
     throw e;
@@ -2201,7 +2217,7 @@ export async function updateProfileStatus(targetUserId, newStatus) {
 
 export async function updateProfileQuota(targetUserId, newQuota) {
   if (!supabase) return false;
-  const { error } = await supabase.from('profiles').update({ max_quota: newQuota }).eq('id', targetUserId);
+  const { error } = await supabase.rpc('update_user_quota', { target_user_id: targetUserId, new_quota: newQuota });
   if (error) {
     console.error('Error updating profile quota:', error);
     return false;

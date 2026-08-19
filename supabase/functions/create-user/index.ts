@@ -21,7 +21,13 @@ serve(async (req) => {
     )
 
     // 3. Verify the caller (Must be logged in)
-    const authHeader = req.headers.get('Authorization')!
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
     const token = authHeader.replace('Bearer ', '')
     const { data: { user: caller }, error: callerError } = await supabaseAdmin.auth.getUser(token)
 

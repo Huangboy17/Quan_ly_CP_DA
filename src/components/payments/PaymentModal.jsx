@@ -442,13 +442,22 @@ export default function PaymentModal({
             {/* STEP 4: Deferred Contract Context Summary Card (3-Value Breakdown) */}
             {selectedContract && (
               <div className="p-3.5 rounded-xl bg-muted/50 border border-border space-y-2.5 text-xs animate-in fade-in duration-200">
-                <div className="flex items-center justify-between border-b border-border pb-2">
+                <div className="flex items-center justify-between border-b border-border pb-2 mb-3">
                   <span className="font-bold text-foreground flex items-center gap-2">
                     <FileText className="w-4 h-4 text-primary" />
                     Thông tin HĐ {selectedContract.contract_number}
                   </span>
                   <span className="px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/30 text-[11px] font-bold">
                     Thuế VAT: {contractVatRate}% (Theo HĐ)
+                  </span>
+                </div>
+
+                {/* HIỂN THỊ NGƯỜI PHỤ TRÁCH (READONLY) */}
+                <div className="flex items-center gap-2 p-2.5 bg-card border border-border rounded-lg mb-3">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  <span className="text-muted-foreground font-semibold">Người phụ trách hợp đồng:</span>
+                  <span className="text-foreground font-bold">
+                    {selectedContract.assignee_id ? (selectedContract.assigneeName || 'Đã phân công') : 'Chưa phân công'}
                   </span>
                 </div>
 

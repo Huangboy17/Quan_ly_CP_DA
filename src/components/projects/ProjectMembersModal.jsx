@@ -25,7 +25,13 @@ export default function ProjectMembersModal({ isOpen, onClose, project, userSess
       if (memberErr) throw memberErr;
       setMembers(memberData || []);
 
-      // 2. Fetch all profiles (to find available level_2 users)
+      // If Level 2, they cannot add members, so don't fetch available users
+      if (userSession?.user?.user_metadata?.role === 'level_2') {
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Fetch all profiles (to find available level_2 users for level_1)
       const { data: profilesData, error: profErr } = await supabase.rpc('get_all_profiles');
       if (profErr) throw profErr;
 
@@ -93,7 +99,11 @@ export default function ProjectMembersModal({ isOpen, onClose, project, userSess
       await loadData();
     } catch (err) {
       console.error(err);
-      alert('Lỗi xóa thành viên: ' + err.message);
+      if (err.message && err.message.includes('MEMBER_HAS_CONTRACTS')) {
+        alert('Không thể xóa thành viên này khỏi dự án vì đang được giao hợp đồng. Vui lòng chuyển giao hợp đồng trước.');
+      } else {
+        alert('Lỗi xóa thành viên: ' + err.message);
+      }
     }
   };
 
@@ -133,7 +143,7 @@ export default function ProjectMembersModal({ isOpen, onClose, project, userSess
             <div className="space-y-6">
               
               {/* Form Add Member */}
-              {userSession?.user?.role !== 'level_2' && (
+              {userSession?.user?.user_metadata?.role !== 'level_2' && (
                 <div className="bg-muted/40 border border-border p-4 rounded-xl flex items-end gap-3">
                   <div className="flex-1">
                     <label className="block text-xs font-semibold text-foreground/80 mb-1.5">
@@ -182,6 +192,13 @@ export default function ProjectMembersModal({ isOpen, onClose, project, userSess
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
+                      {members.length === 0 && (
+                        <tr>
+                          <td colSpan="3" className="p-4 text-center text-sm text-muted-foreground font-medium italic">
+                            Chưa phân thành viên
+                          </td>
+                        </tr>
+                      )}
                       {members.map(m => {
                         const profile = m.profiles || {};
                         const isOwner = profile.role === 'level_1' || profile.role === 'super_admin';
@@ -207,7 +224,7 @@ export default function ProjectMembersModal({ isOpen, onClose, project, userSess
                             </td>
                             <td className="p-3 text-right">
                               {/* Cấp 1 có quyền xóa Cấp 2. Không ai được xóa Cấp 1 (owner) từ UI này */}
-                              {!isOwner && userSession?.user?.role !== 'level_2' && (
+                              {!isOwner && userSession?.user?.user_metadata?.role !== 'level_2' && (
                                 <button
                                   onClick={() => handleRemoveMember(m.user_id)}
                                   className="p-1.5 rounded bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition cursor-pointer"

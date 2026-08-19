@@ -430,7 +430,7 @@ export default function ContractModal({
                     onChange={(e) => setFormData({ ...formData, assignee_id: e.target.value })}
                     className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-primary font-semibold cursor-pointer transition"
                   >
-                    <option value="">-- Không giao / Để trống --</option>
+                    <option value="">-- Chưa phân công --</option>
                     {projectMembers.map((m) => (
                       <option key={m.user_id} value={m.user_id}>
                         {m.profiles?.full_name || m.profiles?.email} ({m.profiles?.email})
