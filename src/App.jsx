@@ -496,7 +496,11 @@ export default function App() {
           )}
 
           {activeTab === 'members' && userProfile?.role === 'level_1' && (
-            <MemberManagementView currentUserId={userSession?.user?.id} activeTab={activeTab} />
+            <MemberManagementView 
+              currentUserId={userSession?.user?.id} 
+              activeTab={activeTab} 
+              userProfile={userProfile} 
+            />
           )}
 
           {activeTab === 'contracts' && (
