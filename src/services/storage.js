@@ -102,6 +102,7 @@ export async function syncFromSupabase(userId) {
           end_date: row.ngay_ket_thuc || '',
           costGroup: row.nhom_chi_phi || '',
           costGroupNote: '',
+          assignee_id: row.assignee_id || null,
           estimated_settlement_value: afterVAT,
           // Settlement / status fields
           // NOTE: trang_thai, ngay_quyet_toan, gia_tri_quyet_toan, gia_tri_quyet_toan_truoc_vat
@@ -290,6 +291,7 @@ export async function asyncSaveContractToSupabase(contract, userId) {
       tien_do_hop_dong: Number(contract.execution_days || 0) || null,
       ngay_ket_thuc: contract.end_date || null,
       nhom_chi_phi: contract.costGroup || '',
+      assignee_id: contract.assignee_id || null,
       // Settlement note — only column that exists on hop_dong for settlement tracking
       ghi_chu_quyet_toan: contract.settlement_note || null,
       // NOTE: trang_thai, ngay_quyet_toan, gia_tri_quyet_toan, gia_tri_quyet_toan_truoc_vat
@@ -2192,6 +2194,16 @@ export async function updateProfileStatus(targetUserId, newStatus) {
   const { error } = await supabase.rpc('update_user_status', { target_user_id: targetUserId, new_status: newStatus });
   if (error) {
     console.error('Error updating profile status:', error);
+    return false;
+  }
+  return true;
+}
+
+export async function updateProfileQuota(targetUserId, newQuota) {
+  if (!supabase) return false;
+  const { error } = await supabase.from('profiles').update({ max_quota: newQuota }).eq('id', targetUserId);
+  if (error) {
+    console.error('Error updating profile quota:', error);
     return false;
   }
   return true;

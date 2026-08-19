@@ -489,7 +489,7 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'admin' && userProfile?.role === 'admin' && (
+          {activeTab === 'admin' && ['admin', 'super_admin', 'level_1'].includes(userProfile?.role) && (
             <AdminDashboard userSession={userSession} />
           )}
 
@@ -545,6 +545,7 @@ export default function App() {
           {activeTab === 'projects' && (
             <ProjectsView
               data={data}
+              userSession={userSession}
               onNewProject={handleOpenNewProject}
               onEditProject={handleOpenEditProject}
               onDeleteProject={handleDeleteProject}

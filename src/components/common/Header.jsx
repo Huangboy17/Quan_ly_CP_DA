@@ -160,7 +160,7 @@ export default function Header({
           </button>
 
           {/* Quick Add Buttons */}
-          {userProfile?.role === 'admin' && (
+          {['admin', 'super_admin', 'level_1'].includes(userProfile?.role) && (
             <button
               onClick={() => setActiveTab('admin')}
               className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition cursor-pointer ${activeTab === 'admin' ? 'bg-warning text-warning-foreground' : 'bg-warning/10 hover:bg-warning/20 text-warning border border-warning/30'}`}

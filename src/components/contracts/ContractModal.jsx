@@ -10,6 +10,7 @@ import {
   calculateVATValues,
   calculateVATFromAfter
 } from '../../utils/formatters';
+import { supabase } from '../../services/supabase';
 
 export const COST_GROUP_OPTIONS = [
   'Xây dựng - Thiết bị',
@@ -44,11 +45,34 @@ export default function ContractModal({
     costGroup: '', // Default: '' (Chưa phân loại)
     costGroupNote: '',
     estimated_settlement_value: '',
+    assignee_id: '',
   });
 
   const [settlementTouched, setSettlementTouched] = useState(false);
   const [vatInputMode, setVatInputMode] = useState('before'); // 'before' | 'after'
   const [contractValueAfterVATInput, setContractValueAfterVATInput] = useState('');
+  
+  // State for assignee list
+  const [projectMembers, setProjectMembers] = useState([]);
+
+  // Fetch members when project_id changes
+  useEffect(() => {
+    if (!formData.project_id) {
+      setProjectMembers([]);
+      return;
+    }
+    const loadMembers = async () => {
+      const { data } = await supabase
+        .from('project_members')
+        .select(`
+          user_id,
+          profiles:user_id ( full_name, email )
+        `)
+        .eq('project_id', formData.project_id);
+      setProjectMembers(data || []);
+    };
+    loadMembers();
+  }, [formData.project_id]);
 
   useEffect(() => {
     if (editingContract) {
@@ -67,6 +91,7 @@ export default function ContractModal({
         estimated_settlement_value: editingContract.estimated_settlement_value || '',
         execution_days: editingContract.execution_days || 90,
         duration_type: editingContract.duration_type || 'days',
+        assignee_id: editingContract.assignee_id || '',
       });
       setSettlementTouched(true);
     } else {
@@ -88,6 +113,7 @@ export default function ContractModal({
         costGroup: '', // Default: '' (Chưa phân loại)
         costGroupNote: '',
         estimated_settlement_value: '',
+        assignee_id: '',
       });
       setSettlementTouched(false);
     }
@@ -268,6 +294,7 @@ export default function ContractModal({
         ? Number(formData.estimated_settlement_value) 
         : amountAfterVAT,
       execution_days: Number(formData.execution_days || 0),
+      assignee_id: formData.assignee_id || null,
     });
 
     onClose();
@@ -387,6 +414,27 @@ export default function ContractModal({
                     <option value="">-- Chưa phân loại / Để trống --</option>
                     {COST_GROUP_OPTIONS.map((group) => (
                       <option key={group} value={group}>{group}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {/* Row 3: Người Phụ Trách */}
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1 flex items-center justify-between">
+                    <span>Người phụ trách (Giao việc)</span>
+                    <span className="text-[10px] text-muted-foreground font-normal">(Chỉ Cấp 2 thuộc dự án này)</span>
+                  </label>
+                  <select
+                    value={formData.assignee_id}
+                    onChange={(e) => setFormData({ ...formData, assignee_id: e.target.value })}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs text-foreground focus:outline-none focus:border-primary font-semibold cursor-pointer transition"
+                  >
+                    <option value="">-- Không giao / Để trống --</option>
+                    {projectMembers.map((m) => (
+                      <option key={m.user_id} value={m.user_id}>
+                        {m.profiles?.full_name || m.profiles?.email} ({m.profiles?.email})
+                      </option>
                     ))}
                   </select>
                 </div>

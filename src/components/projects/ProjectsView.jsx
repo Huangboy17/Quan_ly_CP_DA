@@ -50,9 +50,11 @@ import DeleteProjectModal from './DeleteProjectModal';
 import DeleteAllProjectsModal from './DeleteAllProjectsModal';
 import ContractCostGroupChart from '../common/ContractCostGroupChart';
 import PdfPreviewModal from '../common/PdfPreviewModal';
+import ProjectMembersModal from './ProjectMembersModal';
 
 export default function ProjectsView({ 
   data, 
+  userSession,
   onNewProject, 
   onEditProject, 
   onDeleteProject, 
@@ -105,6 +107,7 @@ export default function ProjectsView({
   }, [previewPdfUrl]);
 
   // Modals State
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyProject, setHistoryProject] = useState(null);
 
@@ -500,7 +503,13 @@ export default function ProjectsView({
               onClick={() => onEditProject(activeProj)}
               className="w-full sm:w-auto justify-center px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
             >
-              <Edit className="w-3.5 h-3.5 text-primary" /> Chỉnh sửa dự án
+              <Edit className="w-3.5 h-3.5 text-primary" /> Chỉnh sửa
+            </button>
+            <button
+              onClick={() => setIsMembersModalOpen(true)}
+              className="w-full sm:w-auto justify-center px-3 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-foreground text-xs font-semibold border border-border transition cursor-pointer flex items-center gap-1"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-primary" /> Thành viên
             </button>
             <button
               onClick={() => handleOpenTmdtHistory(activeProj)}
@@ -1440,6 +1449,14 @@ export default function ProjectsView({
             URL.revokeObjectURL(url);
           }
         }}
+      />
+      
+      {/* Manage Members Modal */}
+      <ProjectMembersModal 
+        isOpen={isMembersModalOpen}
+        onClose={() => setIsMembersModalOpen(false)}
+        project={activeProj}
+        userSession={userSession}
       />
     </div>
   );
