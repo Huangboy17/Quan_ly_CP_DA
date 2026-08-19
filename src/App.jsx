@@ -109,6 +109,11 @@ export default function App() {
     if (userSession?.user?.id) {
       fetchUserProfile(userSession.user.id).then(profile => {
         setUserProfile(profile);
+        if (profile?.role === 'super_admin') {
+          setActiveTab('admin');
+        } else if (activeTab === 'admin' && profile?.role !== 'level_1' && profile?.role !== 'admin') {
+          setActiveTab('dashboard');
+        }
       });
     } else {
       setUserProfile(null);

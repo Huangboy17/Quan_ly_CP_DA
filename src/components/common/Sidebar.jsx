@@ -2,36 +2,50 @@ import React from 'react';
 import { LayoutDashboard, FileText, CreditCard, FolderKanban, Plus , Users} from 'lucide-react';
 
 export default function Sidebar({ activeTab, currentUserRole, setActiveTab, counts, onNewProject, isMobileMenuOpen, setIsMobileMenuOpen }) {
-  const navItems = [
-    {
-      id: 'dashboard',
-      label: 'Tổng quan',
-      sublabel: 'Dashboard & Biểu đồ',
-      icon: LayoutDashboard,
-      badge: null,
-    },
-    {
-      id: 'contracts',
-      label: 'Quản lý Hợp đồng',
-      sublabel: 'Danh sách & Nhập liệu',
-      icon: FileText,
-      badge: counts?.contractsCount || 0,
-    },
-    {
-      id: 'payments',
-      label: 'Quản lý Thanh toán',
-      sublabel: 'Nhập đợt & Lịch sử',
-      icon: CreditCard,
-      badge: counts?.paymentsCount || 0,
-    },
-    {
-      id: 'projects',
-      label: 'Tổng quan dự án',
-      sublabel: 'Xem tổng quan theo từng dự án',
-      icon: FolderKanban,
-      badge: counts?.projectsCount || 0,
-    },
-  ];
+  let navItems = [];
+  
+  if (currentUserRole === 'super_admin') {
+    navItems = [
+      {
+        id: 'admin',
+        label: 'Quản trị hệ thống',
+        sublabel: 'Quản lý tài khoản khách hàng',
+        icon: Users,
+        badge: null,
+      }
+    ];
+  } else {
+    navItems = [
+      {
+        id: 'dashboard',
+        label: 'Tổng quan',
+        sublabel: 'Dashboard & Biểu đồ',
+        icon: LayoutDashboard,
+        badge: null,
+      },
+      {
+        id: 'contracts',
+        label: 'Quản lý Hợp đồng',
+        sublabel: 'Danh sách & Nhập liệu',
+        icon: FileText,
+        badge: counts?.contractsCount || 0,
+      },
+      {
+        id: 'payments',
+        label: 'Quản lý Thanh toán',
+        sublabel: 'Nhập đợt & Lịch sử',
+        icon: CreditCard,
+        badge: counts?.paymentsCount || 0,
+      },
+      {
+        id: 'projects',
+        label: 'Tổng quan dự án',
+        sublabel: 'Xem tổng quan theo từng dự án',
+        icon: FolderKanban,
+        badge: counts?.projectsCount || 0,
+      },
+    ];
+  }
 
   if (currentUserRole === 'level_1') {
     navItems.push({
