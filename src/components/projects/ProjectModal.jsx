@@ -43,7 +43,7 @@ export default function ProjectModal({ isOpen, onClose, onSaveProject, editingPr
             .eq('project_id', editingProject.id);
           
           if (memErr) throw memErr;
-          currentMemberIds = currentMembers?.map(m => m.user_id) || [];
+          currentMemberIds = (currentMembers?.map(m => m.user_id) || []).filter(id => id !== user.id);
         }
 
         setFormData({

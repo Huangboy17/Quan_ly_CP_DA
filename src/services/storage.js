@@ -1193,15 +1193,37 @@ export async function deleteProject(id, userId) {
 
 async function asyncDeleteAllFromSupabase(userId) {
   if (!isSupabaseConfigured || !supabase || !userId) return;
+  
+  const checkError = (result, tableName) => {
+    if (result.error) {
+      console.error(`Lỗi khi xóa bảng ${tableName}:`, result.error);
+      throw new Error(`Xóa ${tableName} thất bại: ` + result.error.message);
+    }
+  };
+
   try {
     // 1. Xoá thanh toán
-    await supabase.from('thanh_toan_chi_phi').delete().eq('user_id', userId);
+    const resThanhToan = await supabase.from('thanh_toan_chi_phi').delete().eq('user_id', userId);
+    checkError(resThanhToan, 'thanh_toan_chi_phi');
+    
     // 2. Xoá phụ lục (P0-NEW-02)
-    await supabase.from('phu_luc_hop_dong').delete().eq('user_id', userId);
+    const resPhuLuc = await supabase.from('phu_luc_hop_dong').delete().eq('user_id', userId);
+    checkError(resPhuLuc, 'phu_luc_hop_dong');
+    
     // 3. Xoá hợp đồng
-    await supabase.from('hop_dong').delete().eq('user_id', userId);
+    const resHopDong = await supabase.from('hop_dong').delete().eq('user_id', userId);
+    checkError(resHopDong, 'hop_dong');
+
+    // 3.5 Xóa project_members trước khi xóa dự án (để tránh lỗi Trigger khóa cascade)
+    const resProjectMembers = await supabase.from('project_members').delete().in(
+      'project_id',
+      (await supabase.from('du_an').select('id').eq('user_id', userId)).data?.map(d => d.id) || []
+    );
+    checkError(resProjectMembers, 'project_members');
+    
     // 4. Xoá dự án
-    await supabase.from('du_an').delete().eq('user_id', userId);
+    const resDuAn = await supabase.from('du_an').delete().eq('user_id', userId);
+    checkError(resDuAn, 'du_an');
   } catch (e) {
     console.error('Lỗi asyncDeleteAllFromSupabase:', e);
     throw e;
