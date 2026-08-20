@@ -2203,7 +2203,7 @@ export async function fetchUserProfile(userId) {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, role, status, full_name, email, phone, max_quota, parent_id')
+    .select('*')
     .eq('id', userId)
     .single();
   if (error) {
@@ -2218,7 +2218,7 @@ export async function fetchUserProfileWithParent(userId) {
   if (!supabase) return null;
   const { data: profile, error } = await supabase
     .from('profiles')
-    .select('id, role, status, full_name, email, phone, max_quota, parent_id')
+    .select('*')
     .eq('id', userId)
     .single();
   if (error || !profile) return null;
@@ -2282,6 +2282,21 @@ export async function updateLevel1Profile(targetUserId, { fullName, phone }) {
   });
   if (error) {
     console.error('Error updating Level 1 profile:', error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+}
+
+export async function updateOwnProfile({ fullName, birthDate, jobTitle, company }) {
+  if (!supabase) return { success: false, error: 'Supabase not configured' };
+  const { error } = await supabase.rpc('update_own_profile', {
+    new_full_name: fullName || null,
+    new_birth_date: birthDate || null,
+    new_job_title: jobTitle || null,
+    new_company: company || null,
+  });
+  if (error) {
+    console.error('Error updating own profile:', error);
     return { success: false, error: error.message };
   }
   return { success: true };
@@ -2355,14 +2370,21 @@ export async function getMemberStats() {
   }
 }
 
-export async function fetchSubordinates(userId) {
+export async function fetchSubordinates(userId, userRole = 'level_1') {
   if (!isSupabaseConfigured || !supabase || !userId) return [];
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('profiles')
       .select('id, full_name, email, role, status, phone, created_at')
-      .eq('parent_id', userId)
       .neq('status', 'archived');
+    
+    if (userRole === 'admin' || userRole === 'super_admin') {
+      query = query.in('role', ['level_2', 'level_1', 'user']);
+    } else {
+      query = query.eq('parent_id', userId);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return data || [];
   } catch (e) {

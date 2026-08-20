@@ -77,7 +77,7 @@ export default function Header({
         
         {/* Logo & Brand */}
         <div className="flex items-center gap-2 sm:gap-3 w-full md:w-auto justify-between">
-          <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
+          <div className="flex items-center gap-2 sm:gap-3 cursor-pointer" onClick={() => setActiveTab('profile')}>
             <button 
               className="lg:hidden p-1.5 -ml-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition"
               onClick={(e) => { e.stopPropagation(); setIsMobileMenuOpen(!isMobileMenuOpen); }}

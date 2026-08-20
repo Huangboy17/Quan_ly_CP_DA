@@ -106,7 +106,7 @@ export default function PaymentsView({
     const isLevel1 = currentUserRole === 'level_1';
     const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
     if ((isLevel1 || isAdmin) && userSession?.user?.id) {
-      fetchSubordinates(userSession.user.id).then(members => {
+      fetchSubordinates(userSession.user.id, currentUserRole).then(members => {
         if (Array.isArray(members)) setSubordinates(members);
       });
     }
@@ -642,7 +642,7 @@ export default function PaymentsView({
           </div>
 
           {/* Assignee Filter — chỉ hiển thị cho Cấp 1 */}
-          {(currentUserRole === 'level_1' || currentUserRole === 'admin' || currentUserRole === 'super_admin') && subordinates.length > 0 && (
+          {(currentUserRole === 'level_1' || currentUserRole === 'admin' || currentUserRole === 'super_admin') && (
             <div className="relative shrink-0">
               <select
                 value={assigneeFilter}

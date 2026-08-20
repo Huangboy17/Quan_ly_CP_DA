@@ -3,6 +3,7 @@ import Header from './components/common/Header';
 import Sidebar from './components/common/Sidebar';
 import GlobalTimeFilter from './components/common/GlobalTimeFilter';
 import DashboardView from './components/dashboard/DashboardView';
+import ProfileView from './components/profile/ProfileView';
 import ContractsView from './components/contracts/ContractsView';
 import ContractModal from './components/contracts/ContractModal';
 import ContractDetailModal from './components/contracts/ContractDetailModal';
@@ -529,6 +530,14 @@ export default function App() {
 
         {/* Right Main Screen View */}
         <main className="flex-1 p-3 sm:p-4 lg:p-6 overflow-y-auto min-w-0 w-full">
+          {activeTab === 'profile' && (
+            <ProfileView
+              userSession={userSession}
+              userProfile={userProfile}
+              onProfileUpdated={() => refreshData()}
+            />
+          )}
+
           {activeTab === 'dashboard' && (
             <DashboardView
               data={data}
