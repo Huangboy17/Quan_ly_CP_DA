@@ -2223,14 +2223,21 @@ export async function fetchUserProfileWithParent(userId) {
     .single();
   if (error || !profile) return null;
 
-  // Nếu là Level 2, kiểm tra parent status
+  // Nếu là Level 2, kiểm tra parent status qua RPC an toàn
   if (profile.role === 'level_2' && profile.parent_id) {
-    const { data: parent } = await supabase
-      .from('profiles')
-      .select('status')
-      .eq('id', profile.parent_id)
-      .single();
-    profile.parent_status = parent?.status || 'unknown';
+    const { data: parentStatus, error: rpcError } = await supabase
+      .rpc('get_parent_status', { p_parent_id: profile.parent_id });
+      
+    if (rpcError) {
+      console.error('LỖI KỸ THUẬT: Không thể kiểm tra trạng thái tài khoản cha qua RPC:', rpcError);
+      profile.parent_status = 'error';
+      profile.parent_status_error = rpcError.message;
+    } else if (parentStatus === null) {
+      console.warn('CẢNH BÁO BẢO MẬT: RPC get_parent_status trả về NULL. Có thể truy cập trái phép hoặc không tìm thấy parent.');
+      profile.parent_status = 'unknown';
+    } else {
+      profile.parent_status = parentStatus;
+    }
   }
   return profile;
 }

@@ -431,21 +431,41 @@ export default function App() {
       );
     }
     // Level 2: Kiểm tra parent Level 1 status
-    if (userProfile.role === 'level_2' && userProfile.parent_status && userProfile.parent_status !== 'active') {
-      return (
-        <div className="min-h-screen bg-background flex items-center justify-center font-sans p-6 transition-colors">
-          <div className="max-w-md w-full bg-card border border-border rounded-2xl p-8 shadow-2xl text-center border-t-4 border-t-warning">
-            <ShieldAlert className="w-16 h-16 text-warning mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-foreground mb-2">Tài khoản tạm thời bị hạn chế</h2>
-            <p className="text-muted-foreground mb-6 text-sm">
-              Tài khoản quản lý cấp trên của bạn hiện đang bị khóa hoặc không hoạt động. Bạn không thể truy cập hệ thống cho đến khi tài khoản cấp trên được kích hoạt lại.
-            </p>
-            <button onClick={handleLogout} className="px-6 py-2 bg-muted hover:bg-border text-foreground rounded-lg font-semibold transition cursor-pointer">
-              Đăng xuất
-            </button>
+    if (userProfile.role === 'level_2' && userProfile.parent_status) {
+      if (userProfile.parent_status === 'error') {
+        return (
+          <div className="min-h-screen bg-background flex items-center justify-center font-sans p-6 transition-colors">
+            <div className="max-w-md w-full bg-card border border-border rounded-2xl p-8 shadow-2xl text-center border-t-4 border-t-destructive">
+              <ShieldAlert className="w-16 h-16 text-destructive mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-foreground mb-2">Lỗi xác thực hệ thống</h2>
+              <p className="text-muted-foreground mb-6 text-sm text-left bg-muted/50 p-3 rounded-lg font-mono">
+                [AUTHENTICATION ERROR != ACCOUNT RESTRICTION]<br />
+                Chi tiết: Không thể kết nối cơ sở dữ liệu hoặc xác minh trạng thái tài khoản quản lý cấp trên (RPC Error: {userProfile.parent_status_error || 'Unknown'}).
+              </p>
+              <button onClick={handleLogout} className="px-6 py-2 bg-muted hover:bg-border text-foreground rounded-lg font-semibold transition cursor-pointer">
+                Đăng xuất
+              </button>
+            </div>
           </div>
-        </div>
-      );
+        );
+      }
+      
+      if (userProfile.parent_status !== 'active') {
+        return (
+          <div className="min-h-screen bg-background flex items-center justify-center font-sans p-6 transition-colors">
+            <div className="max-w-md w-full bg-card border border-border rounded-2xl p-8 shadow-2xl text-center border-t-4 border-t-warning">
+              <ShieldAlert className="w-16 h-16 text-warning mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-foreground mb-2">Tài khoản tạm thời bị hạn chế</h2>
+              <p className="text-muted-foreground mb-6 text-sm">
+                Tài khoản quản lý cấp trên của bạn hiện đang bị khóa hoặc không hoạt động. Bạn không thể truy cập hệ thống cho đến khi tài khoản cấp trên được kích hoạt lại.
+              </p>
+              <button onClick={handleLogout} className="px-6 py-2 bg-muted hover:bg-border text-foreground rounded-lg font-semibold transition cursor-pointer">
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        );
+      }
     }
   }
 

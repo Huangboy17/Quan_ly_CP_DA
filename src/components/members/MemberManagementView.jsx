@@ -59,7 +59,7 @@ export default function MemberManagementView({ currentUserId, activeTab, userPro
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-6 animate-in fade-in duration-300 pb-12">
       {/* Header & KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card border border-border p-4 rounded-2xl flex flex-col justify-center">

@@ -378,6 +378,41 @@ SET role = 'level_1', updated_at = NOW()
 WHERE role = 'user' AND parent_id IS NULL;
 
 -- ============================================================
+-- 15. RPC LẤY TRẠNG THÁI CỦA TÀI KHOẢN CHA (Cho Level 2 với kiểm tra bảo mật nghiêm ngặt)
+-- Chỉ LEVEL_2 mới được gọi và chỉ được gọi với đúng parent_id của mình
+-- Chạy với SECURITY DEFINER để bypass RLS một cách có kiểm soát
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.get_parent_status(p_parent_id uuid)
+RETURNS TEXT AS $$
+DECLARE
+  caller_role TEXT;
+  caller_parent UUID;
+  parent_status TEXT;
+BEGIN
+  -- Lấy role và parent_id của tài khoản gọi hàm (auth.uid())
+  SELECT role, parent_id INTO caller_role, caller_parent 
+  FROM public.profiles 
+  WHERE id = auth.uid();
+  
+  -- Kiểm tra quyền: Phải là LEVEL_2 và parent_id phải khớp với p_parent_id truyền vào
+  IF caller_role != 'level_2' OR caller_parent IS NULL OR caller_parent != p_parent_id THEN
+    RETURN NULL; -- Từ chối truy cập chéo
+  END IF;
+  
+  -- Lấy status của parent
+  SELECT status INTO parent_status 
+  FROM public.profiles 
+  WHERE id = p_parent_id;
+  
+  RETURN parent_status;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+REVOKE EXECUTE ON FUNCTION public.get_parent_status(uuid) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.get_parent_status(uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.get_parent_status(uuid) TO authenticated;
+
+-- ============================================================
 -- HOÀN TẤT
 -- level_2_quota vẫn giữ nguyên (legacy, không sử dụng)
 -- Không DROP bất kỳ bảng/cột nào

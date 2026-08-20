@@ -1,8 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Mail, Calendar, Briefcase, FileText, CheckCircle, Clock, Shield, AlertCircle } from 'lucide-react';
 
 export default function MemberDetailModal({ member, onClose }) {
   const [activeTab, setActiveTab] = useState('overview');
+
+  // Khóa scroll body khi modal mở và khôi phục khi đóng, đồng thời lắng nghe phím ESC
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
 
   const formatVND = (val) => {
     if (val >= 1e9) {
@@ -31,8 +49,14 @@ export default function MemberDetailModal({ member, onClose }) {
   const progressPercent = totalTasks > 0 ? Math.round(((member.settled_count || 0) / totalTasks) * 100) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-card w-full max-w-3xl rounded-2xl shadow-xl border border-border flex flex-col max-h-[90vh] overflow-hidden">
+    <div 
+      className="fixed inset-0 z-50 flex justify-center items-start overflow-y-auto px-4 pt-10 pb-10 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-card w-full max-w-3xl rounded-2xl shadow-xl border border-border flex flex-col max-h-[calc(100vh-5rem)] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         
         {/* Header Section (Banner + Avatar) */}
         <div className="relative pt-12 pb-6 px-6 sm:px-8 bg-gradient-to-r from-primary/10 to-primary/5 border-b border-border">
