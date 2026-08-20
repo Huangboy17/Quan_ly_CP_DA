@@ -587,6 +587,8 @@ export default function App() {
           {activeTab === 'payments' && (
             <PaymentsView
               data={data}
+              currentUserRole={userProfile?.role}
+              userSession={userSession}
               selectedProjectId={selectedProjectId}
               setSelectedProjectId={handleSetSelectedProjectId}
               onNewPayment={() => handleOpenNewPayment()}

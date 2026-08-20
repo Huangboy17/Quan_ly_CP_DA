@@ -51,9 +51,12 @@ import {
 import { formatVND, formatVNDCompact, formatDisplayDate, cleanVND, calcEndDate, calcDaysBetween } from '../../utils/formatters';
 import { exportPaymentsExcel, exportPaymentsPdf } from '../../utils/export/paymentExport';
 import PdfPreviewModal from '../common/PdfPreviewModal';
+import { fetchSubordinates } from '../../services/storage';
 
 export default function PaymentsView({ 
   data, 
+  currentUserRole,
+  userSession,
   selectedProjectId = '',
   setSelectedProjectId,
   onNewPayment, 
@@ -93,6 +96,21 @@ export default function PaymentsView({
   // Drawer / Modal for Risk Control Details
   const [isAlertDrawerOpen, setIsAlertDrawerOpen] = useState(false);
   const [alertDrawerTab, setAlertDrawerTab] = useState('ALL');
+
+  // Nhân sự filter State
+  const [assigneeFilter, setAssigneeFilter] = useState('');
+  const [subordinates, setSubordinates] = useState([]);
+
+  // Fetch danh sách Cấp 2 khi tài khoản Cấp 1 đăng nhập
+  useEffect(() => {
+    const isLevel1 = currentUserRole === 'level_1';
+    const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
+    if ((isLevel1 || isAdmin) && userSession?.user?.id) {
+      fetchSubordinates(userSession.user.id).then(members => {
+        if (Array.isArray(members)) setSubordinates(members);
+      });
+    }
+  }, [currentUserRole, userSession?.user?.id]);
 
   // Check if a time scope filter (Year, Quarter, Month, Custom Date Range) is active on Global Header
   const isTimeRangeFilterActive = Boolean(
@@ -192,6 +210,17 @@ export default function PaymentsView({
       if (contractFilter && String(pm.contract_id) !== String(contractFilter)) return false;
       if (contractorFilter && pm.contractor !== contractorFilter) return false;
 
+      // Lọc theo nhân sự (thông qua assignee_id của hợp đồng)
+      if (assigneeFilter) {
+        const contract = contracts.find(ct => ct.id === pm.contract_id);
+        const contractAssigneeId = contract ? contract.assignee_id : null;
+        if (assigneeFilter === 'unassigned') {
+          if (contractAssigneeId) return false;
+        } else if (contractAssigneeId !== assigneeFilter) {
+          return false;
+        }
+      }
+
       if (searchQuery) {
         const matchNum = pm.contractNumber?.toLowerCase().includes(searchQuery);
         const matchNote = pm.note?.toLowerCase().includes(searchQuery);
@@ -201,7 +230,7 @@ export default function PaymentsView({
       }
       return true;
     });
-  }, [enrichedBasePayments, selectedProjectId, contractFilter, contractorFilter, searchQuery]);
+  }, [enrichedBasePayments, selectedProjectId, contractFilter, contractorFilter, assigneeFilter, contracts, searchQuery]);
 
   // CHRONOLOGICAL SORTING & SECONDARY SORT
   const sortedPayments = useMemo(() => {
@@ -612,12 +641,30 @@ export default function PaymentsView({
             </select>
           </div>
 
+          {/* Assignee Filter — chỉ hiển thị cho Cấp 1 */}
+          {(currentUserRole === 'level_1' || currentUserRole === 'admin' || currentUserRole === 'super_admin') && subordinates.length > 0 && (
+            <div className="relative shrink-0">
+              <select
+                value={assigneeFilter}
+                onChange={(e) => setAssigneeFilter(e.target.value)}
+                className="bg-muted border border-border text-foreground rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-success cursor-pointer"
+              >
+                <option value="">-- Tất cả Nhân sự --</option>
+                <option value="unassigned">Chưa phân công</option>
+                {subordinates.map(m => (
+                  <option key={m.id} value={m.id}>{m.full_name || m.email}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Reset Filters */}
-          {(contractFilter || contractorFilter || localSearch) && (
+          {(contractFilter || contractorFilter || assigneeFilter || localSearch) && (
             <button
               onClick={() => {
                 setContractFilter('');
                 setContractorFilter('');
+                setAssigneeFilter('');
                 setLocalSearch('');
               }}
               className="px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-warning border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer"

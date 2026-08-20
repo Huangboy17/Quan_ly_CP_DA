@@ -82,6 +82,7 @@ export default function ContractsView({
   const [editingAssigneeId, setEditingAssigneeId] = useState(null);
   const [assigneeLoadingMap, setAssigneeLoadingMap] = useState({});
   const [assigneeOverrides, setAssigneeOverrides] = useState({});
+  const [assigneeFilter, setAssigneeFilter] = useState(''); // '' = all, 'unassigned' = chưa phân công, uuid = nhân sự cụ thể
 
   // Fetch danh sách Cấp 2 khi tài khoản Cấp 1 đăng nhập
   useEffect(() => {
@@ -131,6 +132,13 @@ export default function ContractsView({
       if (statusFilter === 'settled' && c.status !== 'settled') return false;
       if (statusFilter === 'in_progress' && c.status === 'settled') return false;
     }
+    if (assigneeFilter) {
+      if (assigneeFilter === 'unassigned') {
+        if (c.assignee_id) return false;
+      } else if (c.assignee_id !== assigneeFilter) {
+        return false;
+      }
+    }
     if (searchQuery) {
       const matchNum = c.contract_number?.toLowerCase().includes(searchQuery);
       const matchContent = c.content?.toLowerCase().includes(searchQuery);
@@ -179,7 +187,7 @@ export default function ContractsView({
     return true;
   });
 
-  const isLocalFiltered = Boolean(contractorFilter || costGroupFilter || statusFilter || localSearch);
+  const isLocalFiltered = Boolean(contractorFilter || costGroupFilter || statusFilter || assigneeFilter || localSearch);
   const isChartFiltered = Boolean(chartCostGroupFilter || chartStatusFilter || chartScheduleFilter);
 
   const clearChartFilters = () => {
@@ -558,6 +566,23 @@ export default function ContractsView({
             </select>
           </div>
 
+          {/* Assignee Filter — chỉ hiển thị cho Cấp 1 */}
+          {(currentUserRole === 'level_1' || currentUserRole === 'admin' || currentUserRole === 'super_admin') && subordinates.length > 0 && (
+            <div className="relative shrink-0">
+              <select
+                value={assigneeFilter}
+                onChange={(e) => setAssigneeFilter(e.target.value)}
+                className="bg-background border border-border text-foreground rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-primary cursor-pointer"
+              >
+                <option value="">-- Tất cả Nhân sự --</option>
+                <option value="unassigned">Chưa phân công</option>
+                {subordinates.map(m => (
+                  <option key={m.id} value={m.id}>{m.full_name || m.email}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Unit Selector */}
           <div className="relative shrink-0 flex items-center gap-2 bg-muted/30 px-2 py-1 rounded-xl border border-border/60">
             <span className="text-xs font-medium text-muted-foreground">Đơn vị:</span>
@@ -663,6 +688,7 @@ export default function ContractsView({
                 setContractorFilter('');
                 setCostGroupFilter('');
                 setStatusFilter('');
+                setAssigneeFilter('');
                 setLocalSearch('');
               }}
               className="px-2.5 py-1.5 rounded-xl bg-muted hover:bg-muted/80 text-warning border border-border text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
