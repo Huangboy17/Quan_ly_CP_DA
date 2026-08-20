@@ -2203,7 +2203,7 @@ export async function fetchUserProfile(userId) {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from('profiles')
-    .select('role, status, full_name, email')
+    .select('id, role, status, full_name, email, phone, max_quota, parent_id')
     .eq('id', userId)
     .single();
   if (error) {
@@ -2211,6 +2211,28 @@ export async function fetchUserProfile(userId) {
     return null;
   }
   return data;
+}
+
+// Lấy profile kèm trạng thái parent (cho Level 2)
+export async function fetchUserProfileWithParent(userId) {
+  if (!supabase) return null;
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('id, role, status, full_name, email, phone, max_quota, parent_id')
+    .eq('id', userId)
+    .single();
+  if (error || !profile) return null;
+
+  // Nếu là Level 2, kiểm tra parent status
+  if (profile.role === 'level_2' && profile.parent_id) {
+    const { data: parent } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('id', profile.parent_id)
+      .single();
+    profile.parent_status = parent?.status || 'unknown';
+  }
+  return profile;
 }
 
 export async function fetchAllProfiles() {
@@ -2224,26 +2246,92 @@ export async function fetchAllProfiles() {
 }
 
 export async function updateProfileStatus(targetUserId, newStatus) {
-  if (!supabase) return false;
+  if (!supabase) return { success: false, error: 'Supabase not configured' };
   const { error } = await supabase.rpc('update_user_status', { target_user_id: targetUserId, new_status: newStatus });
   if (error) {
     console.error('Error updating profile status:', error);
-    return false;
+    return { success: false, error: error.message };
   }
-  return true;
+  return { success: true };
 }
 
 export async function updateProfileQuota(targetUserId, newQuota) {
-  if (!supabase) return false;
+  if (!supabase) return { success: false, error: 'Supabase not configured' };
   const { error } = await supabase.rpc('update_user_quota', { target_user_id: targetUserId, new_quota: newQuota });
   if (error) {
     console.error('Error updating profile quota:', error);
-    return false;
+    return { success: false, error: error.message };
   }
-  return true;
+  return { success: true };
 }
 
+// Sửa thông tin Level 1 (full_name, phone) — chỉ Super Admin
+export async function updateLevel1Profile(targetUserId, { fullName, phone }) {
+  if (!supabase) return { success: false, error: 'Supabase not configured' };
+  const { error } = await supabase.rpc('update_user_profile', {
+    target_user_id: targetUserId,
+    new_full_name: fullName || null,
+    new_phone: phone || null,
+  });
+  if (error) {
+    console.error('Error updating Level 1 profile:', error);
+    return { success: false, error: error.message };
+  }
+  return { success: true };
+}
 
+// Xóa tài khoản an toàn (soft delete → archived)
+export async function safeDeleteAccount(targetUserId) {
+  if (!supabase) return { success: false, error: 'Supabase not configured' };
+  const { data, error } = await supabase.rpc('rpc_safe_delete_account', { target_user_id: targetUserId });
+  if (error) {
+    console.error('Error deleting account:', error);
+    return { success: false, error: error.message };
+  }
+  return data; // { success: true } or { success: false, error: 'has_subordinates', count: N, message: '...' }
+}
+
+// Tạo thành viên Level 2 — gọi Edge Function create-user
+export async function createLevel2Member({ fullName, email, password, phone }) {
+  if (!supabase) return { success: false, error: 'Supabase not configured' };
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return { success: false, error: 'Chưa đăng nhập' };
+
+    const response = await supabase.functions.invoke('create-user', {
+      body: { fullName, email, password, phone },
+    });
+
+    if (response.error) {
+      const errBody = response.error.message || 'Lỗi tạo tài khoản';
+      return { success: false, error: errBody };
+    }
+
+    const result = response.data;
+    if (result?.error) {
+      return { success: false, error: result.error };
+    }
+    return { success: true, user: result?.user };
+  } catch (e) {
+    console.error('Exception creating Level 2:', e);
+    return { success: false, error: e.message || 'Lỗi không xác định' };
+  }
+}
+
+// Lấy audit logs — chỉ Super Admin
+export async function fetchAuditLogs(limit = 50) {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('audit_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) {
+    console.error('Error fetching audit logs:', error);
+    return [];
+  }
+  return data || [];
+}
 
 export async function getMemberStats() {
   if (!isSupabaseConfigured || !supabase) return [];
@@ -2260,15 +2348,14 @@ export async function getMemberStats() {
   }
 }
 
-
 export async function fetchSubordinates(userId) {
   if (!isSupabaseConfigured || !supabase || !userId) return [];
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, email, role')
+      .select('id, full_name, email, role, status, phone, created_at')
       .eq('parent_id', userId)
-      .eq('status', 'active');
+      .neq('status', 'archived');
     if (error) throw error;
     return data || [];
   } catch (e) {
@@ -2276,3 +2363,4 @@ export async function fetchSubordinates(userId) {
     return [];
   }
 }
+

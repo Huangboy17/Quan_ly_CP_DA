@@ -1,7 +1,153 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { fetchAllProfiles, updateProfileStatus } from '../../services/storage';
-import { Users, CheckCircle, XCircle, Clock, Search, Shield, MoreVertical, X } from 'lucide-react';
+import { fetchAllProfiles, updateProfileStatus, updateProfileQuota, updateLevel1Profile, safeDeleteAccount } from '../../services/storage';
+import { Users, CheckCircle, XCircle, Clock, Search, Shield, MoreVertical, X, Edit, Settings, Trash2, Unlock, Lock, UserCheck, Eye } from 'lucide-react';
 
+// ========== EDIT ACCOUNT MODAL ==========
+function EditAccountModal({ account, isOpen, onClose, onSuccess }) {
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (account) {
+      setFullName(account.full_name || '');
+      setPhone(account.phone || '');
+      setError('');
+    }
+  }, [account]);
+
+  if (!isOpen || !account) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    const result = await updateLevel1Profile(account.id, { fullName, phone });
+    setLoading(false);
+    if (result.success) {
+      onSuccess();
+      onClose();
+    } else {
+      setError(result.error || 'Có lỗi xảy ra');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[10vh] bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card rounded-xl border border-border shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <h3 className="text-sm font-bold">Sửa thông tin tài khoản</h3>
+          <button onClick={onClose} className="p-1 hover:bg-muted rounded"><X className="w-4 h-4" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
+            <input type="text" value={account.email} disabled className="w-full px-3 py-2 bg-muted/50 border border-border rounded-lg text-xs text-muted-foreground cursor-not-allowed" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Họ tên</label>
+            <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs focus:ring-1 focus:ring-primary" placeholder="Nhập họ tên" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Số điện thoại</label>
+            <input type="text" value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs focus:ring-1 focus:ring-primary" placeholder="Nhập số điện thoại" />
+          </div>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-xs border border-border rounded-lg hover:bg-muted transition">Hủy</button>
+            <button type="submit" disabled={loading} className="px-4 py-2 text-xs bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition disabled:opacity-50">
+              {loading ? 'Đang lưu...' : 'Lưu thay đổi'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ========== QUOTA MODAL ==========
+function QuotaModal({ account, currentCount, isOpen, onClose, onSuccess }) {
+  const [newQuota, setNewQuota] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (account) {
+      setNewQuota(account.max_quota || 0);
+      setError('');
+    }
+  }, [account]);
+
+  if (!isOpen || !account) return null;
+
+  const remaining = newQuota - currentCount;
+  const isOverQuota = remaining < 0;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    const result = await updateProfileQuota(account.id, parseInt(newQuota));
+    setLoading(false);
+    if (result.success) {
+      onSuccess();
+      onClose();
+    } else {
+      setError(result.error || 'Có lỗi xảy ra');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[10vh] bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card rounded-xl border border-border shadow-2xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <h3 className="text-sm font-bold">Chỉnh hạn mức thành viên</h3>
+          <button onClick={onClose} className="p-1 hover:bg-muted rounded"><X className="w-4 h-4" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div className="bg-muted/30 border border-border rounded-lg p-3 space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Tài khoản:</span>
+              <span className="font-medium">{account.email}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Đang sử dụng:</span>
+              <span className="font-bold text-foreground">{currentCount}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Quota hiện tại:</span>
+              <span className="font-medium">{account.max_quota || 0}</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Quota mới</label>
+            <input type="number" min="0" value={newQuota} onChange={e => setNewQuota(e.target.value)} className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm font-bold focus:ring-1 focus:ring-primary" />
+          </div>
+
+          <div className={`text-xs p-2 rounded-lg border ${isOverQuota ? 'bg-destructive/10 border-destructive/20 text-destructive' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'}`}>
+            {isOverQuota ? (
+              <>⚠️ Tài khoản đang vượt hạn mức. Hiện có {currentCount} thành viên nhưng quota chỉ còn {newQuota}. Hệ thống sẽ không cho tạo thêm cho đến khi giảm xuống dưới quota.</>
+            ) : (
+              <>✓ Còn lại: {remaining} slot. Sau khi lưu: {currentCount} / {newQuota}</>
+            )}
+          </div>
+
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-xs border border-border rounded-lg hover:bg-muted transition">Hủy</button>
+            <button type="submit" disabled={loading} className="px-4 py-2 text-xs bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition disabled:opacity-50">
+              {loading ? 'Đang lưu...' : 'Cập nhật quota'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ========== MAIN ADMIN DASHBOARD ==========
 export default function AdminDashboard({ userSession }) {
   const [profiles, setProfiles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -18,6 +164,10 @@ export default function AdminDashboard({ userSession }) {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [drawerSearch, setDrawerSearch] = useState('');
   const [drawerStatusFilter, setDrawerStatusFilter] = useState('all');
+
+  // Modal states
+  const [editAccount, setEditAccount] = useState(null);
+  const [quotaAccount, setQuotaAccount] = useState(null);
 
   useEffect(() => {
     if (selectedAccount) {
@@ -51,33 +201,50 @@ export default function AdminDashboard({ userSession }) {
     loadProfiles();
   }, []);
 
+  const refreshAndUpdateDrawer = async () => {
+    const data = await fetchAllProfiles();
+    setProfiles(data);
+    if (selectedAccount) {
+      const l1 = data.find(p => p.id === selectedAccount.id);
+      const l2 = data.filter(p => p.role === 'level_2' && p.parent_id === selectedAccount.id && p.status !== 'archived');
+      if (l1) {
+        setSelectedAccount({ ...l1, subordinates: l2 });
+      } else {
+        closeDrawer();
+      }
+    }
+  };
+
   const handleStatusChange = async (targetUserId, newStatus) => {
     if (targetUserId === userSession?.user?.id) return;
     
-    if (newStatus === 'archived' || newStatus === 'blocked') {
-      const actionName = newStatus === 'archived' ? 'xóa' : 'khóa';
-      const confirm = window.confirm(`Bạn có chắc chắn muốn ${actionName} tài khoản này?`);
+    if (newStatus === 'archived') {
+      const confirm = window.confirm('Bạn có chắc chắn muốn xóa (lưu trữ) tài khoản này?');
+      if (!confirm) return;
+    }
+    if (newStatus === 'blocked') {
+      const confirm = window.confirm('Bạn có chắc chắn muốn khóa tài khoản này?');
       if (!confirm) return;
     }
 
-    const success = await updateProfileStatus(targetUserId, newStatus);
-    if (success) {
-      loadProfiles();
-      
-      // Update selected account in drawer if it's open
-      if (selectedAccount && (selectedAccount.id === targetUserId || selectedAccount.subordinates.some(sub => sub.id === targetUserId))) {
-        const data = await fetchAllProfiles();
-        setProfiles(data);
-        const l1 = data.find(p => p.id === selectedAccount.id);
-        const l2 = data.filter(p => p.role === 'level_2' && p.parent_id === selectedAccount.id);
-        if (l1) {
-          setSelectedAccount({ ...l1, subordinates: l2 });
-        } else {
-          closeDrawer();
-        }
-      }
+    const result = await updateProfileStatus(targetUserId, newStatus);
+    if (result.success) {
+      await refreshAndUpdateDrawer();
     } else {
-      alert('Có lỗi xảy ra khi cập nhật trạng thái');
+      alert(result.error || 'Có lỗi xảy ra khi cập nhật trạng thái');
+    }
+  };
+
+  const handleSafeDelete = async (targetUserId) => {
+    if (targetUserId === userSession?.user?.id) return;
+    const confirm = window.confirm('Bạn có chắc chắn muốn xóa tài khoản này?');
+    if (!confirm) return;
+
+    const result = await safeDeleteAccount(targetUserId);
+    if (result.success) {
+      await refreshAndUpdateDrawer();
+    } else {
+      alert(result.message || result.error || 'Có lỗi xảy ra');
     }
   };
 
@@ -99,13 +266,13 @@ export default function AdminDashboard({ userSession }) {
 
       return {
         ...l1,
-        subordinates: level2.filter(l2 => l2.parent_id === l1.id)
+        subordinates: level2.filter(l2 => l2.parent_id === l1.id && l2.status !== 'archived')
       };
     });
 
     return { 
       hierarchy: builtHierarchy,
-      kpi: { totalL1, activeL1, pendingL1, lockedL1, totalL2: level2.length }
+      kpi: { totalL1, activeL1, pendingL1, lockedL1, totalL2: level2.filter(l2 => l2.status !== 'archived').length }
     };
   }, [profiles]);
 
@@ -120,7 +287,8 @@ export default function AdminDashboard({ userSession }) {
         matchesSearch = true;
       } else {
         const l1Matches = (l1.full_name || '').toLowerCase().includes(searchLower) ||
-                          (l1.email || '').toLowerCase().includes(searchLower);
+                          (l1.email || '').toLowerCase().includes(searchLower) ||
+                          (l1.phone || '').toLowerCase().includes(searchLower);
         
         const subMatches = l1.subordinates.some(sub => 
           (sub.full_name || '').toLowerCase().includes(searchLower) ||
@@ -171,7 +339,75 @@ export default function AdminDashboard({ userSession }) {
   const StatusBadge = ({ status }) => {
     if (status === 'active') return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 whitespace-nowrap">Hoạt động</span>;
     if (status === 'pending') return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-warning/10 text-warning border border-warning/20 whitespace-nowrap">Chờ duyệt</span>;
+    if (status === 'archived') return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-muted text-muted-foreground border border-border whitespace-nowrap">Đã xóa</span>;
     return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-destructive/10 text-destructive border border-destructive/20 whitespace-nowrap">Đã khóa</span>;
+  };
+
+  // ========== CONTEXT-SENSITIVE ACTION BUTTONS ==========
+  const ActionMenu = ({ account, isInDrawer = false }) => {
+    const subCount = account.subordinates?.length || 0;
+    const status = account.status;
+    const btnClass = isInDrawer 
+      ? "px-3 py-1.5 hover:bg-muted text-foreground rounded-md transition text-left w-full flex items-center gap-2 text-[11px]"
+      : "px-3 py-1.5 hover:bg-muted rounded-md transition text-left w-full flex items-center gap-2 text-[11px]";
+
+    return (
+      <div className="p-1 flex flex-col text-[11px] font-medium text-left min-w-[160px]">
+        {/* Xem chi tiết — luôn có */}
+        {!isInDrawer && (
+          <button onClick={(e) => { e.stopPropagation(); openDrawer(account); }} className={btnClass}>
+            <Eye className="w-3.5 h-3.5 text-blue-500" /> Xem chi tiết
+          </button>
+        )}
+
+        {/* Pending: Duyệt, Từ chối */}
+        {status === 'pending' && (
+          <>
+            <button onClick={(e) => { e.stopPropagation(); handleStatusChange(account.id, 'active'); }} className={`${btnClass} text-success`}>
+              <UserCheck className="w-3.5 h-3.5" /> Duyệt tài khoản
+            </button>
+          </>
+        )}
+
+        {/* Active: Sửa, Chỉnh quota, Khóa */}
+        {status === 'active' && (
+          <>
+            <button onClick={(e) => { e.stopPropagation(); setEditAccount(account); }} className={btnClass}>
+              <Edit className="w-3.5 h-3.5 text-blue-500" /> Sửa thông tin
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); setQuotaAccount(account); }} className={btnClass}>
+              <Settings className="w-3.5 h-3.5 text-indigo-500" /> Chỉnh hạn mức
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); handleStatusChange(account.id, 'blocked'); }} className={`${btnClass} text-destructive`}>
+              <Lock className="w-3.5 h-3.5" /> Khóa tài khoản
+            </button>
+          </>
+        )}
+
+        {/* Blocked: Sửa, Chỉnh quota, Mở khóa */}
+        {status === 'blocked' && (
+          <>
+            <button onClick={(e) => { e.stopPropagation(); setEditAccount(account); }} className={btnClass}>
+              <Edit className="w-3.5 h-3.5 text-blue-500" /> Sửa thông tin
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); setQuotaAccount(account); }} className={btnClass}>
+              <Settings className="w-3.5 h-3.5 text-indigo-500" /> Chỉnh hạn mức
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); handleStatusChange(account.id, 'active'); }} className={`${btnClass} text-emerald-600`}>
+              <Unlock className="w-3.5 h-3.5" /> Mở khóa
+            </button>
+          </>
+        )}
+
+        {/* Archived: chỉ Xem */}
+        {/* Xóa — tất cả status trừ archived */}
+        {status !== 'archived' && (
+          <button onClick={(e) => { e.stopPropagation(); handleSafeDelete(account.id); }} className={`${btnClass} text-destructive mt-0.5 border-t border-border pt-1.5`}>
+            <Trash2 className="w-3.5 h-3.5" /> Xóa tài khoản
+          </button>
+        )}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -183,9 +419,8 @@ export default function AdminDashboard({ userSession }) {
   }
 
   return (
-    // Sử dụng flex flex-col và h-[calc(100vh-100px)] để Dashboard chiếm trọn màn hình, không bị cao hơn viewport
     <div className="flex flex-col h-[calc(100vh-100px)] min-h-[500px] animate-fade-in gap-4">
-      {/* HEADER & COMPACT KPI - Không scroll */}
+      {/* HEADER & COMPACT KPI */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 shrink-0">
         <div>
           <h1 className="text-xl font-bold text-foreground leading-tight">Quản trị Hệ thống</h1>
@@ -195,7 +430,7 @@ export default function AdminDashboard({ userSession }) {
         <div className="flex flex-wrap items-center gap-2">
           <div className="bg-card border border-border px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">
             <Users className="w-3.5 h-3.5 text-blue-500" />
-            <span className="text-[11px] text-muted-foreground">Tài khoản Cấp 1:</span>
+            <span className="text-[11px] text-muted-foreground">Cấp 1:</span>
             <span className="text-sm font-bold">{kpi.totalL1}</span>
           </div>
           <div className="bg-card border border-border px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">
@@ -215,15 +450,15 @@ export default function AdminDashboard({ userSession }) {
           </div>
           <div className="bg-card border border-border px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm">
             <Users className="w-3.5 h-3.5 text-indigo-500" />
-            <span className="text-[11px] text-muted-foreground">Thành viên Cấp 2:</span>
+            <span className="text-[11px] text-muted-foreground">Cấp 2:</span>
             <span className="text-sm font-bold">{kpi.totalL2}</span>
           </div>
         </div>
       </div>
 
-      {/* MAIN TABLE WRAPPER - Flex 1 min-h-0 để chứa bảng có thể scroll */}
+      {/* MAIN TABLE */}
       <div className="bg-card border border-border rounded-xl shadow-sm flex flex-col flex-1 min-h-0">
-        {/* Compact Toolbar - Không scroll */}
+        {/* Toolbar */}
         <div className="px-3 py-2 border-b border-border bg-muted/10 flex flex-wrap items-center gap-2 shrink-0">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
             <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
@@ -244,29 +479,20 @@ export default function AdminDashboard({ userSession }) {
             <option value="pending">Chờ duyệt</option>
             <option value="active">Hoạt động</option>
             <option value="blocked">Đã khóa</option>
-          </select>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-2 py-1.5 bg-background border border-border rounded-md text-xs focus:ring-1 focus:ring-primary"
-          >
-            <option value="all">Tất cả tài khoản</option>
-            <option value="level_1">Tài khoản Cấp 1</option>
-            <option value="level_2">Có thành viên Cấp 2</option>
+            <option value="archived">Đã xóa</option>
           </select>
         </div>
 
-        {/* Table Content - CHỈ KHU VỰC NÀY SCROLL */}
+        {/* Table */}
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto custom-scrollbar relative">
-          <table className="w-full text-left text-[13px] whitespace-nowrap min-w-[700px]">
-            {/* Header Sticky */}
+          <table className="w-full text-left text-[13px] whitespace-nowrap min-w-[800px]">
             <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur-sm text-muted-foreground text-[10px] uppercase tracking-wider font-semibold shadow-sm after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:border-b after:border-border">
               <tr>
                 <th className="px-3 py-2.5">Tài khoản Cấp 1</th>
+                <th className="px-3 py-2.5 w-16">SĐT</th>
                 <th className="px-3 py-2.5 w-24">Trạng thái</th>
-                <th className="px-3 py-2.5 w-24 text-center">Thành viên</th>
+                <th className="px-3 py-2.5 w-32 text-center">Thành viên / Quota</th>
                 <th className="px-3 py-2.5 w-28 text-center">Đăng ký</th>
-                <th className="px-3 py-2.5 w-28 text-center">Hoạt động</th>
                 <th className="px-3 py-2.5 w-12 text-center"></th>
               </tr>
             </thead>
@@ -280,7 +506,10 @@ export default function AdminDashboard({ userSession }) {
               ) : (
                 filteredHierarchy.map(l1 => {
                   const subCount = l1.subordinates.length;
-                  const quotaStr = l1.max_members ? `${subCount} / ${l1.max_members}` : `${subCount}`;
+                  const maxQ = l1.max_quota || 0;
+                  const remaining = maxQ - subCount;
+                  const quotaStr = maxQ > 0 ? `${subCount} / ${maxQ}` : `${subCount}`;
+                  const isOverQuota = maxQ > 0 && remaining < 0;
 
                   return (
                     <tr key={l1.id} className="hover:bg-muted/30 transition-colors cursor-pointer group" onClick={() => openDrawer(l1)}>
@@ -295,17 +524,20 @@ export default function AdminDashboard({ userSession }) {
                           </div>
                         </div>
                       </td>
+                      <td className="px-3 py-2 text-[11px] text-muted-foreground">{l1.phone || '—'}</td>
                       <td className="px-3 py-2">
                         <StatusBadge status={l1.status} />
                       </td>
                       <td className="px-3 py-2 text-center">
-                        <span className="text-[12px] font-medium text-foreground">{quotaStr}</span>
+                        <span className={`text-[12px] font-medium ${isOverQuota ? 'text-destructive' : 'text-foreground'}`}>{quotaStr}</span>
+                        {maxQ > 0 && (
+                          <span className={`text-[10px] ml-1 ${remaining < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                            (còn {remaining >= 0 ? remaining : 0})
+                          </span>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-center text-[11px] text-muted-foreground">
                         {formatDate(l1.created_at)}
-                      </td>
-                      <td className="px-3 py-2 text-center text-[11px] text-muted-foreground">
-                        {formatRelativeTime(l1.updated_at || l1.created_at)}
                       </td>
                       <td className="px-3 py-2 text-center">
                         <div className="relative group/menu inline-block">
@@ -315,27 +547,8 @@ export default function AdminDashboard({ userSession }) {
                           >
                             <MoreVertical className="w-4 h-4" />
                           </button>
-                          <div className="absolute right-0 top-full mt-1 w-32 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-20">
-                            <div className="p-1 flex flex-col text-[11px] font-medium text-left">
-                              {l1.status === 'pending' && (
-                                <button onClick={(e) => { e.stopPropagation(); handleStatusChange(l1.id, 'active'); }} className="px-3 py-1.5 hover:bg-success/10 text-success rounded-md transition text-left">
-                                  Duyệt tài khoản
-                                </button>
-                              )}
-                              {l1.status === 'active' && (
-                                <button onClick={(e) => { e.stopPropagation(); handleStatusChange(l1.id, 'blocked'); }} className="px-3 py-1.5 hover:bg-destructive/10 text-destructive rounded-md transition text-left">
-                                  Khóa tài khoản
-                                </button>
-                              )}
-                              {(l1.status === 'blocked' || l1.status === 'archived') && (
-                                <button onClick={(e) => { e.stopPropagation(); handleStatusChange(l1.id, 'active'); }} className="px-3 py-1.5 hover:bg-muted text-foreground rounded-md transition text-left">
-                                  Mở khóa
-                                </button>
-                              )}
-                              <button onClick={(e) => { e.stopPropagation(); handleStatusChange(l1.id, 'archived'); }} className="px-3 py-1.5 hover:bg-destructive/10 text-destructive rounded-md transition text-left mt-0.5 border-t border-border">
-                                Xóa
-                              </button>
-                            </div>
+                          <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-20">
+                            <ActionMenu account={l1} />
                           </div>
                         </div>
                       </td>
@@ -348,7 +561,7 @@ export default function AdminDashboard({ userSession }) {
         </div>
       </div>
 
-      {/* ACCOUNT DETAIL MODAL - Flex column layout with max-height to viewport */}
+      {/* ACCOUNT DETAIL MODAL */}
       {selectedAccount && (
         <div className="fixed inset-0 z-[100] flex justify-center items-start pt-4 sm:pt-6 pb-4 sm:pb-6 px-4 bg-background/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="absolute inset-0" onClick={closeDrawer}></div>
@@ -357,7 +570,7 @@ export default function AdminDashboard({ userSession }) {
             className="bg-card w-full max-w-[750px] max-h-[100dvh] sm:max-h-[calc(100vh-48px)] rounded-xl shadow-2xl border border-border flex flex-col relative z-10 animate-in zoom-in-95 duration-200 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal Header - Fixed Height */}
+            {/* Modal Header */}
             <div className="px-5 py-3 border-b border-border flex items-center justify-between bg-muted/10 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
@@ -373,38 +586,32 @@ export default function AdminDashboard({ userSession }) {
                 </div>
               </div>
               <div className="flex gap-2 shrink-0">
-                {selectedAccount.status === 'pending' && (
-                  <button onClick={() => handleStatusChange(selectedAccount.id, 'active')} className="px-3 py-1.5 bg-success text-success-foreground font-semibold text-[11px] rounded-md hover:bg-success/90 transition shadow-sm hidden sm:block">
-                    Duyệt
+                {/* Dropdown for actions in drawer */}
+                <div className="relative group/drawermenu">
+                  <button className="px-3 py-1.5 bg-muted/80 text-foreground font-semibold text-[11px] rounded-md hover:bg-muted transition border border-border hidden sm:flex items-center gap-1">
+                    <MoreVertical className="w-3.5 h-3.5" /> Hành động
                   </button>
-                )}
-                {selectedAccount.status === 'active' && (
-                  <button onClick={() => handleStatusChange(selectedAccount.id, 'blocked')} className="px-3 py-1.5 bg-destructive/10 text-destructive font-semibold text-[11px] rounded-md hover:bg-destructive hover:text-destructive-foreground transition hidden sm:block">
-                    Khóa
-                  </button>
-                )}
-                {(selectedAccount.status === 'blocked' || selectedAccount.status === 'archived') && (
-                  <button onClick={() => handleStatusChange(selectedAccount.id, 'active')} className="px-3 py-1.5 bg-muted text-foreground font-semibold text-[11px] rounded-md hover:bg-muted/80 transition hidden sm:block">
-                    Mở Khóa
-                  </button>
-                )}
+                  <div className="absolute right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg opacity-0 invisible group-hover/drawermenu:opacity-100 group-hover/drawermenu:visible transition-all z-20">
+                    <ActionMenu account={selectedAccount} isInDrawer={true} />
+                  </div>
+                </div>
                 <button onClick={closeDrawer} className="p-1.5 hover:bg-background rounded-md text-muted-foreground transition border border-transparent hover:border-border flex items-center justify-center">
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Modal Body - Flex 1 to fill space, min-h-0 allows internal scrolling if needed */}
+            {/* Modal Body */}
             <div className="flex flex-col flex-1 min-h-0 bg-background overflow-hidden">
               
-              {/* Account Summary & Info - Shrink-0 so it doesn't compress, always visible at top of modal body */}
+              {/* Account Info Summary */}
               <div className="p-4 sm:p-5 flex flex-col gap-4 shrink-0 border-b border-border bg-muted/5 overflow-y-auto max-h-[40vh] sm:max-h-none sm:overflow-visible custom-scrollbar">
                 
                 {/* COMPACT KPI ROW */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="bg-background border border-border rounded-lg px-3 py-2 flex flex-col justify-center">
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase mb-0.5">Hạn mức</span>
-                    <span className="text-lg font-bold text-foreground leading-none">{selectedAccount.subordinates?.length || 0} <span className="text-sm font-medium text-muted-foreground">/ {selectedAccount.max_members || '∞'}</span></span>
+                    <span className="text-lg font-bold text-foreground leading-none">{selectedAccount.subordinates?.length || 0} <span className="text-sm font-medium text-muted-foreground">/ {selectedAccount.max_quota || '∞'}</span></span>
                   </div>
                   <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg px-3 py-2 flex flex-col justify-center">
                     <span className="text-[10px] font-semibold text-emerald-600 uppercase mb-0.5">Hoạt động</span>
@@ -416,19 +623,19 @@ export default function AdminDashboard({ userSession }) {
                   </div>
                   <div className="bg-destructive/5 border border-destructive/10 rounded-lg px-3 py-2 flex flex-col justify-center">
                     <span className="text-[10px] font-semibold text-destructive uppercase mb-0.5">Đã khóa</span>
-                    <span className="text-lg font-bold text-destructive leading-none">{selectedAccount.subordinates?.filter(s => s.status === 'blocked' || s.status === 'archived').length || 0}</span>
+                    <span className="text-lg font-bold text-destructive leading-none">{selectedAccount.subordinates?.filter(s => s.status === 'blocked').length || 0}</span>
                   </div>
                 </div>
 
-                {/* 2-COLUMN INFO GRID */}
+                {/* INFO GRID */}
                 <div className="bg-background border border-border rounded-lg p-3 grid grid-cols-2 sm:grid-cols-4 gap-y-3 gap-x-4">
                   <div>
                     <div className="text-[10px] text-muted-foreground mb-0.5">Email</div>
                     <div className="text-xs font-medium truncate" title={selectedAccount.email}>{selectedAccount.email}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] text-muted-foreground mb-0.5">Loại tài khoản</div>
-                    <div className="text-xs font-medium">Cấp 1</div>
+                    <div className="text-[10px] text-muted-foreground mb-0.5">Số điện thoại</div>
+                    <div className="text-xs font-medium">{selectedAccount.phone || '—'}</div>
                   </div>
                   <div>
                     <div className="text-[10px] text-muted-foreground mb-0.5">Ngày đăng ký</div>
@@ -441,9 +648,8 @@ export default function AdminDashboard({ userSession }) {
                 </div>
               </div>
 
-              {/* COMPACT MEMBERS TABLE - The Only Area That Scrolls Heavily */}
+              {/* MEMBERS TABLE */}
               <div className="flex flex-col flex-1 min-h-0">
-                {/* Search Bar for Member List */}
                 <div className="px-4 sm:px-5 py-2.5 border-b border-border bg-card flex flex-wrap items-center justify-between gap-2 shrink-0">
                   <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider hidden sm:block">
                     Danh sách thành viên Cấp 2
@@ -462,7 +668,6 @@ export default function AdminDashboard({ userSession }) {
                   </div>
                 </div>
 
-                {/* Scrollable Table Content */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar relative bg-background">
                   <table className="w-full text-left text-[12px] whitespace-nowrap">
                     <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur-sm text-muted-foreground text-[10px] uppercase font-semibold after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-0 after:border-b after:border-border shadow-sm">
@@ -505,14 +710,14 @@ export default function AdminDashboard({ userSession }) {
                                 <button className="p-0.5 hover:bg-muted text-muted-foreground rounded transition opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100">
                                   <MoreVertical className="w-3.5 h-3.5" />
                                 </button>
-                                <div className="absolute right-0 top-full mt-1 w-24 bg-card border border-border rounded-md shadow-lg opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-20">
+                                <div className="absolute right-0 top-full mt-1 w-28 bg-card border border-border rounded-md shadow-lg opacity-0 invisible group-hover/menu:opacity-100 group-hover/menu:visible transition-all z-20">
                                   <div className="p-1 flex flex-col text-[10px] font-medium text-left">
                                     {sub.status === 'active' && (
                                       <button onClick={(e) => { e.stopPropagation(); handleStatusChange(sub.id, 'blocked'); }} className="px-2 py-1.5 hover:bg-destructive/10 text-destructive rounded transition text-left">
                                         Khóa
                                       </button>
                                     )}
-                                    {(sub.status === 'blocked' || sub.status === 'pending' || sub.status === 'archived') && (
+                                    {(sub.status === 'blocked' || sub.status === 'pending') && (
                                       <button onClick={(e) => { e.stopPropagation(); handleStatusChange(sub.id, 'active'); }} className="px-2 py-1.5 hover:bg-muted text-foreground rounded transition text-left">
                                         Mở khóa
                                       </button>
@@ -533,7 +738,7 @@ export default function AdminDashboard({ userSession }) {
               </div>
             </div>
 
-            {/* Mobile Actions Footer - Only visible on small screens to replace header buttons */}
+            {/* Mobile Footer */}
             <div className="px-4 py-3 border-t border-border bg-muted/10 shrink-0 flex sm:hidden gap-2">
               {selectedAccount.status === 'pending' && (
                 <button onClick={() => handleStatusChange(selectedAccount.id, 'active')} className="flex-1 py-2 bg-success text-success-foreground font-semibold text-[11px] rounded-lg shadow-sm">
@@ -542,10 +747,10 @@ export default function AdminDashboard({ userSession }) {
               )}
               {selectedAccount.status === 'active' && (
                 <button onClick={() => handleStatusChange(selectedAccount.id, 'blocked')} className="flex-1 py-2 bg-destructive/10 text-destructive font-semibold text-[11px] rounded-lg">
-                  Khóa Tài Khoản
+                  Khóa
                 </button>
               )}
-              {(selectedAccount.status === 'blocked' || selectedAccount.status === 'archived') && (
+              {selectedAccount.status === 'blocked' && (
                 <button onClick={() => handleStatusChange(selectedAccount.id, 'active')} className="flex-1 py-2 bg-muted text-foreground font-semibold text-[11px] rounded-lg border border-border">
                   Mở Khóa
                 </button>
@@ -555,6 +760,23 @@ export default function AdminDashboard({ userSession }) {
           </div>
         </div>
       )}
+
+      {/* EDIT MODAL */}
+      <EditAccountModal
+        account={editAccount}
+        isOpen={!!editAccount}
+        onClose={() => setEditAccount(null)}
+        onSuccess={refreshAndUpdateDrawer}
+      />
+
+      {/* QUOTA MODAL */}
+      <QuotaModal
+        account={quotaAccount}
+        currentCount={quotaAccount ? (hierarchy.find(h => h.id === quotaAccount.id)?.subordinates?.length || 0) : 0}
+        isOpen={!!quotaAccount}
+        onClose={() => setQuotaAccount(null)}
+        onSuccess={refreshAndUpdateDrawer}
+      />
     </div>
   );
 }

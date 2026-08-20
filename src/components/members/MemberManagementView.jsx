@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Briefcase, FileText, CheckCircle, Search, Mail, AlertCircle, MoreVertical, Shield } from 'lucide-react';
+import { Users, Briefcase, FileText, CheckCircle, Search, Mail, AlertCircle, MoreVertical, Shield, Plus } from 'lucide-react';
 import { getMemberStats } from '../../services/storage';
 import MemberDetailModal from './MemberDetailModal';
+import CreateMemberModal from './CreateMemberModal';
 
 export default function MemberManagementView({ currentUserId, activeTab, userProfile }) {
   const [members, setMembers] = useState([]);
@@ -9,6 +10,7 @@ export default function MemberManagementView({ currentUserId, activeTab, userPro
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedMember, setSelectedMember] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     if (activeTab === 'members') {
@@ -34,8 +36,10 @@ export default function MemberManagementView({ currentUserId, activeTab, userPro
   const activeMembers = members.filter(m => m.status === 'active').length;
   const pendingMembers = members.filter(m => m.status === 'pending').length;
   
-  const maxMembers = userProfile?.max_members || 0;
-  const remainingSlots = maxMembers > 0 ? Math.max(0, maxMembers - totalMembers) : 0;
+  const maxQuota = userProfile?.max_quota || 0;
+  const remainingSlots = maxQuota > 0 ? maxQuota - totalMembers : 0;
+  const canCreateMember = maxQuota > 0 && totalMembers < maxQuota;
+  const isOverQuota = maxQuota > 0 && totalMembers > maxQuota;
 
   const formatVND = (val) => {
     if (val >= 1e9) {
@@ -95,12 +99,40 @@ export default function MemberManagementView({ currentUserId, activeTab, userPro
             <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Hạn mức tài khoản</p>
           </div>
           <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-bold">{totalMembers} <span className="text-muted-foreground text-lg">/ {maxMembers > 0 ? maxMembers : '∞'}</span></p>
+            <p className={`text-2xl font-bold ${isOverQuota ? 'text-destructive' : ''}`}>{totalMembers} <span className="text-muted-foreground text-lg">/ {maxQuota > 0 ? maxQuota : '∞'}</span></p>
           </div>
-          {maxMembers > 0 && (
+          {maxQuota > 0 && remainingSlots >= 0 && (
             <p className="text-[10px] text-muted-foreground mt-1">Còn {remainingSlots} tài khoản</p>
           )}
+          {isOverQuota && (
+            <p className="text-[10px] text-destructive mt-1">⚠️ Đang vượt hạn mức! Không thể tạo thêm.</p>
+          )}
         </div>
+      </div>
+
+      {/* Create Member Button + Over-quota warning */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => setShowCreateModal(true)}
+          disabled={!canCreateMember}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm ${
+            canCreateMember
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+              : 'bg-muted text-muted-foreground cursor-not-allowed'
+          }`}
+        >
+          <Plus className="w-4 h-4" />
+          Thêm thành viên cấp 2
+        </button>
+        {maxQuota > 0 && !canCreateMember && !isOverQuota && totalMembers === maxQuota && (
+          <span className="text-xs text-muted-foreground">Đã đạt hạn mức tối đa ({maxQuota}). Liên hệ quản trị viên để nâng cấp.</span>
+        )}
+        {isOverQuota && (
+          <span className="text-xs text-destructive">Tài khoản đang vượt hạn mức. Hiện có {totalMembers} thành viên nhưng quota chỉ còn {maxQuota}.</span>
+        )}
+        {maxQuota === 0 && (
+          <span className="text-xs text-muted-foreground">Chưa được cấp hạn mức. Liên hệ quản trị viên.</span>
+        )}
       </div>
 
       {/* Main Table */}
@@ -244,6 +276,15 @@ export default function MemberManagementView({ currentUserId, activeTab, userPro
           onClose={() => setSelectedMember(null)} 
         />
       )}
+
+      <CreateMemberModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={() => {
+          setShowCreateModal(false);
+          loadStats();
+        }}
+      />
     </div>
   );
 }

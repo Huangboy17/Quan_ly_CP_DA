@@ -37,7 +37,8 @@ import {
   deleteTmdtAdjustmentPhase,
   saveContractAppendix,
   deleteContractAppendix,
-  fetchUserProfile
+  fetchUserProfile,
+  fetchUserProfileWithParent
 } from './services/storage';
 
 export default function App() {
@@ -107,7 +108,7 @@ export default function App() {
 
   useEffect(() => {
     if (userSession?.user?.id) {
-      fetchUserProfile(userSession.user.id).then(profile => {
+      fetchUserProfileWithParent(userSession.user.id).then(profile => {
         setUserProfile(profile);
         if (profile?.role === 'super_admin') {
           setActiveTab('admin');
@@ -421,6 +422,23 @@ export default function App() {
             <h2 className="text-xl font-bold text-foreground mb-2">Tài khoản đã bị khóa</h2>
             <p className="text-muted-foreground mb-6 text-sm">
               Tài khoản của bạn đã bị vô hiệu hóa bởi Quản trị viên. Bạn không thể truy cập vào hệ thống lúc này.
+            </p>
+            <button onClick={handleLogout} className="px-6 py-2 bg-muted hover:bg-border text-foreground rounded-lg font-semibold transition cursor-pointer">
+              Đăng xuất
+            </button>
+          </div>
+        </div>
+      );
+    }
+    // Level 2: Kiểm tra parent Level 1 status
+    if (userProfile.role === 'level_2' && userProfile.parent_status && userProfile.parent_status !== 'active') {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center font-sans p-6 transition-colors">
+          <div className="max-w-md w-full bg-card border border-border rounded-2xl p-8 shadow-2xl text-center border-t-4 border-t-warning">
+            <ShieldAlert className="w-16 h-16 text-warning mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-foreground mb-2">Tài khoản tạm thời bị hạn chế</h2>
+            <p className="text-muted-foreground mb-6 text-sm">
+              Tài khoản quản lý cấp trên của bạn hiện đang bị khóa hoặc không hoạt động. Bạn không thể truy cập hệ thống cho đến khi tài khoản cấp trên được kích hoạt lại.
             </p>
             <button onClick={handleLogout} className="px-6 py-2 bg-muted hover:bg-border text-foreground rounded-lg font-semibold transition cursor-pointer">
               Đăng xuất

@@ -39,7 +39,7 @@ serve(async (req) => {
     }
 
     // 4. Parse request body
-    const { email, password, fullName, role = 'level_2' } = await req.json()
+    const { email, password, fullName, phone } = await req.json()
 
     if (!email || !password || !fullName) {
       return new Response(JSON.stringify({ error: 'Thiếu thông tin bắt buộc (Email, Mật khẩu, Họ tên)' }), {
@@ -48,80 +48,97 @@ serve(async (req) => {
       })
     }
 
-    // Chỉ cho phép tạo level_2
-    if (role !== 'level_2') {
-       return new Response(JSON.stringify({ error: 'Chỉ được phép tạo tài khoản Cấp 2.' }), {
+    // 5. Check Caller Role & Status (Must be active level_1 or super_admin)
+    const { data: callerProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('role, id, status')
+      .eq('id', caller.id)
+      .single()
+
+    if (!callerProfile) {
+      return new Response(JSON.stringify({ error: 'Không tìm thấy hồ sơ người dùng.' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // 5. Check Caller Role (Must be level_1 or super_admin)
-    const { data: callerProfile } = await supabaseAdmin
-      .from('profiles')
-      .select('role, id')
-      .eq('id', caller.id)
-      .single()
-
-    if (!callerProfile || (callerProfile.role !== 'level_1' && callerProfile.role !== 'super_admin')) {
+    if (callerProfile.role !== 'level_1' && callerProfile.role !== 'super_admin') {
       return new Response(JSON.stringify({ error: 'Không có quyền tạo tài khoản.' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // Set parent_id (Người sở hữu Cấp 2 này)
-    const parentId = caller.id;
+    if (callerProfile.status !== 'active') {
+      return new Response(JSON.stringify({ error: 'Tài khoản của bạn không ở trạng thái hoạt động.' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
 
-    // 6. CHECK QUOTA USING RPC (Atomic Lock)
+    // Backend tự xác định parent_id — KHÔNG lấy từ frontend
+    const parentId = caller.id
+
+    // 6. CHECK QUOTA USING RPC (Atomic Lock — chống race condition)
     const { data: hasQuota, error: quotaError } = await supabaseAdmin.rpc('rpc_check_and_lock_quota', { p_parent_id: parentId })
     
     if (quotaError) {
        console.error("Quota Check Error:", quotaError)
-       return new Response(JSON.stringify({ error: 'Lỗi kiểm tra Quota: ' + quotaError.message }), {
+       return new Response(JSON.stringify({ error: 'Lỗi kiểm tra hạn mức: ' + quotaError.message }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
        })
     }
 
     if (!hasQuota) {
-      return new Response(JSON.stringify({ error: 'Đã vượt quá số lượng Quota tối đa cho phép. Vui lòng nâng cấp gói hoặc lưu trữ (archive) các tài khoản cũ.' }), {
+      return new Response(JSON.stringify({ error: 'Đã đạt hạn mức thành viên tối đa. Vui lòng liên hệ quản trị viên để nâng cấp.' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // 7. CREATE AUTH USER (Không làm mất session của caller vì chạy bằng admin api)
+    // 7. CREATE AUTH USER với metadata để trigger tạo profile đúng
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: email,
       password: password,
-      email_confirm: true, // Auto confirm email
+      email_confirm: true,
       user_metadata: {
         full_name: fullName,
+        account_type: 'level_2',
+        parent_id: parentId,
       }
     })
 
     if (createError) {
       console.error("Auth Create Error:", createError)
+      // Xử lý lỗi email trùng
+      if (createError.message.includes('already been registered') || createError.message.includes('already exists')) {
+        return new Response(JSON.stringify({ error: 'Email này đã được đăng ký trong hệ thống.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
       return new Response(JSON.stringify({ error: createError.message }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    // 8. UPDATE PROFILE (vì trigger handle_new_user đã tạo profile mặc định là level_1/pending)
+    // 8. UPDATE PROFILE — đảm bảo chính xác dù trigger đã tạo
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
-        role: role,
+        role: 'level_2',
         parent_id: parentId,
         status: 'active',
+        full_name: fullName,
+        phone: phone || null,
         max_quota: 0
       })
       .eq('id', newUser.user.id)
 
     if (profileError) {
-      // Rollback (Delete auth user if profile update fails)
+      // Rollback: xóa auth user nếu update profile thất bại
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
       console.error("Profile Update Error:", profileError)
       return new Response(JSON.stringify({ error: 'Lỗi tạo hồ sơ tài khoản: ' + profileError.message }), {
@@ -130,10 +147,20 @@ serve(async (req) => {
       })
     }
 
-    // 9. SUCCESS
+    // 9. GHI AUDIT LOG
+    await supabaseAdmin
+      .from('audit_logs')
+      .insert({
+        actor_id: caller.id,
+        target_user_id: newUser.user.id,
+        action: 'create_level2',
+        metadata: { email, full_name: fullName, parent_id: parentId }
+      })
+
+    // 10. SUCCESS
     return new Response(JSON.stringify({ 
       success: true, 
-      user: { id: newUser.user.id, email: newUser.user.email, role } 
+      user: { id: newUser.user.id, email: newUser.user.email, role: 'level_2' } 
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

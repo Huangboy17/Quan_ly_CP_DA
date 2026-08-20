@@ -19,8 +19,8 @@ This skill documents the architecture, logic, and UI layout patterns of the Acco
 
 ### Data Relationships
 - Mọi thành viên `level_2` phải có `parent_id` tham chiếu đến `level_1`.
-- Quota (Hạn mức): Mỗi `level_1` có `max_members` giới hạn số lượng `level_2` có thể tạo.
-- Row Data (Table): Hiển thị hạn mức dưới dạng `subCount / max_members`.
+- Quota (Hạn mức): Mỗi `level_1` có `max_quota` giới hạn số lượng `level_2` có thể tạo.
+- Row Data (Table): Hiển thị hạn mức dưới dạng `subCount / max_quota`.
 - Statuses: `active` (Hoạt động), `pending` (Chờ duyệt), `blocked` (Đã khóa), `archived` (Đã xóa).
 
 ## 2. UI/UX Principles: Information Density & Viewport Constraint
