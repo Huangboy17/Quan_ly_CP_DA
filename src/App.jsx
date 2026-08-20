@@ -112,7 +112,7 @@ export default function App() {
         setUserProfile(profile);
         if (profile?.role === 'super_admin') {
           setActiveTab('admin');
-        } else if (activeTab === 'admin' && profile?.role !== 'level_1' && profile?.role !== 'admin') {
+        } else if (activeTab === 'admin' && profile?.role !== 'admin') {
           setActiveTab('dashboard');
         }
       });
@@ -120,6 +120,13 @@ export default function App() {
       setUserProfile(null);
     }
   }, [userSession]);
+
+  // Enforce tab access security
+  useEffect(() => {
+    if (activeTab === 'admin' && userProfile && !['admin', 'super_admin'].includes(userProfile.role)) {
+      setActiveTab('dashboard');
+    }
+  }, [activeTab, userProfile]);
 
   const handleLogout = async () => {
     if (supabase) {
@@ -534,7 +541,7 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'admin' && ['admin', 'super_admin', 'level_1'].includes(userProfile?.role) && (
+          {activeTab === 'admin' && ['admin', 'super_admin'].includes(userProfile?.role) && (
             <AdminDashboard userSession={userSession} />
           )}
 
