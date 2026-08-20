@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   AlertCircle,
   Activity,
@@ -25,7 +25,9 @@ import {
   ChevronDown,
   Tag,
   X,
-  MoreVertical
+  MoreVertical,
+  Loader2,
+  UserCircle
 } from 'lucide-react';
 import { formatVND, formatDisplayDate, formatCurrencyByUnit } from '../../utils/formatters';
 import { exportContractsExcel, exportContractsPdf } from '../../utils/export/contractExport';
@@ -35,6 +37,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend, LabelList
 } from 'recharts';
+import { updateContractAssignee, fetchSubordinates } from '../../services/storage';
 
 
 export default function ContractsView({
@@ -73,6 +76,23 @@ export default function ContractsView({
   const [previewPdfUrl, setPreviewPdfUrl] = useState(null);
   const [previewPdfFilename, setPreviewPdfFilename] = useState(null);
   const [previewPdfBlob, setPreviewPdfBlob] = useState(null);
+
+  // Người phụ trách State
+  const [subordinates, setSubordinates] = useState([]);
+  const [editingAssigneeId, setEditingAssigneeId] = useState(null);
+  const [assigneeLoadingMap, setAssigneeLoadingMap] = useState({});
+  const [assigneeOverrides, setAssigneeOverrides] = useState({});
+
+  // Fetch danh sách Cấp 2 khi tài khoản Cấp 1 đăng nhập
+  useEffect(() => {
+    const isLevel1 = currentUserRole === 'level_1';
+    const isAdmin = currentUserRole === 'admin' || currentUserRole === 'super_admin';
+    if ((isLevel1 || isAdmin) && userSession?.user?.id) {
+      fetchSubordinates(userSession.user.id).then(members => {
+        if (Array.isArray(members)) setSubordinates(members);
+      });
+    }
+  }, [currentUserRole, userSession?.user?.id]);
 
   React.useEffect(() => {
     localStorage.setItem('contractListDisplayUnit', displayUnit);
@@ -685,6 +705,7 @@ export default function ContractsView({
                 </th>
                 <th className="py-3.5 px-4 text-center bg-muted border-b border-border whitespace-nowrap w-[110px]">Trạng Thái</th>
                 <th className="py-3.5 px-4 text-center bg-muted border-b border-border whitespace-nowrap w-[80px]">Thao Tác</th>
+                <th className="py-3.5 px-4 bg-muted border-b border-border whitespace-nowrap w-[160px]">Người Phụ Trách</th>
               </tr>
             </thead>
               <tbody className="divide-y divide-border/80">
@@ -830,13 +851,87 @@ export default function ContractsView({
                       </div>
                     </td>
 
+                    {/* Người phụ trách */}
+                    <td className="py-3.5 px-4 whitespace-nowrap align-top" onClick={(e) => e.stopPropagation()}>
+                      {(() => {
+                        const override = assigneeOverrides[c.id];
+                        const currentAssigneeId = override ? override.assignee_id : c.assignee_id;
+                        const currentAssigneeName = override ? override.assigneeName : c.assigneeName;
+                        const isLoading = assigneeLoadingMap[c.id];
+                        const isEditing = editingAssigneeId === c.id;
+                        const canEdit = currentUserRole === 'level_1' || currentUserRole === 'admin' || currentUserRole === 'super_admin';
+
+                        if (isLoading) {
+                          return (
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span className="text-[11px]">Đang lưu...</span>
+                            </div>
+                          );
+                        }
+
+                        if (canEdit && isEditing) {
+                          return (
+                            <select
+                              autoFocus
+                              className="bg-background border border-primary rounded-lg px-2 py-1 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer w-full min-w-[140px]"
+                              value={currentAssigneeId || ''}
+                              onChange={async (e) => {
+                                const selectedId = e.target.value || null;
+                                const selectedMember = subordinates.find(m => m.id === selectedId);
+                                const selectedName = selectedMember ? selectedMember.full_name : '';
+                                setEditingAssigneeId(null);
+                                setAssigneeLoadingMap(prev => ({ ...prev, [c.id]: true }));
+                                const result = await updateContractAssignee(c.id, selectedId, selectedName);
+                                setAssigneeLoadingMap(prev => ({ ...prev, [c.id]: false }));
+                                if (result.success) {
+                                  setAssigneeOverrides(prev => ({ ...prev, [c.id]: { assignee_id: selectedId, assigneeName: selectedName } }));
+                                } else {
+                                  alert('Lỗi cập nhật người phụ trách: ' + (result.error || 'Không xác định'));
+                                }
+                              }}
+                              onBlur={() => setEditingAssigneeId(null)}
+                            >
+                              <option value="">Chưa phân công</option>
+                              {subordinates.map(m => (
+                                <option key={m.id} value={m.id}>{m.full_name || m.email}</option>
+                              ))}
+                            </select>
+                          );
+                        }
+
+                        return (
+                          <div
+                            className={`flex items-center gap-1.5 text-xs ${canEdit ? 'cursor-pointer hover:bg-muted/50 rounded-lg px-1.5 py-1 -mx-1.5 -my-1 transition' : ''}`}
+                            onClick={(e) => {
+                              if (canEdit) {
+                                e.stopPropagation();
+                                setEditingAssigneeId(c.id);
+                              }
+                            }}
+                            title={canEdit ? 'Click để thay đổi người phụ trách' : ''}
+                          >
+                            {currentAssigneeName ? (
+                              <>
+                                <UserCircle className="w-4 h-4 text-primary shrink-0" />
+                                <span className="font-medium text-foreground truncate max-w-[120px]">{currentAssigneeName}</span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground italic text-[11px]">Chưa phân công</span>
+                            )}
+                            {canEdit && <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />}
+                          </div>
+                        );
+                      })()}
+                    </td>
+
                   </tr>
                 );
               })}
 
               {filteredContracts.length === 0 && (
                 <tr>
-                  <td colSpan="9" className="py-10 text-center text-muted-foreground">
+                  <td colSpan="10" className="py-10 text-center text-muted-foreground">
                     Không tìm thấy hợp đồng nào phù hợp với bộ lọc đã chọn.
                   </td>
                 </tr>

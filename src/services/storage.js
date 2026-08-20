@@ -2371,3 +2371,33 @@ export async function fetchSubordinates(userId) {
   }
 }
 
+// Cập nhật nhanh người phụ trách hợp đồng — đồng bộ Supabase + LocalStorage
+export async function updateContractAssignee(contractId, assigneeId, assigneeName) {
+  if (!supabase) return { success: false, error: 'Supabase not configured' };
+  try {
+    const { error } = await supabase
+      .from('hop_dong')
+      .update({ assignee_id: assigneeId || null })
+      .eq('id', contractId);
+
+    if (error) throw error;
+
+    // Cập nhật LocalStorage để đồng bộ UI tức thời
+    const storedContracts = JSON.parse(localStorage.getItem(STORAGE_KEYS.CONTRACTS) || '[]');
+    const updated = storedContracts.map(c => {
+      if (String(c.id) === String(contractId)) {
+        return {
+          ...c,
+          assignee_id: assigneeId || null,
+          assigneeName: assigneeName || ''
+        };
+      }
+      return c;
+    });
+    localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updated));
+    return { success: true };
+  } catch (e) {
+    console.error('Error updating contract assignee:', e);
+    return { success: false, error: e.message };
+  }
+}
