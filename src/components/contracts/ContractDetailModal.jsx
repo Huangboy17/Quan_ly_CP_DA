@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, FileText, Calendar, Building2, Wallet, Plus, Trash2, Edit, CheckCircle2, ShieldCheck, Lock, Paperclip } from 'lucide-react';
 import { formatVND, formatDisplayDate, cleanVND } from '../../utils/formatters';
+import { isContractFinalized } from '../../services/storage';
 
 export default function ContractDetailModal({ 
   isOpen, 
@@ -71,7 +72,7 @@ export default function ContractDetailModal({
 
   const totalPaidAfterVat = runningSum;
   const remainingValue = Math.max(0, cleanVND(currentContractValueAfterVat - totalPaidAfterVat));
-  const isSettled = contract.status === 'settled';
+  const isSettled = isContractFinalized(contract);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in overflow-y-auto">
@@ -309,23 +310,21 @@ export default function ContractDetailModal({
                 Lịch Sử Thanh Toán Hợp Đồng ({contractPayments.length} đợt)
               </h4>
 
-              <button
-                onClick={() => {
-                  if (isSettled) {
-                    alert('Hợp đồng này đã được quyết toán, không thể tạo thêm đợt thanh toán.');
-                  } else {
-                    onAddPaymentForContract(contract);
-                  }
-                }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                  isSettled
-                    ? 'bg-muted text-muted-foreground cursor-not-allowed border border-border'
-                    : 'bg-success hover:bg-success/90 text-success-foreground cursor-pointer shadow-md'
-                }`}
-                title={isSettled ? 'Hợp đồng đã quyết toán, không thể tạo thêm đợt thanh toán' : 'Thêm Đợt Thanh Toán'}
-              >
-                <Plus className="w-4 h-4" /> + Thêm Đợt Thanh Toán
-              </button>
+              {isSettled ? (
+                <span
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition bg-muted text-muted-foreground cursor-not-allowed border border-border"
+                  title="Hợp đồng đã quyết toán, không thể tạo thêm đợt thanh toán"
+                >
+                  <Lock className="w-4 h-4" /> Đã khóa
+                </span>
+              ) : (
+                <button
+                  onClick={() => onAddPaymentForContract(contract)}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition bg-success hover:bg-success/90 text-success-foreground cursor-pointer shadow-md"
+                >
+                  <Plus className="w-4 h-4" /> + Thêm Đợt Thanh Toán
+                </button>
+              )}
             </div>
 
             <div className="overflow-x-auto border border-border rounded-xl shadow-inner">

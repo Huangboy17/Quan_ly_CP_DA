@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { getProjects, saveProject, getContracts, saveContract, getPayments, savePayment, STORAGE_KEYS, asyncSaveProjectToSupabase, asyncSaveContractToSupabase, asyncSavePaymentToSupabase } from './storage';
+import { getProjects, saveProject, getContracts, saveContract, getPayments, savePayment, STORAGE_KEYS, asyncSaveProjectToSupabase, asyncSaveContractToSupabase, asyncSavePaymentToSupabase, normalizeContractStatus } from './storage';
 
 export const VALID_COST_GROUPS = [
   'Xây dựng - Thiết bị',
@@ -803,11 +803,17 @@ export async function commitPaymentImport(validRows, userId = null) {
   if (settledContractIds.size > 0) {
     const updatedContracts = currentContracts.map(c => {
       if (settledContractIds.has(c.id)) {
-        return { ...c, status: 'settled' };
+        const matchingRow = validRows.find(row => String(row.contract_id) === String(c.id) && row.is_settlement);
+        const note = matchingRow ? (matchingRow.note || `Quyết toán ngày ${matchingRow.payment_date}`) : 'Quyết toán từ file import';
+        return { 
+          ...c, 
+          status: 'settled',
+          settlement_note: note
+        };
       }
       return c;
     });
-    localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
+    localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts.map(normalizeContractStatus)));
 
     // Sync settled contracts to Supabase
     if (userId) {

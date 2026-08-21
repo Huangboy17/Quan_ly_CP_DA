@@ -116,7 +116,7 @@ export async function syncFromSupabase(userId) {
       });
 
       // Appendices will be attached after fetching phu_luc_hop_dong below
-      localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(mappedContracts));
+      localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(mappedContracts.map(normalizeContractStatus)));
     }
 
     // 3. Fetch from 'thanh_toan_chi_phi' table
@@ -204,7 +204,9 @@ export async function syncFromSupabase(userId) {
           contractValueAfterVAT: baseValue + totalAppendicesAfterVAT,
         };
       });
-      localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(contractsWithAppendices));
+      localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(contractsWithAppendices.map(normalizeContractStatus)));
+      // Tự động đối soát dữ liệu lịch sử đã quyết toán
+      await reconcileSettledContracts(userId);
     }
 
     return true;
@@ -1259,10 +1261,48 @@ export function getContracts(isLoggedIn = false) {
   }
   try {
     const data = localStorage.getItem(STORAGE_KEYS.CONTRACTS);
-    return data !== null ? JSON.parse(data) : [];
+    const contracts = data !== null ? JSON.parse(data) : [];
+    return contracts.map(normalizeContractStatus);
   } catch (e) {
-    return isLoggedIn ? [] : INITIAL_CONTRACTS;
+    const contracts = isLoggedIn ? [] : INITIAL_CONTRACTS;
+    return contracts.map(normalizeContractStatus);
   }
+}
+
+export function normalizeContractStatus(contract) {
+  if (!contract) return contract;
+
+  const note = contract.settlement_note !== undefined 
+    ? contract.settlement_note 
+    : contract.ghi_chu_quyet_toan;
+
+  const hasSettlement = note && String(note).trim() !== '';
+
+  return {
+    ...contract,
+    status: hasSettlement ? 'settled' : 'in_progress'
+  };
+}
+
+export function isContractFinalized(contract) {
+  if (!contract) return false;
+  if (contract.status === 'settled') {
+    return true;
+  }
+  const note = contract.settlement_note !== undefined 
+    ? contract.settlement_note 
+    : contract.ghi_chu_quyet_toan;
+  return Boolean(note && String(note).trim() !== '');
+}
+
+export function isSettlementPayment(payment) {
+  if (!payment) return false;
+  const type = String(payment.payment_type || payment.loai_thanh_toan || '').trim();
+  return (
+    payment.is_settlement === true ||
+    type === 'Quyết toán' ||
+    type === 'FINAL_SETTLEMENT'
+  );
 }
 
 export async function saveContract(contract, userId) {
@@ -1312,7 +1352,7 @@ export async function saveContract(contract, userId) {
     };
     updated = [targetContractToSave, ...contracts];
   }
-  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updated));
+  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updated.map(normalizeContractStatus)));
 
   // Sync with Supabase 'hop_dong' table
   if (userId) {
@@ -1342,6 +1382,10 @@ export async function settleContract(contractId, settlementData, userId) {
   const targetContract = contracts.find(c => c.id === contractId);
   if (!targetContract) return;
 
+  if (isContractFinalized(targetContract) && !settlementData.id) {
+    throw new Error('Hợp đồng đã quyết toán, không thể thực hiện quyết toán lần nữa.');
+  }
+
   // Use settlement-specific VAT rate from UI (user-entered), fallback to contract's, then 10%
   const vatRate = settlementData.vat_rate !== undefined && settlementData.vat_rate !== null
     ? Number(settlementData.vat_rate)
@@ -1351,7 +1395,7 @@ export async function settleContract(contractId, settlementData, userId) {
   const settlementPhaseAfterVAT = settlementPhaseBeforeVAT + settlementPhaseVAT;
 
   const payments = getPayments(Boolean(userId));
-  const contractPayments = payments.filter(p => p.contract_id === contractId);
+  const contractPayments = payments.filter(p => p.contract_id === contractId && p.id !== settlementData.id);
 
   const cumulativeBeforeVAT = contractPayments.reduce((sum, p) => sum + Number(p.amount_before_vat || 0), 0);
   const cumulativeAfterVAT = contractPayments.reduce((sum, p) => sum + Number(p.amount_after_vat || 0), 0);
@@ -1364,10 +1408,12 @@ export async function settleContract(contractId, settlementData, userId) {
     : 1;
 
   const settlementPayment = {
-    id: crypto.randomUUID(),
+    id: settlementData.id || crypto.randomUUID(),
     contract_id: contractId,
     project_id: targetContract.project_id,
-    payment_phase: nextPhase,
+    payment_phase: settlementData.id 
+      ? (payments.find(p => p.id === settlementData.id)?.payment_phase || nextPhase)
+      : nextPhase,
     payment_date: settlementData.settlement_date,
     amount_before_vat: settlementPhaseBeforeVAT,
     vat_rate: vatRate,
@@ -1411,11 +1457,13 @@ export async function settleContract(contractId, settlementData, userId) {
       // Rollback: revert contract to original state in Supabase.
       // The payment was already saved, but we try to delete it to keep consistency.
       try {
-        await supabase
-          .from('thanh_toan_chi_phi')
-          .delete()
-          .eq('id', settlementPayment.id)
-          .eq('user_id', userId);
+        if (!settlementData.id) {
+          await supabase
+            .from('thanh_toan_chi_phi')
+            .delete()
+            .eq('id', settlementPayment.id)
+            .eq('user_id', userId);
+        }
       } catch (_rollbackErr) {
         // Rollback failed — log for investigation but don't swallow the original error.
         console.error('Lỗi rollback payment sau khi contract update fail:', _rollbackErr);
@@ -1432,9 +1480,12 @@ export async function settleContract(contractId, settlementData, userId) {
   const updatedContracts = contracts.map(c =>
     c.id === contractId ? settledContractObj : c
   );
-  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts));
+  localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts.map(normalizeContractStatus)));
 
-  const updatedPayments = [settlementPayment, ...payments];
+  const isUpdatingExisting = payments.some(p => p.id === settlementPayment.id);
+  const updatedPayments = isUpdatingExisting
+    ? payments.map(p => p.id === settlementPayment.id ? settlementPayment : p)
+    : [settlementPayment, ...payments];
   localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify(updatedPayments));
 
   return { contracts: updatedContracts, payments: updatedPayments };
@@ -1456,6 +1507,26 @@ export function getPayments(isLoggedIn = false) {
 
 export async function savePayment(payment, userId) {
   const payments = getPayments(Boolean(userId));
+  
+  if (payment.contract_id) {
+    const contracts = getContracts(Boolean(userId));
+    const targetContract = contracts.find(c => c.id === payment.contract_id);
+    
+    const isNewPayment = !payment.id;
+    let isContractChangedToFinalized = false;
+    
+    if (payment.id) {
+      const oldPayment = payments.find(p => p.id === payment.id);
+      if (oldPayment && oldPayment.contract_id !== payment.contract_id) {
+        isContractChangedToFinalized = true;
+      }
+    }
+    
+    if ((isNewPayment || isContractChangedToFinalized) && isContractFinalized(targetContract)) {
+      throw new Error('Hợp đồng đã quyết toán, không thể thêm đợt thanh toán mới.');
+    }
+  }
+
   let updated;
   let targetPaymentToSave;
 
@@ -2439,5 +2510,51 @@ export async function updateContractAssignee(contractId, assigneeId, assigneeNam
   } catch (e) {
     console.error('Error updating contract assignee:', e);
     return { success: false, error: e.message };
+  }
+}
+
+export async function reconcileSettledContracts(userId) {
+  const contracts = getContracts(Boolean(userId));
+  const payments = getPayments(Boolean(userId));
+  
+  let hasChanges = false;
+  const updatedContracts = [];
+
+  for (const c of contracts) {
+    const isFinalized = isContractFinalized(c);
+    
+    if (!isFinalized) {
+      const settlementPm = payments.find(pm => String(pm.contract_id) === String(c.id) && isSettlementPayment(pm));
+      
+      if (settlementPm) {
+        const settledNote = settlementPm.note || `Quyết toán tự động từ đợt thanh toán ngày ${settlementPm.payment_date}`;
+        const reconciledContract = {
+          ...c,
+          status: 'settled',
+          settlement_note: settledNote,
+          estimated_settlement_value: settlementPm.amount_after_vat || c.contractValueAfterVAT,
+          settled_at: settlementPm.payment_date || null
+        };
+        
+        updatedContracts.push(reconciledContract);
+        hasChanges = true;
+        
+        if (userId) {
+          try {
+            await asyncSaveContractToSupabase(reconciledContract, userId);
+          } catch (syncErr) {
+            console.error(`Lỗi sync reconcile contract ${c.contract_number}:`, syncErr);
+          }
+        }
+      } else {
+        updatedContracts.push(c);
+      }
+    } else {
+      updatedContracts.push(c);
+    }
+  }
+
+  if (hasChanges) {
+    localStorage.setItem(STORAGE_KEYS.CONTRACTS, JSON.stringify(updatedContracts.map(normalizeContractStatus)));
   }
 }

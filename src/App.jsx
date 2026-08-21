@@ -33,6 +33,7 @@ import {
   getSavedSettings,
   saveSettings,
   settleContract,
+  isContractFinalized,
   addTmdtAdjustmentPhase,
   updateTmdtAdjustmentPhase,
   deleteTmdtAdjustmentPhase,
@@ -264,7 +265,7 @@ export default function App() {
     // Guard: block adding appendix if contract is settled
     if (cId) {
       const contract = data.contracts.find(c => c.id === cId);
-      if (contract && contract.status === 'settled') {
+      if (contract && isContractFinalized(contract)) {
         alert('Hợp đồng đã quyết toán, không thể thêm phụ lục mới.');
         return;
       }
@@ -283,7 +284,7 @@ export default function App() {
   const handleSaveContractAppendix = async (cId, appendixData) => {
     // Guard: block saving new appendix if contract is settled
     const contract = data.contracts.find(c => c.id === cId);
-    if (contract && contract.status === 'settled' && !appendixData.id) {
+    if (contract && isContractFinalized(contract) && !appendixData.id) {
       alert('Hợp đồng đã quyết toán, không thể thêm phụ lục mới.');
       return;
     }
@@ -316,8 +317,13 @@ export default function App() {
   };
 
   const handleSavePayment = async (paymentData) => {
-    await savePayment(paymentData, currentUserId);
-    await refreshData();
+    try {
+      await savePayment(paymentData, currentUserId);
+      await refreshData();
+    } catch (err) {
+      console.error("Lỗi khi lưu thanh toán:", err);
+      alert(err.message || "Không thể lưu thanh toán.");
+    }
   };
 
   const handleDeletePayment = async (paymentId) => {
@@ -358,8 +364,13 @@ export default function App() {
   };
 
   const handleSettleContract = async (contractId, settlementData) => {
-    await settleContract(contractId, settlementData, currentUserId);
-    await refreshData();
+    try {
+      await settleContract(contractId, settlementData, currentUserId);
+      await refreshData();
+    } catch (err) {
+      console.error("Lỗi khi quyết toán hợp đồng:", err);
+      throw err;
+    }
   };
 
   const handleSelectCostGroupFilter = useCallback((groupName, projectId = null) => {

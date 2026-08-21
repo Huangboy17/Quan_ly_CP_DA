@@ -34,6 +34,7 @@ import {
   Legend
 } from 'recharts';
 import { formatVND, formatDisplayDate, calcEndDate, calcDaysBetween, cleanVND } from '../../utils/formatters';
+import { isContractFinalized } from '../../services/storage';
 
 export default function ContractDossierView({
   contractId,
@@ -125,7 +126,7 @@ export default function ContractDossierView({
   });
 
   // estimatedSettlement — computed after totalPaidAfterVat is calculated (see below line ~214)
-  const isSettled = contract.status === 'settled';
+  const isSettled = isContractFinalized(contract);
 
   // Duration & Execution Date Calculations
   const signingDate = contract.signing_date || '';
@@ -616,12 +617,21 @@ export default function ContractDossierView({
               {showCharts ? 'Ẩn biểu đồ & phụ lục' : 'Xem biểu đồ & phụ lục'}
             </button>
 
-            <button
-              onClick={() => onOpenAddPayment(contract.id)}
-              className="px-3 py-1 rounded-lg bg-success hover:bg-success/90 text-success-foreground text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" /> + Thêm đợt thanh toán
-            </button>
+            {isSettled ? (
+              <span
+                className="px-3 py-1 rounded-lg bg-muted text-muted-foreground text-xs font-bold border border-border flex items-center gap-1 cursor-not-allowed"
+                title="Hợp đồng đã quyết toán, không thể ghi nhận thêm thanh toán."
+              >
+                <Lock className="w-3.5 h-3.5" /> Đã khóa
+              </span>
+            ) : (
+              <button
+                onClick={() => onOpenAddPayment(contract.id)}
+                className="px-3 py-1 rounded-lg bg-success hover:bg-success/90 text-success-foreground text-xs font-bold shadow-md transition cursor-pointer flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> + Thêm đợt thanh toán
+              </button>
+            )}
           </div>
         </div>
 

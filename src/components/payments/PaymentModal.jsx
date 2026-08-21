@@ -11,6 +11,7 @@ import {
   parseRawNumber,
   formatDisplayDate
 } from '../../utils/formatters';
+import { isSettlementPayment } from '../../services/storage';
 
 export default function PaymentModal({ 
   isOpen, 
@@ -94,18 +95,36 @@ export default function PaymentModal({
   }, [contracts, formData.contract_id]);
 
   const isContractSettled = selectedContract?.status === 'settled';
+  const isEditingThisSettlement = editingPayment !== null && isSettlementPayment(editingPayment);
 
   useEffect(() => {
     if (editingPayment) {
       const parentContract = contracts.find(c => c.id === editingPayment.contract_id);
       setSelectedProjectId(parentContract ? parentContract.project_id : '');
-      setBusinessType('phase');
-      setFormData({
-        ...editingPayment,
-        amount_before_vat: editingPayment.amount_before_vat || '',
-        // Load the payment's own saved vat_rate; fallback to 10 if old data has none
-        vat_rate: editingPayment.vat_rate !== undefined ? Number(editingPayment.vat_rate) : 10,
-      });
+      
+      const isSettledPm = isSettlementPayment(editingPayment);
+      setBusinessType(isSettledPm ? 'settlement' : 'phase');
+      
+      if (isSettledPm) {
+        setSettlementData({
+          settlement_date: editingPayment.payment_date || new Date().toISOString().split('T')[0],
+          settlement_amount_before_vat: editingPayment.amount_before_vat || '',
+          note: editingPayment.note || 'Quyết toán hoàn thành & thanh lý HĐ',
+        });
+        setSettlementVatRate(editingPayment.vat_rate !== undefined ? Number(editingPayment.vat_rate) : 10);
+        setFormData({
+          id: editingPayment.id,
+          contract_id: editingPayment.contract_id,
+          project_id: parentContract ? parentContract.project_id : '',
+          payment_phase: editingPayment.payment_phase,
+        });
+      } else {
+        setFormData({
+          ...editingPayment,
+          amount_before_vat: editingPayment.amount_before_vat || '',
+          vat_rate: editingPayment.vat_rate !== undefined ? Number(editingPayment.vat_rate) : 10,
+        });
+      }
     } else {
       const initialContract = contracts.find(c => c.id === initialContractId);
       const projId = initialContract ? initialContract.project_id : '';
@@ -218,7 +237,7 @@ export default function PaymentModal({
       return;
     }
 
-    if (isContractSettled) {
+    if (isContractSettled && !isEditingThisSettlement) {
       alert('Hợp đồng này đã được quyết toán, không thể tạo thêm đợt thanh toán.');
       return;
     }
@@ -228,7 +247,7 @@ export default function PaymentModal({
         alert('Vui lòng nhập Giá trị đợt quyết toán trước VAT hợp lệ!');
         return;
       }
-      if (isSettlementOverContract) {
+      if (isSettlementOverContract && !isEditingThisSettlement) {
         alert('Giá trị quyết toán trước VAT vượt giá trị hợp đồng trước VAT! Vui lòng kiểm tra lại.');
         return;
       }
@@ -240,6 +259,7 @@ export default function PaymentModal({
             settlement_amount_before_vat: settlementPhaseBeforeVAT,
             settlement_amount: settlementVATValues.amountAfterVAT,
             vat_rate: settlementVatRate,
+            id: editingPayment ? editingPayment.id : undefined,
           });
           alert(`Đã quyết toán đợt cuối & khóa hợp đồng ${selectedContract.contract_number} thành công!`);
         } catch (err) {
@@ -396,7 +416,7 @@ export default function PaymentModal({
             </div>
 
             {/* Lock Warning if Contract is Settled */}
-            {isContractSettled && (
+            {isContractSettled && !isEditingThisSettlement && (
               <div className="p-3.5 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-xs flex items-center gap-3 animate-in fade-in duration-200">
                 <Lock className="w-5 h-5 text-destructive shrink-0" />
                 <div>
@@ -407,7 +427,7 @@ export default function PaymentModal({
             )}
 
             {/* STEP 3: Business Type Selector (Loại Nghiệp Vụ) */}
-            {selectedContract && !isContractSettled && (
+            {selectedContract && !isContractSettled && !editingPayment && (
               <div className="p-3 rounded-xl bg-muted/60 border border-border">
                 <label className="block text-[11px] font-semibold text-foreground/80 mb-1.5 uppercase tracking-wider">
                   3. Loại Nghiệp Vụ Thanh Toán
@@ -707,7 +727,7 @@ export default function PaymentModal({
             )}
 
             {/* STEP 6: Form Fields for "Quyết toán hợp đồng" (Final Settlement Payment Milestone) */}
-            {selectedContract && !isContractSettled && businessType === 'settlement' && (
+            {selectedContract && (!isContractSettled || isEditingThisSettlement) && businessType === 'settlement' && (
               <div className="space-y-3.5 animate-in fade-in duration-150 p-4 rounded-xl bg-primary/10 border border-primary/30">
                 <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider border-b border-primary/20 pb-2">
                   <FileCheck className="w-4 h-4 text-primary" />
@@ -858,7 +878,7 @@ export default function PaymentModal({
               Hủy Bỏ
             </button>
 
-            {selectedContract && !isContractSettled && (
+            {selectedContract && (!isContractSettled || isEditingThisSettlement) && (
               <button
                 type="submit"
                 disabled={businessType === 'settlement' && isSettlementOverContract}
