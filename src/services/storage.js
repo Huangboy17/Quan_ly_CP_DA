@@ -1699,10 +1699,18 @@ export async function deleteContractAppendix(contractId, appendixId, userId) {
 }
 
 // --- AGGREGATION & TIME-BASED ANALYTICS ENGINE (SINGLE SOURCE OF TRUTH) ---
-export function getAggregatedData(timeFilter = {}, isLoggedIn = false) {
+export function getAggregatedData(timeFilter = {}, isLoggedIn = false, userRole = '', userId = '') {
   const projects = getProjects(isLoggedIn);
-  const contracts = getContracts(isLoggedIn);
-  const payments = getPayments(isLoggedIn);
+  let contracts = getContracts(isLoggedIn);
+  let payments = getPayments(isLoggedIn);
+
+  // LEVEL 2 DATA SCOPING: Level 2 chỉ được xem/tính toán hợp đồng được gán trực tiếp (assignee_id === userId)
+  // Hợp đồng assignee_id = null hoặc assignee_id !== userId hoàn toàn không thuộc về Level 2
+  if (userRole === 'level_2' && userId) {
+    contracts = contracts.filter(c => c.assignee_id && String(c.assignee_id) === String(userId));
+    const allowedContractIds = new Set(contracts.map(c => String(c.id)));
+    payments = payments.filter(pm => pm.contract_id && allowedContractIds.has(String(pm.contract_id)));
+  }
 
   const bounds = getTimeRangeBounds(timeFilter);
   const { startDate, endDate, periodLabel, prevPeriod } = bounds;
@@ -2302,15 +2310,25 @@ export async function updateOwnProfile({ fullName, birthDate, jobTitle, company 
   return { success: true };
 }
 
-// Xóa tài khoản an toàn (soft delete → archived)
+// Xóa tài khoản (Tự động xóa toàn bộ tài khoản Cấp 2 trực thuộc nếu là Cấp 1)
 export async function safeDeleteAccount(targetUserId) {
   if (!supabase) return { success: false, error: 'Supabase not configured' };
-  const { data, error } = await supabase.rpc('rpc_safe_delete_account', { target_user_id: targetUserId });
+  
+  // Gọi RPC rpc_delete_account_cascade để xóa Cấp 1 và toàn bộ Cấp 2
+  let { data, error } = await supabase.rpc('rpc_delete_account_cascade', { target_user_id: targetUserId });
+  
+  if (error) {
+    console.warn('RPC rpc_delete_account_cascade error/not found, trying rpc_safe_delete_account fallback:', error);
+    const fallbackRes = await supabase.rpc('rpc_safe_delete_account', { target_user_id: targetUserId });
+    data = fallbackRes.data;
+    error = fallbackRes.error;
+  }
+
   if (error) {
     console.error('Error deleting account:', error);
     return { success: false, error: error.message };
   }
-  return data; // { success: true } or { success: false, error: 'has_subordinates', count: N, message: '...' }
+  return data;
 }
 
 // Tạo thành viên Level 2 — gọi Edge Function create-user

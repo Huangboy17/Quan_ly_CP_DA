@@ -196,9 +196,14 @@ export default function App() {
     if (isSupabaseConfigured && currentUserId) {
       await syncFromSupabase(currentUserId);
     }
-    const agg = getAggregatedData(timeFilter, Boolean(currentUserId));
+    const agg = getAggregatedData(
+      timeFilter,
+      Boolean(currentUserId),
+      userProfile?.role || '',
+      currentUserId || ''
+    );
     setData(agg);
-  }, [timeFilter, userSession, isAuthLoading]);
+  }, [timeFilter, userSession, userProfile?.role, isAuthLoading]);
 
   useEffect(() => {
     if (!isAuthLoading) {

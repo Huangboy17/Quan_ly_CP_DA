@@ -58,7 +58,7 @@ export default function ContractsView({
 }) {
   const { contracts = [], filteredContracts: centralFilteredContracts = [], projects = [], periodLabel } = data;
 
-  const baseContracts = centralFilteredContracts.length > 0 || selectedProjectId ? centralFilteredContracts : contracts;
+  const baseContracts = centralFilteredContracts || [];
 
   const [contractorFilter, setContractorFilter] = useState('');
   const [costGroupFilter, setCostGroupFilter] = useState('');

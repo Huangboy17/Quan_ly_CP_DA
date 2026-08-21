@@ -56,13 +56,12 @@ export default function DashboardView({
     periodLabel = 'Tất cả thời gian' 
   } = data;
 
-  const activeContractsList = (filteredContracts && filteredContracts.length > 0) ? filteredContracts : contracts;
+  const activeContractsList = filteredContracts || [];
 
   // Active Payments for Charts: Use filteredPayments from Single Source of Truth
   const activePaymentsForScope = useMemo(() => {
-    if (filteredPayments && filteredPayments.length > 0) return filteredPayments;
-    return inPeriodPayments;
-  }, [filteredPayments, inPeriodPayments]);
+    return filteredPayments || [];
+  }, [filteredPayments]);
 
   // Selected Project Object (if any)
   const selectedProjectObj = useMemo(() => {

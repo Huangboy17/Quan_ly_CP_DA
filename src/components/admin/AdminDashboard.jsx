@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { fetchAllProfiles, updateProfileStatus, updateProfileQuota, updateLevel1Profile, safeDeleteAccount } from '../../services/storage';
-import { Users, CheckCircle, XCircle, Clock, Search, Shield, MoreVertical, X, Edit, Settings, Trash2, Unlock, Lock, UserCheck, Eye } from 'lucide-react';
+import { Users, CheckCircle, XCircle, Clock, Search, Shield, MoreVertical, X, Edit, Settings, Trash2, Unlock, Lock, UserCheck, Eye, AlertTriangle, Loader2 } from 'lucide-react';
 
 // ========== EDIT ACCOUNT MODAL ==========
 function EditAccountModal({ account, isOpen, onClose, onSuccess }) {
@@ -147,6 +147,90 @@ function QuotaModal({ account, currentCount, isOpen, onClose, onSuccess }) {
   );
 }
 
+// ========== DELETE CONFIRM MODAL ==========
+function DeleteConfirmModal({ account, isOpen, onClose, onConfirm, isDeleting }) {
+  if (!isOpen || !account) return null;
+
+  const isLevel1 = account.role === 'level_1' || account.role === 'admin';
+  const subCount = isLevel1 && Array.isArray(account.subordinates) ? account.subordinates.length : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+      <div className="bg-card border border-border rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
+        
+        <div className="flex items-center gap-3 text-destructive">
+          <div className="p-2.5 bg-destructive/10 rounded-xl">
+            <AlertTriangle className="w-6 h-6 text-destructive" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-foreground">Xóa tài khoản Cấp 1?</h3>
+            <p className="text-xs text-muted-foreground">Hành động này không thể hoàn tác</p>
+          </div>
+        </div>
+
+        <div className="bg-muted/50 p-3.5 rounded-xl border border-border text-sm space-y-1">
+          <div className="font-semibold text-foreground">{account.full_name || account.email}</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            <span>Email: {account.email}</span>
+            <span>•</span>
+            <span className="capitalize">{isLevel1 ? 'Tài khoản Cấp 1' : 'Tài khoản Cấp 2'}</span>
+          </div>
+        </div>
+
+        {isLevel1 && subCount > 0 ? (
+          <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-600 dark:text-amber-400 space-y-1.5 leading-relaxed">
+            <div className="font-bold flex items-center gap-1">
+              ⚠️ Cảnh báo tự động xóa phân cấp:
+            </div>
+            <div>
+              Tài khoản này hiện có <strong>{subCount}</strong> tài khoản Cấp 2 trực thuộc.
+            </div>
+            <div>
+              Nếu tiếp tục, toàn bộ <strong>{subCount}</strong> tài khoản Cấp 2 thuộc tài khoản này cũng sẽ bị xóa vĩnh viễn khỏi hệ thống.
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            {isLevel1 
+              ? 'Tài khoản này không có tài khoản Cấp 2. Bạn có chắc chắn muốn xóa tài khoản?' 
+              : 'Bạn có chắc chắn muốn xóa tài khoản Cấp 2 này?'}
+          </p>
+        )}
+
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isDeleting}
+            className="px-4 py-2 text-xs font-semibold rounded-xl bg-muted hover:bg-muted/80 text-foreground transition disabled:opacity-50 cursor-pointer"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="px-4 py-2 text-xs font-semibold rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Đang xóa tài khoản...
+              </>
+            ) : (
+              <>
+                <Trash2 className="w-3.5 h-3.5" />
+                Xóa tài khoản
+              </>
+            )}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 // ========== MAIN ADMIN DASHBOARD ==========
 export default function AdminDashboard({ userSession }) {
   const [profiles, setProfiles] = useState([]);
@@ -168,6 +252,41 @@ export default function AdminDashboard({ userSession }) {
   // Modal states
   const [editAccount, setEditAccount] = useState(null);
   const [quotaAccount, setQuotaAccount] = useState(null);
+  const [deleteConfirmAccount, setDeleteConfirmAccount] = useState(null);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const handleOpenDeleteConfirm = (account) => {
+    if (!account || account.id === userSession?.user?.id) {
+      alert('Không thể xóa tài khoản của chính bạn!');
+      return;
+    }
+    setDeleteConfirmAccount(account);
+  };
+
+  const handleExecuteDelete = async () => {
+    if (!deleteConfirmAccount || isDeletingAccount) return;
+    setIsDeletingAccount(true);
+
+    const isL1 = deleteConfirmAccount.role === 'level_1' || deleteConfirmAccount.role === 'admin';
+    const subCount = isL1 && Array.isArray(deleteConfirmAccount.subordinates) ? deleteConfirmAccount.subordinates.length : 0;
+
+    const result = await safeDeleteAccount(deleteConfirmAccount.id);
+
+    setIsDeletingAccount(false);
+
+    if (result && result.success) {
+      setDeleteConfirmAccount(null);
+      await refreshAndUpdateDrawer();
+
+      const successMsg = isL1 && subCount > 0 
+        ? `Đã xóa tài khoản Cấp 1 và toàn bộ ${subCount} tài khoản Cấp 2 thuộc tài khoản này.` 
+        : 'Đã xóa tài khoản thành công.';
+      alert(successMsg);
+    } else {
+      const errorMsg = result?.message || result?.error || 'Không thể xóa tài khoản Cấp 1. Một hoặc nhiều tài khoản Cấp 2 chưa thể xóa. Vui lòng thử lại.';
+      alert(errorMsg);
+    }
+  };
 
   useEffect(() => {
     if (selectedAccount) {
@@ -232,19 +351,6 @@ export default function AdminDashboard({ userSession }) {
       await refreshAndUpdateDrawer();
     } else {
       alert(result.error || 'Có lỗi xảy ra khi cập nhật trạng thái');
-    }
-  };
-
-  const handleSafeDelete = async (targetUserId) => {
-    if (targetUserId === userSession?.user?.id) return;
-    const confirm = window.confirm('Bạn có chắc chắn muốn xóa tài khoản này?');
-    if (!confirm) return;
-
-    const result = await safeDeleteAccount(targetUserId);
-    if (result.success) {
-      await refreshAndUpdateDrawer();
-    } else {
-      alert(result.message || result.error || 'Có lỗi xảy ra');
     }
   };
 
@@ -402,7 +508,7 @@ export default function AdminDashboard({ userSession }) {
         {/* Archived: chỉ Xem */}
         {/* Xóa — tất cả status trừ archived */}
         {status !== 'archived' && (
-          <button onClick={(e) => { e.stopPropagation(); handleSafeDelete(account.id); }} className={`${btnClass} text-destructive mt-0.5 border-t border-border pt-1.5`}>
+          <button onClick={(e) => { e.stopPropagation(); handleOpenDeleteConfirm(account); }} className={`${btnClass} text-destructive mt-0.5 border-t border-border pt-1.5`}>
             <Trash2 className="w-3.5 h-3.5" /> Xóa tài khoản
           </button>
         )}
@@ -722,7 +828,7 @@ export default function AdminDashboard({ userSession }) {
                                         Mở khóa
                                       </button>
                                     )}
-                                    <button onClick={(e) => { e.stopPropagation(); handleStatusChange(sub.id, 'archived'); }} className="px-2 py-1.5 hover:bg-destructive/10 text-destructive rounded transition text-left mt-0.5 border-t border-border">
+                                    <button onClick={(e) => { e.stopPropagation(); handleOpenDeleteConfirm(sub); }} className="px-2 py-1.5 hover:bg-destructive/10 text-destructive rounded transition text-left mt-0.5 border-t border-border">
                                       Xóa
                                     </button>
                                   </div>
@@ -776,6 +882,15 @@ export default function AdminDashboard({ userSession }) {
         isOpen={!!quotaAccount}
         onClose={() => setQuotaAccount(null)}
         onSuccess={refreshAndUpdateDrawer}
+      />
+
+      {/* DELETE CONFIRM MODAL */}
+      <DeleteConfirmModal
+        account={deleteConfirmAccount}
+        isOpen={!!deleteConfirmAccount}
+        onClose={() => setDeleteConfirmAccount(null)}
+        onConfirm={handleExecuteDelete}
+        isDeleting={isDeletingAccount}
       />
     </div>
   );
