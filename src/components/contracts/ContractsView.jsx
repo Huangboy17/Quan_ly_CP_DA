@@ -294,7 +294,12 @@ export default function ContractsView({
         </div>
         <div className="bg-card border border-border rounded-2xl p-4 shadow-lg flex flex-col justify-center">
           <div className="flex items-center gap-2 text-muted-foreground mb-1"><Building2 className="w-4 h-4 text-primary" /> <span className="text-xs font-semibold uppercase">Tổng giá trị HĐ</span></div>
-          <div className="text-xl font-bold text-primary font-mono">{formatVND(kpiTotalValue)}</div>
+          <div className="text-xl font-black text-primary whitespace-nowrap">
+            {(kpiTotalValue / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 2 })} tỷ đ
+          </div>
+          <div className="text-[10px] text-muted-foreground font-mono font-semibold mt-0.5">
+            {formatVND(kpiTotalValue)}
+          </div>
         </div>
         <div className="bg-card border border-border rounded-2xl p-4 shadow-lg flex flex-col justify-center">
           <div className="flex items-center gap-2 text-muted-foreground mb-1"><Activity className="w-4 h-4 text-success" /> <span className="text-xs font-semibold uppercase">Đang thực hiện</span></div>
