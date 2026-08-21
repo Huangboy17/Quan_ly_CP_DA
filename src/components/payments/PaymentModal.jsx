@@ -248,7 +248,7 @@ export default function PaymentModal({
       return;
     }
 
-    if (isContractSettled && !isEditingThisSettlement) {
+    if (isContractSettled && !editingPayment) {
       alert('Hợp đồng này đã được quyết toán, không thể tạo thêm đợt thanh toán.');
       return;
     }
@@ -445,7 +445,7 @@ export default function PaymentModal({
             </div>
 
             {/* Lock Warning if Contract is Settled */}
-            {isContractSettled && !isEditingThisSettlement && (
+            {isContractSettled && !editingPayment && (
               <div className="p-3.5 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-xs flex items-center gap-3 animate-in fade-in duration-200">
                 <Lock className="w-5 h-5 text-destructive shrink-0" />
                 <div>
@@ -559,7 +559,7 @@ export default function PaymentModal({
             )}
 
             {/* STEP 5: Form Fields for "Thanh toán theo đợt" (Phase Payment) */}
-            {selectedContract && (!isContractSettled || isEditingThisSettlement) && (businessType === 'phase' || businessType === 'advance') && (
+            {selectedContract && (!isContractSettled || !!editingPayment) && (businessType === 'phase' || businessType === 'advance') && (
               <div className="space-y-3.5 animate-in fade-in duration-150">
                 
                 {/* Payment Phase & Date (2 Cols) */}
@@ -850,7 +850,7 @@ export default function PaymentModal({
             )}
 
             {/* STEP 6: Form Fields for "Quyết toán hợp đồng" (Final Settlement Payment Milestone) */}
-            {selectedContract && (!isContractSettled || isEditingThisSettlement) && businessType === 'settlement' && (
+            {selectedContract && (!isContractSettled || !!editingPayment) && businessType === 'settlement' && (
               <div className="space-y-3.5 animate-in fade-in duration-150 p-4 rounded-xl bg-primary/10 border border-primary/30">
                 <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-wider border-b border-primary/20 pb-2">
                   <FileCheck className="w-4 h-4 text-primary" />
@@ -1056,7 +1056,7 @@ export default function PaymentModal({
               Hủy Bỏ
             </button>
 
-            {selectedContract && (!isContractSettled || isEditingThisSettlement) && (
+            {selectedContract && (!isContractSettled || !!editingPayment) && (
               <button
                 type="submit"
                 disabled={businessType === 'settlement' && isSettlementOverContract}
