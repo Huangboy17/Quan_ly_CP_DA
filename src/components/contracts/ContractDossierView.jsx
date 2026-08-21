@@ -31,7 +31,10 @@ import {
   YAxis, 
   Tooltip, 
   CartesianGrid,
-  Legend
+  Legend,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
 import { formatVND, formatDisplayDate, calcEndDate, calcDaysBetween, cleanVND } from '../../utils/formatters';
 import { isContractFinalized } from '../../services/storage';
@@ -86,9 +89,24 @@ export default function ContractDossierView({
 
   // Financial Values (Safe Number parsing)
   const beforeVat = cleanVND(contract.contractValueBeforeVAT || contract.contract_value || 0);
-  const vatRate = Number(contract.vatRate !== undefined ? contract.vatRate : 10);
-  const vatAmount = cleanVND(contract.vatAmount !== undefined ? contract.vatAmount : (beforeVat * vatRate / 100));
-  const afterVat = cleanVND(contract.contractValueAfterVAT || contract.contract_value || (beforeVat + vatAmount));
+  const rawVatRate = Number(contract.vatRate !== undefined ? contract.vatRate : 10);
+  const afterVat = cleanVND(contract.contractValueAfterVAT || contract.contract_value || beforeVat);
+  
+  // Normalize VAT Rate if it is wrongly stored as 100 in database
+  let vatRate = rawVatRate;
+  let vatAmount = cleanVND(contract.vatAmount !== undefined ? contract.vatAmount : (afterVat - beforeVat));
+  
+  if (beforeVat > 0) {
+    const calculatedRate = Math.round(((afterVat - beforeVat) / beforeVat) * 100);
+    if (rawVatRate === 100 && calculatedRate >= 0 && calculatedRate <= 25) {
+      vatRate = calculatedRate;
+      vatAmount = afterVat - beforeVat;
+    }
+  }
+  
+  if (vatAmount <= 0) {
+    vatAmount = Math.round(beforeVat * vatRate / 100);
+  }
 
   const initialValueAfterVat = cleanVND(contract.initialContractValueAfterVAT || afterVat);
   const initialValueBeforeVat = cleanVND(contract.initialContractValueBeforeVAT || (contract.contractValueBeforeVAT || 0));
@@ -243,6 +261,72 @@ export default function ContractDossierView({
   const paidRatio = currentContractValueAfterVat > 0 ? (totalPaidAfterVat / currentContractValueAfterVat) * 100 : 0;
   const remainingRatio = Math.max(0, 100 - paidRatio);
 
+  // 3-tier progress values (clamped 0 -> 100)
+  const getSafePct = (val, total) => {
+    if (!total || total <= 0) return 0;
+    const p = (Number(val || 0) / Number(total)) * 100;
+    return isNaN(p) || !isFinite(p) ? 0 : Math.max(0, Math.min(100, p));
+  };
+  const getSafeDisplayPct = (val, total) => {
+    if (!total || total <= 0) return '0';
+    const p = (Number(val || 0) / Number(total)) * 100;
+    return isNaN(p) || !isFinite(p) ? '0' : (Math.round(p * 10) / 10).toString();
+  };
+
+  const executionPct = getSafePct(contract.totalExecutionValue || 0, beforeVat);
+  const executionPctStr = getSafeDisplayPct(contract.totalExecutionValue || 0, beforeVat);
+
+  const acceptancePct = getSafePct(contract.totalAcceptanceValue || 0, beforeVat);
+  const acceptancePctStr = getSafeDisplayPct(contract.totalAcceptanceValue || 0, beforeVat);
+
+  const paymentPct = getSafePct(totalPaidAfterVat, currentContractValueAfterVat);
+  const paymentPctStr = getSafeDisplayPct(totalPaidAfterVat, currentContractValueAfterVat);
+
+  const remainingPct = Math.max(0, 100 - paymentPct);
+  const remainingPctStr = (Math.round(remainingPct * 10) / 10).toString();
+
+  // Donut chart data using Recharts Pie
+  const isZeroValue = totalPaidAfterVat === 0 && remainingToPay === 0;
+  const chartDataDonut = isZeroValue
+    ? [{ name: 'Đã thanh toán', value: 0 }, { name: 'Còn phải trả', value: 1 }]
+    : [
+        { name: 'Đã thanh toán', value: totalPaidAfterVat || 0 },
+        { name: 'Còn phải trả', value: remainingToPay || 0 }
+      ];
+
+  // Time progress bar timeline calculations
+  let totalDays = 0;
+  let elapsedDays = 0;
+  let timeProgress = 0;
+  let timelineLabel = '';
+  let timeError = false;
+
+  if (signingDate && exactEndDate) {
+    totalDays = calcDaysBetween(signingDate, exactEndDate);
+    if (totalDays < 0) {
+      timeError = true;
+    } else {
+      const clampedTotalDays = totalDays === 0 ? 1 : totalDays;
+      if (todayStr < signingDate) {
+        elapsedDays = 0;
+        timeProgress = 0;
+        timelineLabel = `Hợp đồng chưa bắt đầu (Dự kiến trong ${calcDaysBetween(todayStr, signingDate)} ngày)`;
+      } else if (todayStr > exactEndDate) {
+        elapsedDays = totalDays;
+        timeProgress = 100;
+        timelineLabel = isSettled
+          ? `Hợp đồng đã quyết toán | Tổng thời gian: ${totalDays} ngày`
+          : `Hợp đồng đã quá hạn ${calcDaysBetween(exactEndDate, todayStr)} ngày`;
+      } else {
+        elapsedDays = calcDaysBetween(signingDate, todayStr);
+        timeProgress = Math.max(0, Math.min(100, (elapsedDays / clampedTotalDays) * 100));
+        timelineLabel = `Đã sử dụng ${Math.round(timeProgress * 10) / 10}% thời gian | Còn lại ${daysRemaining} ngày`;
+      }
+    }
+  } else {
+    timeError = true;
+  }
+
   // Chart Data for Cumulative Disbursement
   const chartData = paymentsWithCumulative.map(pm => ({
     name: pm.phaseName,
@@ -390,13 +474,7 @@ export default function ContractDossierView({
             <span className="font-mono font-bold text-xs" style={{color: isSettled ? 'var(--color-primary)' : isOverdue ? 'var(--color-destructive)' : daysRemaining <= 30 ? 'var(--color-warning)' : 'var(--color-success)'}}>
               {exactEndDate ? formatDisplayDate(exactEndDate) : 'Chưa xác định'}
             </span>
-            {exactEndDate && (
-              <span className={`block text-[10px] font-semibold mt-0.5 ${
-                isSettled ? 'text-primary' : isOverdue ? 'text-destructive' : daysRemaining <= 30 ? 'text-warning' : 'text-success'
-              }`}>
-                {isSettled ? '✓ Đã quyết toán' : isOverdue ? `Quá hạn ${daysOverdue} ngày` : daysRemaining === 0 ? 'Hết hạn hôm nay' : `Còn ${daysRemaining} ngày`}
-              </span>
-            )}
+
           </div>
 
           <div>
@@ -449,41 +527,188 @@ export default function ContractDossierView({
           </div>
         </div>
 
-        {/* NHÓM 2: DÒNG TIỀN THỰC TẾ */}
-        <div className="flex-1 p-3 rounded-xl bg-card border border-border shadow-md">
-          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Tiến độ thực hiện & giải ngân</span>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
-            <div>
-              <span className="text-[10px] font-bold text-foreground/80 uppercase block">Thực hiện lũy kế</span>
-              <div className="text-xs font-black text-foreground font-mono mt-0.5">{formatVND(contract.totalExecutionValue || 0)}</div>
-              <span className="text-[10px] text-muted-foreground block font-semibold mt-0.5">{contract.executionPercentage || 0}% trước VAT</span>
+        {/* NHÓM 2: DÒNG TIỀN & TIẾN ĐỘ THỰC HIỆN */}
+        <div className="flex-1 p-3.5 rounded-xl bg-card border border-border shadow-md">
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block mb-3.5">Tiến độ thực hiện & giải ngân</span>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
+            
+            {/* Cột trái: 3 Progress Bars (md:col-span-8) */}
+            <div className="md:col-span-8 space-y-3.5">
+              
+              {/* Thi công */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-foreground/80">
+                  <span className="flex items-center gap-1">🛠️ Thi công thực tế</span>
+                  <span className="font-mono text-xs">{executionPctStr}%</span>
+                </div>
+                <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden border border-border/40 relative">
+                  <div 
+                    className="h-full bg-blue-500 rounded-full transition-all duration-500" 
+                    style={{ width: `${executionPct}%` }}
+                    title={`Giá trị thực hiện: ${formatVND(contract.totalExecutionValue || 0)}`}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-[9px] text-muted-foreground">
+                  <span>Khối lượng thi công (trước VAT)</span>
+                  <span className="font-mono">{formatVND(contract.totalExecutionValue || 0)}</span>
+                </div>
+              </div>
+
+              {/* Nghiệm thu */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-foreground/80">
+                  <span className="flex items-center gap-1">📋 Nghiệm thu lũy kế</span>
+                  <span className="font-mono text-xs">{acceptancePctStr}%</span>
+                </div>
+                <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden border border-border/40 relative">
+                  <div 
+                    className="h-full bg-purple-500 rounded-full transition-all duration-500" 
+                    style={{ width: `${acceptancePct}%` }}
+                    title={`Giá trị nghiệm thu: ${formatVND(contract.totalAcceptanceValue || 0)}`}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-[9px] text-muted-foreground">
+                  <span>Giá trị nghiệm thu (trước VAT)</span>
+                  <span className="font-mono">{formatVND(contract.totalAcceptanceValue || 0)}</span>
+                </div>
+              </div>
+
+              {/* Giải ngân */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-foreground/80">
+                  <span className="flex items-center gap-1">💰 Đã thanh toán</span>
+                  <span className="font-mono text-xs">{paymentPctStr}%</span>
+                </div>
+                <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden border border-border/40 relative">
+                  <div 
+                    className="h-full bg-green-500 rounded-full transition-all duration-500" 
+                    style={{ width: `${paymentPct}%` }}
+                    title={`Đã thanh toán: ${formatVND(totalPaidAfterVat)}`}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-[9px] text-muted-foreground">
+                  <span>Giá trị thanh toán (sau VAT)</span>
+                  <span className="font-mono">{formatVND(totalPaidAfterVat)}</span>
+                </div>
+              </div>
+
             </div>
-            <div>
-              <span className="text-[10px] font-bold text-foreground/80 uppercase block">Nghiệm thu lũy kế</span>
-              <div className="text-xs font-black text-foreground font-mono mt-0.5">{formatVND(contract.totalAcceptanceValue || 0)}</div>
-              <span className="text-[10px] text-muted-foreground block font-semibold mt-0.5">{contract.acceptancePercentage || 0}% trước VAT</span>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-success uppercase block">Đã thanh toán</span>
-              <div className="text-xs font-black text-success font-mono mt-0.5">{formatVND(totalPaidAfterVat)}</div>
-              <span className="text-[10px] text-success block font-semibold mt-0.5">{Math.round(paidRatio * 10) / 10}% sau VAT</span>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-warning uppercase block">Còn phải trả</span>
-              <div className="text-xs font-black text-warning font-mono mt-0.5">{formatVND(remainingToPay)}</div>
-              <span className="text-[10px] text-warning block font-semibold mt-0.5">{Math.round(remainingRatio * 10) / 10}% sau VAT</span>
-            </div>
-            <div className="col-span-2 md:col-span-1">
-              <span className={`text-[10px] font-bold uppercase block text-primary`}>
-                {isSettled ? 'Giá trị QT' : 'Dự kiến QT'}
-              </span>
-              <div className={`text-xs font-black font-mono mt-0.5 text-primary`}>
-                {formatVND(estimatedSettlement)}
+
+            {/* Cột phải: Donut Chart dòng tiền (md:col-span-4) */}
+            <div className="md:col-span-4 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-4">
+              <div className="w-full max-w-[140px] aspect-square relative flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartDataDonut}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={38}
+                      outerRadius={50}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      <Cell key="cell-0" fill={isZeroValue ? '#e2e8f0' : '#22c55e'} />
+                      <Cell key="cell-1" fill={isZeroValue ? '#cbd5e1' : '#f59e0b'} />
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-[14px] font-black font-mono text-foreground leading-none">
+                    {paymentPctStr}%
+                  </span>
+                  <span className="text-[8px] font-bold text-muted-foreground uppercase mt-0.5 tracking-wider">
+                    Giải ngân
+                  </span>
+                </div>
+              </div>
+
+              {/* Legends */}
+              <div className="mt-3.5 space-y-1.5 w-full text-[10px] font-semibold text-foreground/80 font-mono">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 font-sans text-muted-foreground font-normal">
+                    <span className="w-2.5 h-2.5 rounded bg-green-500 inline-block shrink-0"></span>
+                    Đã thanh toán
+                  </span>
+                  <span>{formatVND(totalPaidAfterVat)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 font-sans text-muted-foreground font-normal">
+                    <span className="w-2.5 h-2.5 rounded bg-amber-500 inline-block shrink-0"></span>
+                    Còn phải trả
+                  </span>
+                  <span>{formatVND(remainingToPay)}</span>
+                </div>
+                <div className="border-t border-border pt-1.5 flex items-center justify-between text-[11px] font-bold text-primary font-sans">
+                  <span>{isSettled ? 'Giá trị QT:' : 'Dự kiến QT:'}</span>
+                  <span className="font-mono">{formatVND(estimatedSettlement)}</span>
+                </div>
               </div>
             </div>
+
           </div>
         </div>
 
+      </div>
+
+      {/* 3.4 TIẾN ĐỘ THỜI GIAN HỢP ĐỒNG */}
+      <div className="p-3.5 rounded-xl bg-card border border-border shadow-md space-y-3 text-xs">
+        <div className="flex items-center gap-1.5 border-b border-border pb-1.5">
+          <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            Tiến độ thời gian hợp đồng
+          </span>
+        </div>
+
+        {timeError ? (
+          <div className="py-2 text-center text-muted-foreground italic text-xs">
+            ⚠️ Chưa đủ hoặc sai lệch dữ liệu thời gian hợp đồng để hiển thị timeline
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between font-mono text-[10px] text-muted-foreground">
+              <span>Ngày ký: {formatDisplayDate(signingDate)}</span>
+              <span>Ngày kết thúc: {formatDisplayDate(exactEndDate)}</span>
+            </div>
+
+            {/* SVG Timeline */}
+            <div className="relative pt-1 pb-3 px-1">
+              {/* Trục đường line ngang */}
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden relative border border-border/40">
+                <div 
+                  className="h-full bg-primary rounded-full transition-all duration-500"
+                  style={{ width: `${timeProgress}%` }}
+                ></div>
+              </div>
+
+              {/* Các mốc chấm tròn */}
+              <div className="absolute top-[1.5px] left-0 right-0 flex justify-between pointer-events-none">
+                <div className="w-2.5 h-2.5 rounded-full bg-primary border-2 border-background -ml-0.5" title="Ngày ký"></div>
+                
+                {/* Kim chỉ Hôm nay */}
+                {timeProgress > 0 && timeProgress < 100 && (
+                  <div 
+                    className="absolute top-[-8px] flex flex-col items-center pointer-events-auto"
+                    style={{ left: `calc(${timeProgress}% - 6px)` }}
+                    title={`Hôm nay (Đã trôi qua ${elapsedDays}/${totalDays} ngày)`}
+                  >
+                    <span className="text-[9px] font-black text-primary leading-none mb-[2px]">▲</span>
+                    <span className="text-[8px] font-bold text-primary bg-primary/10 border border-primary/20 px-1 py-0.2 rounded whitespace-nowrap shadow-sm">
+                      Hôm nay
+                    </span>
+                  </div>
+                )}
+
+                <div className={`w-2.5 h-2.5 rounded-full border-2 border-background -mr-0.5 ${timeProgress >= 100 ? 'bg-primary' : 'bg-muted-foreground/45'}`} title="Ngày kết thúc"></div>
+              </div>
+            </div>
+
+            <div className="pt-1.5 flex flex-col sm:flex-row sm:items-center justify-between text-[11px] font-semibold gap-1">
+              <span className="text-foreground/80">{timelineLabel}</span>
+              <span className="text-muted-foreground font-mono font-normal">Tổng thời gian: {totalDays} ngày</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 3.5 CẤU THÀNH GIÁ TRỊ HỢP ĐỒNG */}
@@ -702,25 +927,25 @@ export default function ContractDossierView({
                   
                   {/* Thực hiện */}
                   <td className="py-2 px-3 text-right font-mono">
-                    {pm.execution_value !== null ? (
-                      <>
-                        <div className="font-bold text-foreground/85">{formatVND(pm.execution_value)}</div>
-                        <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeExecution)}</div>
-                      </>
-                    ) : (
+                    {pm.paymentCategory === 'Tạm ứng' ? (
                       <span className="text-muted-foreground/60">—</span>
+                    ) : (
+                      <>
+                        <div className="font-bold text-foreground/85">{formatVND(pm.execution_value || 0)}</div>
+                        <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeExecution || 0)}</div>
+                      </>
                     )}
                   </td>
 
                   {/* Nghiệm thu */}
                   <td className="py-2 px-3 text-right font-mono">
-                    {pm.acceptance_value !== null ? (
-                      <>
-                        <div className="font-bold text-foreground/85">{formatVND(pm.acceptance_value)}</div>
-                        <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeAcceptance)}</div>
-                      </>
-                    ) : (
+                    {pm.paymentCategory === 'Tạm ứng' ? (
                       <span className="text-muted-foreground/60">—</span>
+                    ) : (
+                      <>
+                        <div className="font-bold text-foreground/85">{formatVND(pm.acceptance_value || 0)}</div>
+                        <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeAcceptance || 0)}</div>
+                      </>
                     )}
                   </td>
 

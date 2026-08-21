@@ -377,25 +377,25 @@ export default function ContractDetailModal({
 
                         {/* Thực hiện */}
                         <td className="py-3 px-4 text-right font-mono">
-                          {pm.execution_value !== null ? (
-                            <>
-                              <div className="font-bold text-foreground/85">{formatVND(pm.execution_value)}</div>
-                              <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeExecution)}</div>
-                            </>
-                          ) : (
+                          {isAdvance ? (
                             <span className="text-muted-foreground/60">—</span>
+                          ) : (
+                            <>
+                              <div className="font-bold text-foreground/85">{formatVND(pm.execution_value || 0)}</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeExecution || 0)}</div>
+                            </>
                           )}
                         </td>
 
                         {/* Nghiệm thu */}
                         <td className="py-3 px-4 text-right font-mono">
-                          {pm.acceptance_value !== null ? (
-                            <>
-                              <div className="font-bold text-foreground/85">{formatVND(pm.acceptance_value)}</div>
-                              <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeAcceptance)}</div>
-                            </>
-                          ) : (
+                          {isAdvance ? (
                             <span className="text-muted-foreground/60">—</span>
+                          ) : (
+                            <>
+                              <div className="font-bold text-foreground/85">{formatVND(pm.acceptance_value || 0)}</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeAcceptance || 0)}</div>
+                            </>
                           )}
                         </td>
 
