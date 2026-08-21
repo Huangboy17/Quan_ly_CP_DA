@@ -14,6 +14,8 @@ function buildPaymentRows(payments) {
     contractNumber: pm.contractNumber || '',
     contractor: pm.contractor || '',
     payment_phase: pm.payment_phase || 1,
+    execution_value: pm.execution_value !== undefined && pm.execution_value !== null ? cleanVND(pm.execution_value) : '',
+    acceptance_value: pm.acceptance_value !== undefined && pm.acceptance_value !== null ? cleanVND(pm.acceptance_value) : '',
     amount_before_vat: cleanVND(pm.amount_before_vat || 0),
     vat_rate: Number(pm.vat_rate || 0),
     vat_amount: cleanVND(pm.vat_amount || 0),
@@ -31,6 +33,8 @@ function getColumns() {
     { header: 'Số HĐ', key: 'contractNumber', width: 18, type: 'text' },
     { header: 'Nhà thầu', key: 'contractor', width: 20, type: 'text' },
     { header: 'Đợt TT', key: 'payment_phase', width: 8, type: 'number' },
+    { header: 'Thực hiện (VNĐ)', key: 'execution_value', width: 18, type: 'number' },
+    { header: 'Nghiệm thu (VNĐ)', key: 'acceptance_value', width: 18, type: 'number' },
     { header: 'Trước VAT (VNĐ)', key: 'amount_before_vat', width: 18, type: 'number' },
     { header: 'VAT %', key: 'vat_rate', width: 8, type: 'number' },
     { header: 'Tiền VAT (VNĐ)', key: 'vat_amount', width: 16, type: 'number' },
@@ -57,6 +61,8 @@ function buildTotals(payments) {
   const sumBeforeVat = payments.reduce((s, p) => s + cleanVND(p.amount_before_vat || 0), 0);
   const sumVat = payments.reduce((s, p) => s + cleanVND(p.vat_amount || 0), 0);
   const sumAfterVat = payments.reduce((s, p) => s + cleanVND(p.amount_after_vat || 0), 0);
+  const sumExec = payments.reduce((s, p) => s + (p.execution_value !== undefined && p.execution_value !== null ? cleanVND(p.execution_value) : 0), 0);
+  const sumAcc = payments.reduce((s, p) => s + (p.acceptance_value !== undefined && p.acceptance_value !== null ? cleanVND(p.acceptance_value) : 0), 0);
 
   return {
     stt: '',
@@ -65,6 +71,8 @@ function buildTotals(payments) {
     contractNumber: '',
     contractor: '',
     payment_phase: '',
+    execution_value: sumExec,
+    acceptance_value: sumAcc,
     amount_before_vat: sumBeforeVat,
     vat_rate: '',
     vat_amount: sumVat,

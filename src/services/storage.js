@@ -153,6 +153,8 @@ export async function syncFromSupabase(userId) {
           note: row.noi_dung || '',
           payment_type: row.loai_thanh_toan || '',
           is_settlement: (row.loai_thanh_toan || '').toLowerCase().includes('quyết toán') || (row.loai_thanh_toan || '') === 'FINAL_SETTLEMENT',
+          execution_value: row.gia_tri_thuc_hien !== null && row.gia_tri_thuc_hien !== undefined ? Number(row.gia_tri_thuc_hien) : null,
+          acceptance_value: row.gia_tri_nghiem_thu !== null && row.gia_tri_nghiem_thu !== undefined ? Number(row.gia_tri_nghiem_thu) : null,
         };
       });
 
@@ -371,6 +373,8 @@ export async function asyncSavePaymentToSupabase(payment, userId) {
       so_tien: amountAfterVat,   // primary amount field (after VAT total)
       ngay_thanh_toan: payment.payment_date || null,
       noi_dung: payment.note || '',
+      gia_tri_thuc_hien: payment.execution_value !== undefined && payment.execution_value !== null ? Number(payment.execution_value) : null,
+      gia_tri_nghiem_thu: payment.acceptance_value !== undefined && payment.acceptance_value !== null ? Number(payment.acceptance_value) : null,
     };
 
     const { data, error } = await supabase.from('thanh_toan_chi_phi').upsert(payload);
@@ -1422,6 +1426,8 @@ export async function settleContract(contractId, settlementData, userId) {
     note: settlementData.note || 'Quyết toán hoàn thành hợp đồng (Đợt cuối)',
     payment_type: 'Quyết toán',
     is_settlement: true,
+    execution_value: settlementData.execution_value !== undefined && settlementData.execution_value !== null ? Number(settlementData.execution_value) : null,
+    acceptance_value: settlementData.acceptance_value !== undefined && settlementData.acceptance_value !== null ? Number(settlementData.acceptance_value) : null,
   };
 
   const settledContractObj = {
@@ -1541,6 +1547,8 @@ export async function savePayment(payment, userId) {
     vat_rate: vatRate,
     vat_amount: vatAmount,
     amount_after_vat: afterVAT,
+    execution_value: payment.execution_value !== undefined && payment.execution_value !== null ? Number(payment.execution_value) : null,
+    acceptance_value: payment.acceptance_value !== undefined && payment.acceptance_value !== null ? Number(payment.acceptance_value) : null,
   };
 
   if (payment.id) {
@@ -1800,6 +1808,9 @@ export function getAggregatedData(timeFilter = {}, isLoggedIn = false, userRole 
   const prevPeriodContractPaidBeforeVAT = {};
   const prevPeriodContractPaidVAT = {};
   const prevPeriodContractPaidAfterVAT = {};
+  
+  const allTimeContractExecutionValue = {};
+  const allTimeContractAcceptanceValue = {};
 
   const contractPaymentsCount = {};
   const latestPaymentDateMap = {};
@@ -1812,6 +1823,12 @@ export function getAggregatedData(timeFilter = {}, isLoggedIn = false, userRole 
     const before = Number(pm.amount_before_vat || 0);
     const vat = Number(pm.vat_amount || 0);
     const after = Number(pm.amount_after_vat || (before + vat));
+
+    const execVal = pm.execution_value !== undefined && pm.execution_value !== null ? Number(pm.execution_value) : 0;
+    const accVal = pm.acceptance_value !== undefined && pm.acceptance_value !== null ? Number(pm.acceptance_value) : 0;
+
+    allTimeContractExecutionValue[cId] = (allTimeContractExecutionValue[cId] || 0) + execVal;
+    allTimeContractAcceptanceValue[cId] = (allTimeContractAcceptanceValue[cId] || 0) + accVal;
 
     allTimeContractPaidBeforeVAT[cId] = (allTimeContractPaidBeforeVAT[cId] || 0) + before;
     allTimeContractPaidVAT[cId] = (allTimeContractPaidVAT[cId] || 0) + vat;
@@ -1921,6 +1938,15 @@ export function getAggregatedData(timeFilter = {}, isLoggedIn = false, userRole 
       remainingVAT,
       remainingAfterVAT,
       remainingValue: remainingAfterVAT,
+
+      totalExecutionValue: allTimeContractExecutionValue[c.id] || 0,
+      totalAcceptanceValue: allTimeContractAcceptanceValue[c.id] || 0,
+      executionPercentage: currentContractValueBeforeVAT > 0
+        ? Math.min(100, Math.round(((allTimeContractExecutionValue[c.id] || 0) / currentContractValueBeforeVAT * 100) * 10) / 10)
+        : 0,
+      acceptancePercentage: currentContractValueBeforeVAT > 0
+        ? Math.min(100, Math.round(((allTimeContractAcceptanceValue[c.id] || 0) / currentContractValueBeforeVAT * 100) * 10) / 10)
+        : 0,
 
       paidPercentage: Math.min(100, Math.round(paidPercentage * 10) / 10),
       projectName: project ? project.name : 'Chưa phân loại',

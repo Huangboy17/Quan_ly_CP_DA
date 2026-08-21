@@ -188,21 +188,33 @@ export default function ContractDossierView({
 
   // Calculate Cumulative Sum in Chronological Order
   let runningCumulative = 0;
+  let runningExecutionCumulative = 0;
+  let runningAcceptanceCumulative = 0;
+
   const paymentsWithCumulative = sortedPayments.map((pm, idx) => {
     const pmBeforeVAT = cleanVND(pm.amount_before_vat);
     const pmVatRate = Number(pm.vat_rate || 0);
     const pmVatAmount = cleanVND(pm.vat_amount !== undefined ? pm.vat_amount : (pmBeforeVAT * pmVatRate / 100));
     const pmAfterVAT = cleanVND(pm.amount_after_vat !== undefined ? pm.amount_after_vat : (pmBeforeVAT + pmVatAmount));
     
+    const execVal = pm.execution_value !== undefined && pm.execution_value !== null ? Number(pm.execution_value) : 0;
+    const accVal = pm.acceptance_value !== undefined && pm.acceptance_value !== null ? Number(pm.acceptance_value) : 0;
+    const isAdvancePayment = pm.payment_type === 'Tạm ứng';
+
+    if (!isAdvancePayment) {
+      runningExecutionCumulative = cleanVND(runningExecutionCumulative + execVal);
+      runningAcceptanceCumulative = cleanVND(runningAcceptanceCumulative + accVal);
+    }
+
     runningCumulative = cleanVND(runningCumulative + pmAfterVAT);
 
-    const isSettlementPhase = pm.is_settlement || pm.payment_type === 'FINAL_SETTLEMENT';
+    const isSettlementPhase = pm.is_settlement || pm.payment_type === 'FINAL_SETTLEMENT' || pm.payment_type === 'Quyết toán';
     const phaseName = isSettlementPhase 
       ? 'Quyết toán' 
-      : (typeof pm.payment_phase === 'number' ? `Đợt ${pm.payment_phase}` : (pm.payment_phase || `Đợt ${idx + 1}`));
+      : (pm.payment_type === 'Tạm ứng' ? 'Tạm ứng' : (typeof pm.payment_phase === 'number' ? `Đợt ${pm.payment_phase}` : (pm.payment_phase || `Đợt ${idx + 1}`)));
     const paymentCategory = isSettlementPhase 
       ? 'Quyết toán' 
-      : (pm.payment_type === 'ADVANCE' || String(pm.note || '').toLowerCase().includes('tạm ứng') ? 'Tạm ứng' : 'Thanh toán');
+      : (pm.payment_type === 'Tạm ứng' || String(pm.note || '').toLowerCase().includes('tạm ứng') ? 'Tạm ứng' : 'Thanh toán');
 
     return {
       ...pm,
@@ -213,7 +225,11 @@ export default function ContractDossierView({
       vat_rate: pmVatRate,
       vat_amount: pmVatAmount,
       amount_after_vat: pmAfterVAT,
+      execution_value: pm.execution_value !== undefined && pm.execution_value !== null ? Number(pm.execution_value) : null,
+      acceptance_value: pm.acceptance_value !== undefined && pm.acceptance_value !== null ? Number(pm.acceptance_value) : null,
       cumulativeAfterVAT: runningCumulative,
+      cumulativeExecution: runningExecutionCumulative,
+      cumulativeAcceptance: runningAcceptanceCumulative,
       displayDate: formatDisplayDate(pm.payment_date),
     };
   });
@@ -435,21 +451,33 @@ export default function ContractDossierView({
 
         {/* NHÓM 2: DÒNG TIỀN THỰC TẾ */}
         <div className="flex-1 p-3 rounded-xl bg-card border border-border shadow-md">
-          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Dòng tiền thực tế</span>
-          <div className="grid grid-cols-3 gap-2.5">
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Tiến độ thực hiện & giải ngân</span>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2.5">
+            <div>
+              <span className="text-[10px] font-bold text-foreground/80 uppercase block">Thực hiện lũy kế</span>
+              <div className="text-xs font-black text-foreground font-mono mt-0.5">{formatVND(contract.totalExecutionValue || 0)}</div>
+              <span className="text-[10px] text-muted-foreground block font-semibold mt-0.5">{contract.executionPercentage || 0}% trước VAT</span>
+            </div>
+            <div>
+              <span className="text-[10px] font-bold text-foreground/80 uppercase block">Nghiệm thu lũy kế</span>
+              <div className="text-xs font-black text-foreground font-mono mt-0.5">{formatVND(contract.totalAcceptanceValue || 0)}</div>
+              <span className="text-[10px] text-muted-foreground block font-semibold mt-0.5">{contract.acceptancePercentage || 0}% trước VAT</span>
+            </div>
             <div>
               <span className="text-[10px] font-bold text-success uppercase block">Đã thanh toán</span>
               <div className="text-xs font-black text-success font-mono mt-0.5">{formatVND(totalPaidAfterVat)}</div>
+              <span className="text-[10px] text-success block font-semibold mt-0.5">{Math.round(paidRatio * 10) / 10}% sau VAT</span>
             </div>
             <div>
               <span className="text-[10px] font-bold text-warning uppercase block">Còn phải trả</span>
               <div className="text-xs font-black text-warning font-mono mt-0.5">{formatVND(remainingToPay)}</div>
+              <span className="text-[10px] text-warning block font-semibold mt-0.5">{Math.round(remainingRatio * 10) / 10}% sau VAT</span>
             </div>
-            <div>
-              <span className={`text-[10px] font-bold uppercase block ${isSettled ? 'text-primary' : 'text-primary'}`}>
+            <div className="col-span-2 md:col-span-1">
+              <span className={`text-[10px] font-bold uppercase block text-primary`}>
                 {isSettled ? 'Giá trị QT' : 'Dự kiến QT'}
               </span>
-              <div className={`text-xs font-black font-mono mt-0.5 ${isSettled ? 'text-primary' : 'text-primary'}`}>
+              <div className={`text-xs font-black font-mono mt-0.5 text-primary`}>
                 {formatVND(estimatedSettlement)}
               </div>
             </div>
@@ -644,6 +672,8 @@ export default function ContractDossierView({
                 <th className="py-2.5 px-3">ĐỢT THANH TOÁN</th>
                 <th className="py-2.5 px-3 text-center w-24">LOẠI</th>
                 <th className="py-2.5 px-3">NGÀY THANH TOÁN</th>
+                <th className="py-2.5 px-3 text-right font-semibold text-foreground/80">THỰC HIỆN (TRƯỚC VAT)</th>
+                <th className="py-2.5 px-3 text-right font-semibold text-foreground/80">NGHIỆM THU (TRƯỚC VAT)</th>
                 <th className="py-2.5 px-3 text-right font-bold text-success">GIÁ TRỊ (SAU VAT)</th>
                 <th className="py-2.5 px-3 text-right font-bold text-primary">LŨY KẾ ĐÃ CHI</th>
                 <th className="py-2.5 px-3 text-center w-20">THAO TÁC</th>
@@ -662,13 +692,38 @@ export default function ContractDossierView({
                       pm.paymentCategory === 'Quyết toán'
                         ? 'bg-primary/10 text-primary border-primary/30'
                         : pm.paymentCategory === 'Tạm ứng'
-                        ? 'bg-primary/10 text-primary border-primary/30'
+                        ? 'bg-blue-500/10 text-blue-600 border-blue-500/20'
                         : 'bg-success/10 text-success border-success/30'
                     }`}>
                       {pm.paymentCategory}
                     </span>
                   </td>
                   <td className="py-2 px-3 font-mono text-foreground/80">{pm.displayDate}</td>
+                  
+                  {/* Thực hiện */}
+                  <td className="py-2 px-3 text-right font-mono">
+                    {pm.execution_value !== null ? (
+                      <>
+                        <div className="font-bold text-foreground/85">{formatVND(pm.execution_value)}</div>
+                        <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeExecution)}</div>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground/60">—</span>
+                    )}
+                  </td>
+
+                  {/* Nghiệm thu */}
+                  <td className="py-2 px-3 text-right font-mono">
+                    {pm.acceptance_value !== null ? (
+                      <>
+                        <div className="font-bold text-foreground/85">{formatVND(pm.acceptance_value)}</div>
+                        <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeAcceptance)}</div>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground/60">—</span>
+                    )}
+                  </td>
+
                   <td className="py-2 px-3 text-right font-mono font-bold text-success text-xs bg-success/5">
                     {formatVND(pm.amount_after_vat)}
                   </td>

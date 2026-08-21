@@ -62,11 +62,23 @@ export default function ContractDetailModal({
 
   // Compute running cumulative sums line-by-line in chronological order
   let runningSum = 0;
+  let runningExecution = 0;
+  let runningAcceptance = 0;
   const paymentsWithCumulative = contractPayments.map(pm => {
+    const execVal = pm.execution_value !== undefined && pm.execution_value !== null ? Number(pm.execution_value) : 0;
+    const accVal = pm.acceptance_value !== undefined && pm.acceptance_value !== null ? Number(pm.acceptance_value) : 0;
+    const isAdvancePayment = pm.payment_type === 'Tạm ứng';
+
+    if (!isAdvancePayment) {
+      runningExecution = cleanVND(runningExecution + execVal);
+      runningAcceptance = cleanVND(runningAcceptance + accVal);
+    }
     runningSum = cleanVND(runningSum + cleanVND(pm.amount_after_vat || 0));
     return {
       ...pm,
       cumulativeAfterVAT: runningSum,
+      cumulativeExecution: runningExecution,
+      cumulativeAcceptance: runningAcceptance,
     };
   });
 
@@ -333,6 +345,8 @@ export default function ContractDetailModal({
                   <tr>
                     <th className="py-3 px-4">Đợt Thanh Toán</th>
                     <th className="py-3 px-4">Ngày Thanh Toán</th>
+                    <th className="py-3 px-4 text-right">Thực Hiện (Trước VAT)</th>
+                    <th className="py-3 px-4 text-right">Nghiệm Thu (Trước VAT)</th>
                     <th className="py-3 px-4 text-right">Giá Trị Thanh Toán (Sau VAT)</th>
                     <th className="py-3 px-4 text-right">Lũy Kế Sau Thanh Toán</th>
                     <th className="py-3 px-4 text-center">Thao Tác</th>
@@ -340,13 +354,18 @@ export default function ContractDetailModal({
                 </thead>
                 <tbody className="divide-y divide-border bg-background/60">
                   {paymentsWithCumulative.map((pm) => {
-                    const isSettlementPhase = pm.is_settlement || pm.payment_type === 'FINAL_SETTLEMENT';
+                    const isSettlementPhase = pm.is_settlement || pm.payment_type === 'FINAL_SETTLEMENT' || pm.payment_type === 'Quyết toán';
+                    const isAdvance = pm.payment_type === 'Tạm ứng';
                     return (
                       <tr key={pm.id} className="hover:bg-muted/60 transition">
                         <td className="py-3 px-4 font-semibold">
                           {isSettlementPhase ? (
                             <span className="px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/30 font-bold text-[11px] inline-flex items-center gap-1">
                               <ShieldCheck className="w-3.5 h-3.5" /> Quyết toán
+                            </span>
+                          ) : isAdvance ? (
+                            <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20 font-bold text-[11px] inline-flex items-center gap-1">
+                              🏦 Tạm ứng
                             </span>
                           ) : (
                             <span className="text-foreground font-mono">Đợt {pm.payment_phase}</span>
@@ -355,6 +374,31 @@ export default function ContractDetailModal({
                         <td className="py-3 px-4 font-mono text-foreground/80">
                           {formatDisplayDate(pm.payment_date)}
                         </td>
+
+                        {/* Thực hiện */}
+                        <td className="py-3 px-4 text-right font-mono">
+                          {pm.execution_value !== null ? (
+                            <>
+                              <div className="font-bold text-foreground/85">{formatVND(pm.execution_value)}</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeExecution)}</div>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground/60">—</span>
+                          )}
+                        </td>
+
+                        {/* Nghiệm thu */}
+                        <td className="py-3 px-4 text-right font-mono">
+                          {pm.acceptance_value !== null ? (
+                            <>
+                              <div className="font-bold text-foreground/85">{formatVND(pm.acceptance_value)}</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold">LK: {formatVND(pm.cumulativeAcceptance)}</div>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground/60">—</span>
+                          )}
+                        </td>
+
                         <td className="py-3 px-4 text-right font-mono font-bold text-success text-xs">
                           {formatVND(pm.amount_after_vat)}
                         </td>

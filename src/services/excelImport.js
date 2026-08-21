@@ -608,6 +608,8 @@ export function validateAndPreparePaymentImport(rawRows, existingProjects = [], 
     let beforeVat = 0;
     let vatRate = 10;
     let afterVat = 0;
+    let execValue = null;
+    let accValue = null;
 
     Object.keys(row).forEach(key => {
       const normKey = normalizeHeader(key);
@@ -629,6 +631,10 @@ export function validateAndPreparePaymentImport(rawRows, existingProjects = [], 
         vatRate = parseVatRate(val);
       } else if (normKey.includes('sau vat') || normKey.includes('after_vat') || normKey.includes('giá trị thanh toán')) {
         afterVat = parseNumber(val);
+      } else if (normKey.includes('thực hiện') || normKey.includes('thuc hien') || normKey === 'execution') {
+        execValue = val !== undefined && val !== null && val !== '' ? parseNumber(val) : null;
+      } else if (normKey.includes('nghiệm thu') || normKey.includes('ngiem thu') || normKey === 'acceptance') {
+        accValue = val !== undefined && val !== null && val !== '' ? parseNumber(val) : null;
       }
     });
 
@@ -702,6 +708,8 @@ export function validateAndPreparePaymentImport(rawRows, existingProjects = [], 
       amount_after_vat: afterVat,
       note: `Import Excel (${isSettlement ? 'Quyết toán' : 'Đợt ' + phase})`,
       actionType: actionType,
+      execution_value: execValue,
+      acceptance_value: accValue,
     });
   });
 
@@ -756,8 +764,9 @@ export async function commitPaymentImport(validRows, userId = null) {
         vat_amount: item.vat_amount,
         amount_after_vat: item.amount_after_vat,
         note: item.note || existing.note,
-        // Ensure project_id is present
         project_id: existing.project_id || contractProjectMap.get(String(item.contract_id)) || '',
+        execution_value: item.execution_value !== undefined && item.execution_value !== null ? item.execution_value : (existing.execution_value !== undefined ? existing.execution_value : null),
+        acceptance_value: item.acceptance_value !== undefined && item.acceptance_value !== null ? item.acceptance_value : (existing.acceptance_value !== undefined ? existing.acceptance_value : null),
       };
       paymentsMap.set(key, paymentToSave);
     } else {
@@ -774,6 +783,8 @@ export async function commitPaymentImport(validRows, userId = null) {
         vat_amount: item.vat_amount,
         amount_after_vat: item.amount_after_vat,
         note: item.note,
+        execution_value: item.execution_value,
+        acceptance_value: item.acceptance_value,
       };
       paymentsMap.set(key, paymentToSave);
     }
@@ -913,6 +924,8 @@ export function downloadPaymentTemplate() {
       'Đợt thanh toán': 1,
       'Loại thanh toán': 'Thanh toán',
       'Ngày thanh toán': '2026-03-20',
+      'Giá trị thực hiện': 6000000000,
+      'Giá trị nghiệm thu': 5500000000,
       'Giá trị trước VAT': 5000000000,
       'VAT (%)': 10,
       'Giá trị sau VAT': 5500000000
@@ -923,6 +936,8 @@ export function downloadPaymentTemplate() {
       'Đợt thanh toán': 2,
       'Loại thanh toán': 'Thanh toán',
       'Ngày thanh toán': '2026-05-15',
+      'Giá trị thực hiện': 12000000000,
+      'Giá trị nghiệm thu': 11000000000,
       'Giá trị trước VAT': 10000000000,
       'VAT (%)': 10,
       'Giá trị sau VAT': 11000000000
@@ -933,6 +948,8 @@ export function downloadPaymentTemplate() {
       'Đợt thanh toán': 3,
       'Loại thanh toán': 'Quyết toán',
       'Ngày thanh toán': '2026-08-10',
+      'Giá trị thực hiện': 8000000000,
+      'Giá trị nghiệm thu': 9500000000,
       'Giá trị trước VAT': 10000000000,
       'VAT (%)': 10,
       'Giá trị sau VAT': 11000000000

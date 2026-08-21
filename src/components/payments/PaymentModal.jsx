@@ -49,6 +49,8 @@ export default function PaymentModal({
   // Payment VAT input mode: 'before' or 'after'
   const [paymentVatInputMode, setPaymentVatInputMode] = useState('before');
   const [amountAfterVatInput, setAmountAfterVatInput] = useState('');
+  const [executionValue, setExecutionValue] = useState('');
+  const [acceptanceValue, setAcceptanceValue] = useState('');
 
   // Extract unique projects list from contracts
   const projectOptions = useMemo(() => {
@@ -103,8 +105,12 @@ export default function PaymentModal({
       setSelectedProjectId(parentContract ? parentContract.project_id : '');
       
       const isSettledPm = isSettlementPayment(editingPayment);
-      setBusinessType(isSettledPm ? 'settlement' : 'phase');
+      const isAdvance = editingPayment.payment_type === 'Tạm ứng';
+      setBusinessType(isSettledPm ? 'settlement' : (isAdvance ? 'advance' : 'phase'));
       
+      setExecutionValue(editingPayment.execution_value !== undefined && editingPayment.execution_value !== null ? editingPayment.execution_value.toString() : '');
+      setAcceptanceValue(editingPayment.acceptance_value !== undefined && editingPayment.acceptance_value !== null ? editingPayment.acceptance_value.toString() : '');
+
       if (isSettledPm) {
         setSettlementData({
           settlement_date: editingPayment.payment_date || new Date().toISOString().split('T')[0],
@@ -124,12 +130,17 @@ export default function PaymentModal({
           amount_before_vat: editingPayment.amount_before_vat || '',
           vat_rate: editingPayment.vat_rate !== undefined ? Number(editingPayment.vat_rate) : 10,
         });
+        if (paymentVatInputMode === 'after' && editingPayment.amount_after_vat) {
+          setAmountAfterVatInput(editingPayment.amount_after_vat.toString());
+        }
       }
     } else {
       const initialContract = contracts.find(c => c.id === initialContractId);
       const projId = initialContract ? initialContract.project_id : '';
       setSelectedProjectId(projId);
       setBusinessType('phase');
+      setExecutionValue('');
+      setAcceptanceValue('');
 
       const targetContractId = initialContractId || '';
       const contractPayments = payments.filter(p => p.contract_id === targetContractId);
@@ -142,10 +153,10 @@ export default function PaymentModal({
         payment_phase: nextPhase,
         payment_date: new Date().toISOString().split('T')[0],
         amount_before_vat: '',
-        vat_rate: 10,   // Always default 10% for new payments – independent of contract VAT
+        vat_rate: 10,
         note: targetContractId ? `Thanh toán đợt ${nextPhase}` : '',
       });
-      setSettlementVatRate(10); // Reset settlement VAT to default 10% for new form
+      setSettlementVatRate(10);
 
       if (initialContract) {
         setSettlementData({
@@ -242,6 +253,17 @@ export default function PaymentModal({
       return;
     }
 
+    if (businessType !== 'advance') {
+      if (executionValue !== '' && Number(executionValue) < 0) {
+        alert('Giá trị thực hiện không được nhỏ hơn 0!');
+        return;
+      }
+      if (acceptanceValue !== '' && Number(acceptanceValue) < 0) {
+        alert('Giá trị nghiệm thu không được nhỏ hơn 0!');
+        return;
+      }
+    }
+
     if (businessType === 'settlement') {
       if (settlementPhaseBeforeVAT <= 0) {
         alert('Vui lòng nhập Giá trị đợt quyết toán trước VAT hợp lệ!');
@@ -260,6 +282,8 @@ export default function PaymentModal({
             settlement_amount: settlementVATValues.amountAfterVAT,
             vat_rate: settlementVatRate,
             id: editingPayment ? editingPayment.id : undefined,
+            execution_value: executionValue !== '' ? Number(executionValue) : null,
+            acceptance_value: acceptanceValue !== '' ? Number(acceptanceValue) : null,
           });
           alert(`Đã quyết toán đợt cuối & khóa hợp đồng ${selectedContract.contract_number} thành công!`);
         } catch (err) {
@@ -277,8 +301,10 @@ export default function PaymentModal({
           vat_amount: settlementVATValues.vatAmount,
           amount_after_vat: settlementVATValues.amountAfterVAT,
           note: settlementData.note || 'Quyết toán hoàn thành hợp đồng',
-          payment_type: 'FINAL_SETTLEMENT',
+          payment_type: 'Quyết toán',
           is_settlement: true,
+          execution_value: executionValue !== '' ? Number(executionValue) : null,
+          acceptance_value: acceptanceValue !== '' ? Number(acceptanceValue) : null,
         });
         alert(`Đã quyết toán đợt cuối & khóa hợp đồng ${selectedContract.contract_number} thành công!`);
       }
@@ -303,6 +329,9 @@ export default function PaymentModal({
         vat_rate: paymentVatRate,
         vat_amount: phaseVATValues.vatAmount,
         amount_after_vat: phaseVATValues.amountAfterVAT,
+        payment_type: businessType === 'advance' ? 'Tạm ứng' : 'Thanh toán',
+        execution_value: businessType === 'advance' ? null : (executionValue !== '' ? Number(executionValue) : null),
+        acceptance_value: businessType === 'advance' ? null : (acceptanceValue !== '' ? Number(acceptanceValue) : null),
       });
     }
 
@@ -432,28 +461,51 @@ export default function PaymentModal({
                 <label className="block text-[11px] font-semibold text-foreground/80 mb-1.5 uppercase tracking-wider">
                   3. Loại Nghiệp Vụ Thanh Toán
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setBusinessType('phase')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
-                      businessType === 'phase'
-                        ? 'bg-success/20 border-success text-success shadow-md'
+                    onClick={() => {
+                      setBusinessType('advance');
+                      setFormData(prev => ({
+                        ...prev,
+                        note: prev.contract_id ? 'Tạm ứng hợp đồng' : '',
+                      }));
+                    }}
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      businessType === 'advance'
+                        ? 'bg-blue-500/10 border-blue-500/30 text-blue-600 shadow-sm'
                         : 'bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                   >
-                    <Wallet className="w-4 h-4" /> 💵 Thanh toán theo đợt
+                    🏦 Tạm ứng
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBusinessType('phase');
+                      setFormData(prev => ({
+                        ...prev,
+                        note: prev.contract_id ? `Thanh toán đợt ${prev.payment_phase}` : '',
+                      }));
+                    }}
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                      businessType === 'phase'
+                        ? 'bg-success/10 border-success/30 text-success shadow-sm'
+                        : 'bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    <Wallet className="w-4.5 h-4.5" /> Thanh toán đợt
                   </button>
                   <button
                     type="button"
                     onClick={() => setBusinessType('settlement')}
-                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer ${
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
                       businessType === 'settlement'
-                        ? 'bg-primary/20 border-primary text-primary shadow-md'
+                        ? 'bg-primary/10 border-primary/30 text-primary shadow-sm'
                         : 'bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground'
                     }`}
                   >
-                    <FileCheck className="w-4 h-4" /> 📑 Quyết toán hợp đồng (Đợt cuối)
+                    <FileCheck className="w-4.5 h-4.5" /> Quyết toán HĐ
                   </button>
                 </div>
               </div>
@@ -507,30 +559,44 @@ export default function PaymentModal({
             )}
 
             {/* STEP 5: Form Fields for "Thanh toán theo đợt" (Phase Payment) */}
-            {selectedContract && !isContractSettled && businessType === 'phase' && (
+            {selectedContract && (!isContractSettled || isEditingThisSettlement) && (businessType === 'phase' || businessType === 'advance') && (
               <div className="space-y-3.5 animate-in fade-in duration-150">
                 
                 {/* Payment Phase & Date (2 Cols) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-semibold text-foreground/80 mb-1">
-                      Đợt Thanh Toán <span className="text-destructive">*</span>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="1"
-                        value={formData.payment_phase}
-                        onChange={(e) => setFormData({ ...formData, payment_phase: e.target.value })}
-                        className="w-full pl-11 pr-3 py-2 bg-muted border border-border rounded-xl text-xs font-mono font-bold text-success focus:outline-none focus:border-success transition"
-                        required
-                      />
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
-                        Đợt
-                      </span>
+                  {businessType === 'phase' ? (
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground/80 mb-1">
+                        Đợt Thanh Toán <span className="text-destructive">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="1"
+                          value={formData.payment_phase}
+                          onChange={(e) => setFormData({ ...formData, payment_phase: e.target.value })}
+                          className="w-full pl-11 pr-3 py-2 bg-muted border border-border rounded-xl text-xs font-mono font-bold text-success focus:outline-none focus:border-success transition"
+                          required
+                        />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
+                          Đợt
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground/80 mb-1">
+                        Nghiệp Vụ
+                      </label>
+                      <input
+                        type="text"
+                        value="Tạm ứng"
+                        disabled
+                        className="w-full px-3 py-2 bg-muted/60 border border-border rounded-xl text-xs font-bold text-blue-600 cursor-not-allowed"
+                      />
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-xs font-semibold text-foreground/80 mb-1">
@@ -545,6 +611,63 @@ export default function PaymentModal({
                     />
                   </div>
                 </div>
+
+                {/* MỚI: Giá trị thực hiện và Giá trị nghiệm thu (chỉ hiện khi không phải Tạm ứng) */}
+                {businessType === 'phase' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 p-3.5 rounded-xl bg-card border border-border">
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground/80 mb-1 flex items-center gap-1.5">
+                        Giá Trị Thực Hiện Kỳ Này (Trước VAT)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="0"
+                          value={formatInputNumber(executionValue)}
+                          onChange={(e) => setExecutionValue(parseRawNumber(e.target.value))}
+                          className="w-full pl-3 pr-11 py-2 bg-background border border-border rounded-xl text-xs font-mono text-foreground focus:outline-none focus:border-success transition"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground">
+                          VND
+                        </span>
+                      </div>
+                      {executionValue && Number(executionValue) > 0 && (
+                        <div className="text-[10px] text-muted-foreground mt-1 truncate">
+                          {numberToWordsVN(executionValue)} VNĐ
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-foreground/80 mb-1 flex items-center gap-1.5">
+                        Giá Trị Nghiệm Thu Kỳ Này (Trước VAT)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="0"
+                          value={formatInputNumber(acceptanceValue)}
+                          onChange={(e) => setAcceptanceValue(parseRawNumber(e.target.value))}
+                          className="w-full pl-3 pr-11 py-2 bg-background border border-border rounded-xl text-xs font-mono text-foreground focus:outline-none focus:border-success transition"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground">
+                          VND
+                        </span>
+                      </div>
+                      {acceptanceValue && Number(acceptanceValue) > 0 && (
+                        <div className="text-[10px] text-muted-foreground mt-1 truncate">
+                          {numberToWordsVN(acceptanceValue)} VNĐ
+                        </div>
+                      )}
+                      {/* Cảnh báo: Nghiệm thu > Thực hiện */}
+                      {acceptanceValue && executionValue && Number(acceptanceValue) > Number(executionValue) && (
+                        <div className="text-[10px] text-amber-600 font-semibold mt-1">
+                          ⚠️ Cảnh báo: Giá trị nghiệm thu vượt giá trị thực hiện kỳ này!
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Value BEFORE/AFTER VAT & Quick Chips */}
                 <div className="p-4 rounded-xl bg-muted/60 border border-border space-y-3">
@@ -848,6 +971,61 @@ export default function PaymentModal({
                     </span>
                   </div>
                 )}
+
+                {/* MỚI: Giá trị thực hiện và Giá trị nghiệm thu khi quyết toán */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 p-3.5 rounded-xl bg-card border border-border">
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground/80 mb-1 flex items-center gap-1.5">
+                      Giá Trị Thực Hiện Đợt Này (Trước VAT)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="0"
+                        value={formatInputNumber(executionValue)}
+                        onChange={(e) => setExecutionValue(parseRawNumber(e.target.value))}
+                        className="w-full pl-3 pr-11 py-2 bg-background border border-border rounded-xl text-xs font-mono text-foreground focus:outline-none focus:border-primary transition"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground">
+                        VND
+                      </span>
+                    </div>
+                    {executionValue && Number(executionValue) > 0 && (
+                      <div className="text-[10px] text-muted-foreground mt-1 truncate">
+                        {numberToWordsVN(executionValue)} VNĐ
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground/80 mb-1 flex items-center gap-1.5">
+                      Giá Trị Nghiệm Thu Đợt Này (Trước VAT)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="0"
+                        value={formatInputNumber(acceptanceValue)}
+                        onChange={(e) => setAcceptanceValue(parseRawNumber(e.target.value))}
+                        className="w-full pl-3 pr-11 py-2 bg-background border border-border rounded-xl text-xs font-mono text-foreground focus:outline-none focus:border-primary transition"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground">
+                        VND
+                      </span>
+                    </div>
+                    {acceptanceValue && Number(acceptanceValue) > 0 && (
+                      <div className="text-[10px] text-muted-foreground mt-1 truncate">
+                        {numberToWordsVN(acceptanceValue)} VNĐ
+                      </div>
+                    )}
+                    {/* Cảnh báo: Nghiệm thu > Thực hiện */}
+                    {acceptanceValue && executionValue && Number(acceptanceValue) > Number(executionValue) && (
+                      <div className="text-[10px] text-amber-600 font-semibold mt-1">
+                        ⚠️ Cảnh báo: Giá trị nghiệm thu vượt giá trị thực hiện đợt này!
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Note Field */}
                 <div>
