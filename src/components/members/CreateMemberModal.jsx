@@ -7,6 +7,7 @@ const CreateMemberModal = ({ isOpen, onClose, onSuccess }) => {
     email: '',
     password: '',
     phone: '',
+    jobTitle: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,7 +35,7 @@ const CreateMemberModal = ({ isOpen, onClose, onSuccess }) => {
         onSuccess();
         onClose();
         // Reset form
-        setFormData({ fullName: '', email: '', password: '', phone: '' });
+        setFormData({ fullName: '', email: '', password: '', phone: '', jobTitle: '' });
       } else {
         setError(result.error || 'Có lỗi xảy ra khi tạo thành viên.');
       }
@@ -129,6 +130,22 @@ const CreateMemberModal = ({ isOpen, onClose, onSuccess }) => {
               onChange={handleChange}
               className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Nhập số điện thoại (tùy chọn)"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1" htmlFor="jobTitle">
+              Chức vụ / Chức danh
+            </label>
+            <input
+              type="text"
+              id="jobTitle"
+              name="jobTitle"
+              value={formData.jobTitle}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="Nhập chức vụ (ví dụ: Kỹ sư QS, Kế toán...)"
               disabled={loading}
             />
           </div>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Briefcase, FileText, CheckCircle, Search, Mail, AlertCircle, MoreVertical, Shield, Plus } from 'lucide-react';
+import { Users, Briefcase, FileText, CheckCircle, Search, Mail, AlertCircle, MoreVertical, Shield, Plus, Pencil } from 'lucide-react';
 import { getMemberStats } from '../../services/storage';
 import MemberDetailModal from './MemberDetailModal';
 import CreateMemberModal from './CreateMemberModal';
+import EditMemberModal from './EditMemberModal';
 
 export default function MemberManagementView({ 
   currentUserId, 
@@ -21,24 +22,39 @@ export default function MemberManagementView({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedMember, setSelectedMember] = useState(null);
+  const [editingMember, setEditingMember] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // Refetch mỗi khi tab members được kích hoạt (bao gồm quay lại từ tab khác)
   useEffect(() => {
     if (activeTab === 'members') {
       loadStats();
     }
   }, [activeTab]);
 
+  // Auto-refetch khi cửa sổ regain focus (Level 2 có thể đã sửa profile từ phiên khác)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (activeTab === 'members') {
+        loadStats();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [activeTab, currentUserId]);
+
   const loadStats = async () => {
     setIsLoading(true);
-    const data = await getMemberStats();
+    const data = await getMemberStats(currentUserId, userProfile?.role);
     setMembers(data);
     setIsLoading(false);
   };
 
   const filteredMembers = members.filter(m => {
+    const titleVal = m.title || m.job_title || m.position || m.chuc_vu || '';
     const matchesSearch = (m.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (m.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+                          (m.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          titleVal.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || m.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -216,9 +232,9 @@ export default function MemberManagementView({
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      {member.title ? (
+                      {(member.title || member.job_title || member.position || member.chuc_vu) ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-muted text-muted-foreground border border-border">
-                          {member.title}
+                          {member.title || member.job_title || member.position || member.chuc_vu}
                         </span>
                       ) : (
                         <span className="text-muted-foreground/40 text-xs">—</span>
@@ -266,12 +282,21 @@ export default function MemberManagementView({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center sticky right-0 bg-card group-hover:bg-muted/50 transition-colors z-10 shadow-[-1px_0_0_0_hsl(var(--border))]">
-                      <button 
-                        onClick={() => setSelectedMember(member)}
-                        className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground rounded-lg transition-colors"
-                      >
-                        Xem chi tiết
-                      </button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button 
+                          onClick={() => setSelectedMember(member)}
+                          className="inline-flex items-center justify-center px-2.5 py-1.5 text-xs font-medium bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground rounded-lg transition-colors cursor-pointer"
+                        >
+                          Xem chi tiết
+                        </button>
+                        <button
+                          onClick={() => setEditingMember(member)}
+                          className="inline-flex items-center justify-center p-1.5 text-xs font-medium bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground rounded-lg transition-colors cursor-pointer border border-border"
+                          title="Sửa thông tin / Chức vụ"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -293,6 +318,21 @@ export default function MemberManagementView({
           setMemberAssigneeFilter={setMemberAssigneeFilter}
           drillDownSource={drillDownSource}
           setDrillDownSource={setDrillDownSource}
+          onEditMember={(m) => {
+            setEditingMember(m);
+          }}
+        />
+      )}
+
+      {editingMember && (
+        <EditMemberModal
+          isOpen={Boolean(editingMember)}
+          onClose={() => setEditingMember(null)}
+          member={editingMember}
+          onSuccess={() => {
+            setEditingMember(null);
+            loadStats();
+          }}
         />
       )}
 

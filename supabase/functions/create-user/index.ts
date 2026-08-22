@@ -39,7 +39,8 @@ serve(async (req) => {
     }
 
     // 4. Parse request body
-    const { email, password, fullName, phone } = await req.json()
+    const { email, password, fullName, phone, jobTitle, title } = await req.json()
+    const effectiveJobTitle = jobTitle || title || null
 
     if (!email || !password || !fullName) {
       return new Response(JSON.stringify({ error: 'Thiếu thông tin bắt buộc (Email, Mật khẩu, Họ tên)' }), {
@@ -133,6 +134,7 @@ serve(async (req) => {
         status: 'active',
         full_name: fullName,
         phone: phone || null,
+        job_title: effectiveJobTitle,
         max_quota: 0
       })
       .eq('id', newUser.user.id)

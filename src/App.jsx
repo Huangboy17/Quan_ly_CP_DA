@@ -562,7 +562,14 @@ export default function App() {
             <ProfileView
               userSession={userSession}
               userProfile={userProfile}
-              onProfileUpdated={() => refreshData()}
+              onProfileUpdated={() => {
+                refreshData();
+                if (userSession?.user?.id) {
+                  fetchUserProfileWithParent(userSession.user.id).then(p => {
+                    if (p) setUserProfile(p);
+                  });
+                }
+              }}
             />
           )}
 

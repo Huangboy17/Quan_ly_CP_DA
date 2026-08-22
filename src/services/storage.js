@@ -2315,6 +2315,10 @@ export async function fetchUserProfile(userId) {
     console.error('Error fetching user profile:', error);
     return null;
   }
+  if (data) {
+    data.title = data.job_title || data.position || data.chuc_vu || data.title || '';
+    data.job_title = data.title;
+  }
   return data;
 }
 
@@ -2327,6 +2331,11 @@ export async function fetchUserProfileWithParent(userId) {
     .eq('id', userId)
     .single();
   if (error || !profile) return null;
+
+  if (profile) {
+    profile.title = profile.job_title || profile.position || profile.chuc_vu || profile.title || '';
+    profile.job_title = profile.title;
+  }
 
   // Nếu là Level 2, kiểm tra parent status qua RPC an toàn
   if (profile.role === 'level_2' && profile.parent_id) {
@@ -2394,16 +2403,36 @@ export async function updateLevel1Profile(targetUserId, { fullName, phone }) {
 
 export async function updateOwnProfile({ fullName, birthDate, jobTitle, company }) {
   if (!supabase) return { success: false, error: 'Supabase not configured' };
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id) return { success: false, error: 'Chưa đăng nhập' };
+
+  // RPC update_own_profile ghi trực tiếp vào profiles (migration V4):
+  // UPDATE profiles SET full_name, birth_date, job_title, company WHERE id = auth.uid()
   const { error } = await supabase.rpc('update_own_profile', {
     new_full_name: fullName || null,
     new_birth_date: birthDate || null,
     new_job_title: jobTitle || null,
     new_company: company || null,
   });
+
   if (error) {
-    console.error('Error updating own profile:', error);
-    return { success: false, error: error.message };
+    // Fallback: direct update nếu RPC lỗi
+    console.warn('RPC update_own_profile error, performing direct update fallback:', error);
+    const { error: directErr } = await supabase
+      .from('profiles')
+      .update({
+        full_name: fullName || null,
+        birth_date: birthDate || null,
+        job_title: jobTitle || null,
+        company: company || null,
+      })
+      .eq('id', session.user.id);
+    if (directErr) {
+      console.error('Error updating own profile:', directErr);
+      return { success: false, error: directErr.message };
+    }
   }
+
   return { success: true };
 }
 
@@ -2429,14 +2458,26 @@ export async function safeDeleteAccount(targetUserId) {
 }
 
 // Tạo thành viên Level 2 — gọi Edge Function create-user
-export async function createLevel2Member({ fullName, email, password, phone }) {
+export async function createLevel2Member({ fullName, email, password, phone, jobTitle, title }) {
   if (!supabase) return { success: false, error: 'Supabase not configured' };
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return { success: false, error: 'Chưa đăng nhập' };
 
+    const effectiveTitle = jobTitle || title || '';
+    const currentUserId = session.user.id;
+
     const response = await supabase.functions.invoke('create-user', {
-      body: { fullName, email, password, phone },
+      body: { 
+        fullName, 
+        email, 
+        password, 
+        phone, 
+        jobTitle: effectiveTitle, 
+        job_title: effectiveTitle,
+        title: effectiveTitle,
+        parentId: currentUserId 
+      },
     });
 
     if (response.error) {
@@ -2448,10 +2489,88 @@ export async function createLevel2Member({ fullName, email, password, phone }) {
     if (result?.error) {
       return { success: false, error: result.error };
     }
+
+    const createdUserId = result?.user?.id;
+    if (createdUserId) {
+      try {
+        const { error: updateErr } = await supabase
+          .from('profiles')
+          .update({ 
+            parent_id: currentUserId,
+            role: 'level_2',
+            job_title: effectiveTitle || null,
+            full_name: fullName || null,
+            phone: phone || null,
+            status: 'active'
+          })
+          .eq('id', createdUserId);
+
+        if (updateErr) {
+          console.warn('Post-create profile update error:', updateErr);
+        }
+      } catch (updateErr) {
+        console.warn('Post-create profile update skipped:', updateErr);
+      }
+    }
+
     return { success: true, user: result?.user };
   } catch (e) {
     console.error('Exception creating Level 2:', e);
     return { success: false, error: e.message || 'Lỗi không xác định' };
+  }
+}
+
+// Cập nhật thông tin thành viên Level 2 (Họ tên, số điện thoại, chức vụ)
+export async function updateLevel2MemberProfile(targetUserId, { fullName, phone, jobTitle, title }) {
+  if (!supabase || !targetUserId) return { success: false, error: 'Supabase not configured' };
+  try {
+    const effectiveTitle = jobTitle !== undefined ? jobTitle : title;
+
+    // 1. Thử direct update trên bảng profiles (Sẽ thành công trực tiếp khi RLS policy cho Level 1 update Level 2 được bật)
+    const { error: directErr } = await supabase
+      .from('profiles')
+      .update({
+        full_name: fullName || null,
+        phone: phone || null,
+        job_title: effectiveTitle || null
+      })
+      .eq('id', targetUserId);
+
+    if (!directErr) {
+      return { success: true };
+    }
+
+    console.warn('Direct update profile failed, trying RPC update_level2_profile_by_parent fallback:', directErr);
+
+    // 2. Thử RPC update_level2_profile_by_parent
+    const { error: rpcErr } = await supabase.rpc('update_level2_profile_by_parent', {
+      target_user_id: targetUserId,
+      new_full_name: fullName || null,
+      new_phone: phone || null,
+      new_job_title: effectiveTitle || null
+    });
+
+    if (!rpcErr) {
+      return { success: true };
+    }
+
+    console.warn('RPC update_level2_profile_by_parent failed:', rpcErr);
+
+    // 3. Thử RPC update_user_profile
+    const { error: rpcErr2 } = await supabase.rpc('update_user_profile', {
+      target_user_id: targetUserId,
+      new_full_name: fullName || null,
+      new_phone: phone || null
+    });
+
+    if (rpcErr2) {
+      throw directErr || rpcErr || rpcErr2;
+    }
+
+    return { success: true };
+  } catch (e) {
+    console.error('Error updating Level 2 member profile:', e);
+    return { success: false, error: e.message || 'Lỗi không xác định khi cập nhật' };
   }
 }
 
@@ -2470,15 +2589,93 @@ export async function fetchAuditLogs(limit = 50) {
   return data || [];
 }
 
-export async function getMemberStats() {
+export async function getMemberStats(currentUserId, userRole = 'level_1') {
   if (!isSupabaseConfigured || !supabase) return [];
   try {
-    const { data, error } = await supabase.rpc('rpc_get_member_stats');
-    if (error) {
-      console.error('Lỗi khi lấy thống kê thành viên:', error);
-      return [];
+    // Bước 1: Lấy stats từ RPC (nguồn chính cho danh sách thành viên + thống kê)
+    let rpcMembers = [];
+    try {
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('rpc_get_member_stats');
+      if (!rpcErr && rpcData && rpcData.length > 0) {
+        rpcMembers = rpcData;
+      }
+    } catch (rpcErr) {
+      console.warn('RPC rpc_get_member_stats failed:', rpcErr);
     }
-    return data || [];
+
+    // Bước 2: Lấy profiles mới nhất từ bảng profiles (để cập nhật thông tin cá nhân)
+    let freshProfileMap = {};
+    try {
+      const freshProfiles = await fetchSubordinates(currentUserId, userRole);
+      freshProfiles.forEach(p => {
+        freshProfileMap[p.id] = p;
+      });
+    } catch (fetchErr) {
+      console.warn('fetchSubordinates failed:', fetchErr);
+    }
+
+    // Bước 3: Nếu RPC có data → dùng RPC làm danh sách gốc, merge profile mới nhất lên trên
+    if (rpcMembers.length > 0) {
+      const resultMap = {};
+      
+      // Đưa tất cả RPC members vào result
+      rpcMembers.forEach(m => {
+        const fresh = freshProfileMap[m.id];
+        resultMap[m.id] = {
+          ...m,
+          // Nếu có profile mới nhất, ghi đè thông tin cá nhân
+          full_name: fresh?.full_name || m.full_name,
+          email: fresh?.email || m.email,
+          phone: fresh?.phone || m.phone,
+          job_title: fresh?.job_title || m.job_title || '',
+          title: fresh?.title || fresh?.job_title || m.title || m.job_title || '',
+          status: fresh?.status || m.status,
+        };
+      });
+
+      // Thêm members từ profiles mà RPC không trả về (VD: vừa tạo mới)
+      Object.keys(freshProfileMap).forEach(id => {
+        if (!resultMap[id]) {
+          const p = freshProfileMap[id];
+          resultMap[id] = {
+            id: p.id,
+            full_name: p.full_name,
+            email: p.email,
+            phone: p.phone,
+            status: p.status || 'active',
+            role: p.role,
+            created_at: p.created_at,
+            job_title: p.job_title,
+            title: p.title || p.job_title || '',
+            project_count: 0,
+            contract_count: 0,
+            in_progress_count: 0,
+            settled_count: 0,
+            total_value: 0,
+          };
+        }
+      });
+
+      return Object.values(resultMap);
+    }
+
+    // Bước 4: Nếu RPC rỗng → fallback hoàn toàn sang profiles
+    return Object.values(freshProfileMap).map(p => ({
+      id: p.id,
+      full_name: p.full_name,
+      email: p.email,
+      phone: p.phone,
+      status: p.status || 'active',
+      role: p.role,
+      created_at: p.created_at,
+      job_title: p.job_title,
+      title: p.title || p.job_title || '',
+      project_count: 0,
+      contract_count: 0,
+      in_progress_count: 0,
+      settled_count: 0,
+      total_value: 0,
+    }));
   } catch (e) {
     console.error('Exception lấy thống kê:', e);
     return [];
@@ -2490,7 +2687,7 @@ export async function fetchSubordinates(userId, userRole = 'level_1') {
   try {
     let query = supabase
       .from('profiles')
-      .select('id, full_name, email, role, status, phone, created_at')
+      .select('id, full_name, email, role, status, phone, created_at, job_title')
       .neq('status', 'archived');
     
     if (userRole === 'admin' || userRole === 'super_admin') {
@@ -2500,8 +2697,29 @@ export async function fetchSubordinates(userId, userRole = 'level_1') {
     }
 
     const { data, error } = await query;
-    if (error) throw error;
-    return data || [];
+    if (error) {
+      console.error('fetchSubordinates query error:', error);
+      // Fallback: thử select * nếu select cụ thể bị lỗi
+      let fallbackQuery = supabase
+        .from('profiles')
+        .select('*')
+        .neq('status', 'archived');
+      if (userRole === 'admin' || userRole === 'super_admin') {
+        fallbackQuery = fallbackQuery.in('role', ['level_2', 'level_1', 'user']);
+      } else {
+        fallbackQuery = fallbackQuery.eq('parent_id', userId);
+      }
+      const { data: fbData, error: fbErr } = await fallbackQuery;
+      if (fbErr) throw fbErr;
+      return (fbData || []).map(p => ({
+        ...p,
+        title: p.job_title || p.title || p.position || ''
+      }));
+    }
+    return (data || []).map(p => ({
+      ...p,
+      title: p.job_title || p.title || p.position || ''
+    }));
   } catch (e) {
     console.error('Error fetching subordinates:', e);
     return [];

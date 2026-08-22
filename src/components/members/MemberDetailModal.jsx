@@ -35,7 +35,8 @@ export default function MemberDetailModal({
   setContractDrillDown,
   setMemberAssigneeFilter,
   drillDownSource,
-  setDrillDownSource
+  setDrillDownSource,
+  onEditMember
 }) {
   const [contractSearch, setContractSearch] = useState('');
   const [contractStatusFilter, setContractStatusFilter] = useState('all'); // 'all' | 'in_progress' | 'settled' | 'overdue'
@@ -267,10 +268,10 @@ export default function MemberDetailModal({
                     <Mail className="w-3.5 h-3.5 text-primary" />
                     <span>{member.email}</span>
                   </div>
-                  {member.title && (
+                  {(member.title || member.job_title || member.position || member.chuc_vu) && (
                     <div className="flex items-center gap-1.5 font-medium">
                       <Briefcase className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>{member.title}</span>
+                      <span>{member.title || member.job_title || member.position || member.chuc_vu}</span>
                     </div>
                   )}
                   <div className="flex items-center gap-1.5 font-medium">
@@ -282,15 +283,30 @@ export default function MemberDetailModal({
             </div>
 
             {/* Manager info & Registration metadata */}
-            <div className="bg-card/80 border border-border rounded-xl p-3 text-xs space-y-1 text-right self-stretch sm:self-auto min-w-[200px]">
-              <p className="text-[11px] text-muted-foreground flex items-center justify-end gap-1">
-                <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
-                Quản lý cấp trên: <span className="font-bold text-foreground">{userProfile?.full_name || 'Cấp 1'}</span>
-              </p>
-              <p className="text-[11px] text-muted-foreground flex items-center justify-end gap-1">
-                <Calendar className="w-3.5 h-3.5 text-primary" />
-                Tham gia: <span className="font-mono text-foreground font-semibold">{formatDisplayDate(member.created_at)}</span>
-              </p>
+            <div className="bg-card/80 border border-border rounded-xl p-3 text-xs space-y-1 text-right self-stretch sm:self-auto min-w-[200px] flex flex-col justify-between">
+              <div>
+                <p className="text-[11px] text-muted-foreground flex items-center justify-end gap-1">
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
+                  Quản lý cấp trên: <span className="font-bold text-foreground">{userProfile?.full_name || 'Cấp 1'}</span>
+                </p>
+                <p className="text-[11px] text-muted-foreground flex items-center justify-end gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-primary" />
+                  Tham gia: <span className="font-mono text-foreground font-semibold">{formatDisplayDate(member.created_at)}</span>
+                </p>
+              </div>
+              {onEditMember && (
+                <div className="pt-2 flex justify-end">
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onEditMember(member);
+                    }}
+                    className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-semibold rounded-lg transition cursor-pointer flex items-center gap-1 border border-primary/20"
+                  >
+                    Chỉnh sửa Chức vụ / Thông tin
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
