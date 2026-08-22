@@ -29,7 +29,7 @@ import {
   Loader2,
   UserCircle
 } from 'lucide-react';
-import { formatVND, formatDisplayDate, formatCurrencyByUnit } from '../../utils/formatters';
+import { formatVND, formatDisplayDate, formatCurrencyByUnit, cleanVND, calcEndDate } from '../../utils/formatters';
 import { exportContractsExcel, exportContractsPdf } from '../../utils/export/contractExport';
 import PdfPreviewModal from '../common/PdfPreviewModal';
 import { COST_GROUP_OPTIONS } from './ContractModal';
@@ -54,7 +54,9 @@ export default function ContractsView({
   onAddPaymentForContract,
   onOpenAppendixModal,
   onOpenExcelImport,
-  globalSearch
+  globalSearch,
+  contractDrillDown,
+  setContractDrillDown
 }) {
   const { contracts = [], filteredContracts: centralFilteredContracts = [], projects = [], periodLabel } = data;
 
@@ -152,6 +154,46 @@ export default function ContractsView({
   });
 
   
+  // Drill-down filter labels
+  const DRILL_DOWN_LABELS = {
+    in_execution: 'Đang thực hiện',
+    disbursing: 'Đang giải ngân',
+    settled: 'Đã quyết toán',
+    not_disbursed: 'Chưa giải ngân',
+    overdue: 'Quá hạn chưa quyết toán',
+  };
+
+  // Drill-down filter — uses EXACT same business logic as ProjectsView KPIs (lines 261-292)
+  const drillDownSourceContracts = contractDrillDown
+    ? dashboardSourceContracts.filter(c => {
+        const allPayments = data.payments || [];
+        const cEst = (c.settlement_amount_after_vat !== undefined && c.settlement_amount_after_vat !== null && c.settlement_amount_after_vat !== '')
+          ? cleanVND(c.settlement_amount_after_vat)
+          : cleanVND(c.value_after_vat || c.contractValueAfterVAT || 0);
+        const cPaid = allPayments
+          .filter(p => p.contract_id === c.id)
+          .reduce((s, p) => s + cleanVND(p.amount_after_vat), 0);
+
+        const signingDate = c.signing_date || '';
+        const executionDays = Number(c.execution_days || 0);
+        const exactEndDate = signingDate && executionDays > 0
+          ? calcEndDate(signingDate, executionDays)
+          : (c.end_date || '');
+        const todayStr = new Date().toISOString().substring(0, 10);
+        const isOverdue = exactEndDate && todayStr > exactEndDate && c.status !== 'settled';
+        const isSettled = c.status === 'settled' || (cEst > 0 && cPaid >= cEst);
+
+        switch (contractDrillDown) {
+          case 'settled': return isSettled;
+          case 'disbursing': return !isSettled && cPaid > 0;
+          case 'not_disbursed': return !isSettled && cPaid === 0;
+          case 'in_execution': return !isSettled && !isOverdue;
+          case 'overdue': return !isSettled && isOverdue;
+          default: return true;
+        }
+      })
+    : dashboardSourceContracts;
+
   // Function to determine schedule status
   const getScheduleStatus = (c) => {
     if (c.status === 'settled') return 'Đã hoàn thành';
@@ -172,7 +214,7 @@ export default function ContractsView({
     return 'Đúng tiến độ';
   };
 
-  const filteredContracts = dashboardSourceContracts.filter(c => {
+  const filteredContracts = drillDownSourceContracts.filter(c => {
     if (chartCostGroupFilter) {
       const cg = c.costGroup || 'Chưa phân loại';
       if (cg !== chartCostGroupFilter) return false;
@@ -253,7 +295,7 @@ export default function ContractsView({
   };
 
   return (
-    <div className="space-y-4 animate-fade-in pb-12">
+    <div className="space-y-4 sm:space-y-5 animate-fade-in pb-8 w-full max-w-full">
       
       {/* Banner */}
       <div className="p-5 rounded-2xl bg-card border border-border shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -322,6 +364,23 @@ export default function ContractsView({
           </div>
           <button onClick={clearChartFilters} className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
             <X className="w-3.5 h-3.5" /> Xóa bộ lọc biểu đồ
+          </button>
+        </div>
+      )}
+
+      {/* Drill-down filter badge from ProjectsView KPI */}
+      {contractDrillDown && (
+        <div className="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+          <div className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2 font-semibold">
+            <Search className="w-4 h-4" />
+            Đang lọc từ Dự án: <span className="font-bold">{DRILL_DOWN_LABELS[contractDrillDown] || contractDrillDown}</span>
+            <span className="text-muted-foreground font-normal">({filteredContracts.length} hợp đồng)</span>
+          </div>
+          <button 
+            onClick={() => setContractDrillDown && setContractDrillDown(null)} 
+            className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-amber-500/40"
+          >
+            <X className="w-3.5 h-3.5" /> Xóa bộ lọc
           </button>
         </div>
       )}

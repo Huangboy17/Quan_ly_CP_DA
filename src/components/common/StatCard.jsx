@@ -9,55 +9,51 @@ export default function StatCard({
   progress, 
   badge 
 }) {
-
   const colorStyles = {
     blue: {
-      border: 'border-primary/30 hover:border-primary/50',
-      iconBg: 'bg-primary/10 text-primary border border-primary/20',
-      progressBg: 'bg-primary',
+      border: 'border-blue-500/20 hover:border-blue-500/40',
+      iconBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
+      progressBg: 'bg-blue-500',
     },
     emerald: {
-      border: 'border-success/30 hover:border-success/50',
-      iconBg: 'bg-success/10 text-success border border-success/20',
-      progressBg: 'bg-success',
+      border: 'border-emerald-500/20 hover:border-emerald-500/40',
+      iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+      progressBg: 'bg-emerald-500',
     },
     amber: {
-      border: 'border-warning/30 hover:border-warning/50',
-      iconBg: 'bg-warning/10 text-warning border border-warning/20',
-      progressBg: 'bg-warning',
+      border: 'border-amber-500/20 hover:border-amber-500/40',
+      iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
+      progressBg: 'bg-amber-500',
     },
     purple: {
-      border: 'border-primary/30 hover:border-primary/50',
-      iconBg: 'bg-primary/10 text-primary border border-primary/20',
-      progressBg: 'bg-primary',
+      border: 'border-purple-500/20 hover:border-purple-500/40',
+      iconBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20',
+      progressBg: 'bg-purple-500',
     },
     rose: {
-      border: 'border-destructive/30 hover:border-destructive/50',
-      iconBg: 'bg-destructive/10 text-destructive border border-destructive/20',
-      progressBg: 'bg-destructive',
+      border: 'border-rose-500/20 hover:border-rose-500/40',
+      iconBg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20',
+      progressBg: 'bg-rose-500',
     },
     cyan: {
-      border: 'border-primary/30 hover:border-primary/50',
-      iconBg: 'bg-primary/10 text-primary border border-primary/20',
-      progressBg: 'bg-primary',
+      border: 'border-cyan-500/20 hover:border-cyan-500/40',
+      iconBg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20',
+      progressBg: 'bg-cyan-500',
     },
   };
 
   const style = colorStyles[color] || colorStyles.blue;
 
   return (
-    <div className={`p-3.5 sm:p-4 rounded-xl bg-card border ${style.border} transition duration-200 shadow-md flex flex-col justify-between relative overflow-hidden group`}>
-      {/* Background Subtle Gradient Glow */}
-      <div className="absolute -right-6 -bottom-6 w-20 h-20 rounded-full bg-muted blur-xl group-hover:bg-muted/80 transition pointer-events-none" />
-
+    <div className={`p-3.5 sm:p-4 rounded-xl bg-card border ${style.border} transition duration-150 shadow-2xs flex flex-col justify-between relative overflow-hidden group`}>
       <div>
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+          <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
             {title}
           </span>
           {Icon && (
-            <div className={`p-1.5 rounded-lg ${style.iconBg}`}>
-              <Icon className="w-4 h-4" />
+            <div className={`p-1.5 rounded-lg ${style.iconBg} shrink-0`}>
+              <Icon className="w-3.5 h-3.5" />
             </div>
           )}
         </div>
@@ -67,7 +63,7 @@ export default function StatCard({
         </div>
 
         {subtext && (
-          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1 font-medium truncate">
             {subtext}
           </p>
         )}
@@ -96,3 +92,4 @@ export default function StatCard({
     </div>
   );
 }
+

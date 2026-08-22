@@ -150,41 +150,41 @@ export default function DashboardView({
   }, [filteredProjects, projects]);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-4 sm:space-y-5 animate-fade-in pb-8 w-full max-w-full">
       
       {/* Time & Project Analytics Scope Banner */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-card border border-border shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
+      <div className="p-4 sm:p-5 rounded-xl bg-card border border-border shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors">
         <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold font-mono">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[11px] font-bold font-mono">
               📅 KỲ PHÂN TÍCH: {(periodLabel || 'TẤT CẢ THỜI GIAN').toUpperCase()}
             </span>
 
             {/* Global Project Scope Badge */}
             {selectedProjectObj ? (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/10 text-success border border-success/30 text-xs font-bold">
+              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold">
                 <span>🏢 DỰ ÁN: {selectedProjectObj.name}</span>
                 {setSelectedProjectId && (
                   <button 
                     onClick={() => setSelectedProjectId('')}
-                    className="p-0.5 hover:bg-success/20 rounded-full transition cursor-pointer text-emerald-300 ml-1"
+                    className="p-0.5 hover:bg-emerald-500/20 rounded-full transition cursor-pointer ml-1"
                     title="Bỏ lọc dự án (Xem tất cả)"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3 h-3" />
                   </button>
                 )}
               </div>
             ) : (
-              <span className="px-3 py-1 rounded-full bg-muted text-foreground border border-border text-xs font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-muted text-foreground border border-border text-[11px] font-bold">
                 🏢 TẤT CẢ DỰ ÁN
               </span>
             )}
 
             {totals.hasPrevPeriod && totals.prevPeriodLabel && totals.periodGrowthPct !== null && !isNaN(totals.periodGrowthPct) && (
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 border ${
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1 border ${
                 totals.periodGrowthPct >= 0 
-                  ? 'bg-success/10 text-success border-success/20' 
-                  : 'bg-destructive/10 text-destructive border-destructive/20'
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' 
+                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'
               }`}>
                 {totals.periodGrowthPct >= 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
                 {totals.periodGrowthPct >= 0 ? `+${totals.periodGrowthPct}%` : `${totals.periodGrowthPct}%`} so với {totals.prevPeriodLabel}
@@ -192,30 +192,30 @@ export default function DashboardView({
             )}
 
             {!totals.hasPrevPeriod && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold text-foreground bg-muted border border-border">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold text-muted-foreground bg-muted border border-border">
                 ♾️ Lũy kế toàn thời gian
               </span>
             )}
           </div>
 
-          <h2 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight mt-2 flex items-center gap-2">
+          <h2 className="text-lg lg:text-xl font-bold text-foreground tracking-tight mt-1.5 flex items-center gap-2">
             📊 Phân Tích Dòng Tiền & Tiến Độ Giải Ngân
           </h2>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Số liệu tài chính được lọc đồng thời theo dự án <span className="text-primary font-semibold">{selectedProjectObj ? selectedProjectObj.name : 'Tất cả dự án'}</span> và phạm vi thời gian <span className="text-primary font-semibold">{periodLabel || 'Tất cả thời gian'}</span>.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-2 sm:gap-3">
+        <div className="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-2 shrink-0">
           <button
             onClick={onNewContract}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/20 transition flex justify-center items-center gap-2"
+            className="w-full sm:w-auto px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold shadow-2xs transition flex justify-center items-center gap-1.5 cursor-pointer"
           >
             + Nhập Hợp Đồng Mới
           </button>
           <button
             onClick={onNewPayment}
-            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-success hover:bg-success/90 text-success-foreground text-xs font-semibold shadow-lg shadow-success/20 transition flex justify-center items-center gap-2"
+            className="w-full sm:w-auto px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs transition flex justify-center items-center gap-1.5 cursor-pointer"
           >
             + Nhập Thanh Toán Đợt
           </button>

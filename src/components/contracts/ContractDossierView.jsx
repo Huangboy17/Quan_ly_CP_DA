@@ -376,7 +376,7 @@ export default function ContractDossierView({
   }
 
   return (
-    <div className="space-y-3.5 animate-fade-in pb-8">
+    <div className="space-y-3.5 sm:space-y-4 animate-fade-in pb-8 w-full max-w-full">
       
       {/* 1. COMPACT STREAMLINED HEADER BAR (SaaS 4-line Layout) */}
       <div className="p-4 rounded-xl bg-card border border-border shadow-sm space-y-3">

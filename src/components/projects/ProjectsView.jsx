@@ -67,7 +67,8 @@ export default function ProjectsView({ data, userSession, currentUserRole,
   setSelectedProjectId, 
   setActiveTab,
   onSelectCostGroup,
-  globalSearch 
+  globalSearch,
+  setContractDrillDown
 }) {
   const { 
     projects = [], 
@@ -388,8 +389,9 @@ export default function ProjectsView({ data, userSession, currentUserRole,
   const formattedAddress = activeProj.location || activeProj.address || 'Chưa cập nhật';
 
   // Navigation Helpers
-  const navigateToContractsWithFilter = () => {
+  const navigateToContractsWithFilter = (drillDownType) => {
     if (setSelectedProjectId) setSelectedProjectId(activeProj.id);
+    if (setContractDrillDown) setContractDrillDown(drillDownType || null);
     setActiveTab('contracts');
   };
 
@@ -460,7 +462,7 @@ export default function ProjectsView({ data, userSession, currentUserRole,
   }
 
   return (
-    <div className="space-y-6 animate-fade-in pb-12">
+    <div className="space-y-4 sm:space-y-5 animate-fade-in pb-8 w-full max-w-full">
       
       {/* Toast Notification Banner */}
       {toastMsg && (
@@ -932,7 +934,7 @@ export default function ProjectsView({ data, userSession, currentUserRole,
           <div className="grid grid-cols-2 gap-2.5 text-xs">
             
             <div 
-              onClick={navigateToContractsWithFilter}
+              onClick={() => navigateToContractsWithFilter('in_execution')}
               className="p-3 rounded-xl bg-background/60 border border-border/80 hover:border-primary/60 cursor-pointer transition flex items-center justify-between"
             >
               <div>
@@ -943,7 +945,7 @@ export default function ProjectsView({ data, userSession, currentUserRole,
             </div>
 
             <div 
-              onClick={navigateToContractsWithFilter}
+              onClick={() => navigateToContractsWithFilter('disbursing')}
               className="p-3 rounded-xl bg-background/60 border border-border/80 hover:border-success/60 cursor-pointer transition flex items-center justify-between"
             >
               <div>
@@ -954,7 +956,7 @@ export default function ProjectsView({ data, userSession, currentUserRole,
             </div>
 
             <div 
-              onClick={navigateToContractsWithFilter}
+              onClick={() => navigateToContractsWithFilter('settled')}
               className="p-3 rounded-xl bg-background/60 border border-border/80 hover:border-primary/60 cursor-pointer transition flex items-center justify-between"
             >
               <div>
@@ -965,7 +967,7 @@ export default function ProjectsView({ data, userSession, currentUserRole,
             </div>
 
             <div 
-              onClick={navigateToContractsWithFilter}
+              onClick={() => navigateToContractsWithFilter('not_disbursed')}
               className="p-3 rounded-xl bg-background/60 border border-border/80 hover:border-warning/60 cursor-pointer transition flex items-center justify-between"
             >
               <div>
@@ -976,7 +978,7 @@ export default function ProjectsView({ data, userSession, currentUserRole,
             </div>
 
             <div 
-              onClick={navigateToContractsWithFilter}
+              onClick={() => navigateToContractsWithFilter('overdue')}
               className="col-span-2 p-3 rounded-xl bg-background/60 border border-destructive/40 hover:border-destructive cursor-pointer transition flex items-center justify-between"
             >
               <div className="flex items-center gap-2">
@@ -996,7 +998,7 @@ export default function ProjectsView({ data, userSession, currentUserRole,
 
           <div className="pt-2 border-t border-border flex justify-end">
             <button
-              onClick={navigateToContractsWithFilter}
+              onClick={() => navigateToContractsWithFilter(null)}
               className="text-xs font-bold text-primary hover:text-primary/90 flex items-center gap-1 transition cursor-pointer"
             >
               Quản lý hợp đồng chi tiết <ArrowRight className="w-3.5 h-3.5" />

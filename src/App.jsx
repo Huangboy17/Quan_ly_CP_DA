@@ -56,6 +56,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [globalSearch, setGlobalSearch] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('');
+  const [contractDrillDown, setContractDrillDown] = useState(null); // null | 'in_execution' | 'disbursing' | 'settled' | 'not_disbursed' | 'overdue'
 
   // Supabase Auth State
   const [userSession, setUserSession] = useState(null);
@@ -66,6 +67,11 @@ export default function App() {
   
   // Mobile Sidebar State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Auto-clear drill-down when navigating away from contracts tab
+  useEffect(() => {
+    if (activeTab !== 'contracts') setContractDrillDown(null);
+  }, [activeTab]);
 
   // Check URL on initial mount for /reset-password
   useEffect(() => {
@@ -521,7 +527,7 @@ export default function App() {
       />
 
       {/* Main Content Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-full px-2 sm:px-4 lg:px-6 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row w-full max-w-full px-2 sm:px-4 lg:px-6 2xl:px-8 overflow-hidden">
         
         {/* Left Navigation Sidebar */}
         <Sidebar
@@ -545,7 +551,7 @@ export default function App() {
         />
 
         {/* Right Main Screen View */}
-        <main className="flex-1 p-3 sm:p-4 lg:p-6 overflow-y-auto min-w-0 w-full">
+        <main className="flex-1 p-3 sm:p-4 lg:p-5 2xl:p-6 overflow-y-auto min-w-0 w-full">
           {activeTab === 'profile' && (
             <ProfileView
               userSession={userSession}
@@ -594,6 +600,8 @@ export default function App() {
               onOpenAppendixModal={handleOpenAppendixModal}
               onOpenExcelImport={handleOpenExcelImport}
               globalSearch={globalSearch}
+              contractDrillDown={contractDrillDown}
+              setContractDrillDown={setContractDrillDown}
             />
           )}
 
@@ -660,6 +668,7 @@ export default function App() {
               setActiveTab={setActiveTab}
               onSelectCostGroup={(costGroup, projId) => handleSelectCostGroupFilter(costGroup, projId)}
               globalSearch={globalSearch}
+              setContractDrillDown={setContractDrillDown}
             />
           )}
         </main>

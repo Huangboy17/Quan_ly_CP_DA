@@ -431,7 +431,7 @@ export default function PaymentsView({
   const selectedProjectObj = projects.find(p => String(p.id) === String(selectedProjectId));
 
   return (
-    <div className="space-y-5 animate-fade-in pb-12">
+    <div className="space-y-4 sm:space-y-5 animate-fade-in pb-8 w-full max-w-full">
 
       {/* HEADER COMPACT */}
       <div className="p-4 rounded-2xl bg-card border border-border shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-3 min-h-[64px]">
