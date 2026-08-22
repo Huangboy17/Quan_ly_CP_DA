@@ -1,10 +1,11 @@
 import React from 'react';
 import { LayoutDashboard, FileText, CreditCard, FolderKanban, Plus , Users} from 'lucide-react';
 
-export default function Sidebar({ activeTab, currentUserRole, setActiveTab, counts, onNewProject, isMobileMenuOpen, setIsMobileMenuOpen }) {
+export default function Sidebar({ activeTab, currentUserRole, userProfile, setActiveTab, counts, onNewProject, isMobileMenuOpen, setIsMobileMenuOpen }) {
   let navItems = [];
+  const effectiveRole = userProfile?.role || currentUserRole;
   
-  if (currentUserRole === 'super_admin') {
+  if (effectiveRole === 'super_admin') {
     navItems = [
       {
         id: 'admin',
@@ -24,6 +25,13 @@ export default function Sidebar({ activeTab, currentUserRole, setActiveTab, coun
         badge: null,
       },
       {
+        id: 'projects',
+        label: 'Dự án',
+        sublabel: 'Danh sách & Tổng quan dự án',
+        icon: FolderKanban,
+        badge: counts?.projectsCount || 0,
+      },
+      {
         id: 'contracts',
         label: 'Quản lý Hợp đồng',
         sublabel: 'Danh sách & Nhập liệu',
@@ -37,21 +45,14 @@ export default function Sidebar({ activeTab, currentUserRole, setActiveTab, coun
         icon: CreditCard,
         badge: counts?.paymentsCount || 0,
       },
-      {
-        id: 'projects',
-        label: 'Tổng quan dự án',
-        sublabel: 'Xem tổng quan theo từng dự án',
-        icon: FolderKanban,
-        badge: counts?.projectsCount || 0,
-      },
     ];
   }
 
-  if (currentUserRole === 'level_1') {
+  if (effectiveRole === 'user' || effectiveRole === 'admin' || effectiveRole === 'level_1') {
     navItems.push({
-      id: 'members',
-      label: 'Quản lý thành viên',
-      sublabel: 'Theo dõi khối lượng công việc',
+      id: effectiveRole === 'user' ? 'staff' : 'members',
+      label: effectiveRole === 'user' ? 'Quản lý Nhân sự' : 'Quản lý thành viên',
+      sublabel: 'Theo dõi khối lượng công việc & nhân sự',
       icon: Users,
       badge: null,
     });
