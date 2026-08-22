@@ -42,6 +42,7 @@ import {
   Cell
 } from 'recharts';
 import { formatVND, formatVNDCompact, formatDisplayDate, cleanVND, calcEndDate, calcDaysBetween } from '../../utils/formatters';
+import { getContractFinancialsAndDeadline } from '../../utils/contractStatus';
 import { exportProjectExcel, exportProjectPdf } from '../../utils/export/projectExport';
 import TmdtHistoryModal from './TmdtHistoryModal';
 import TmdtFormModal from './TmdtFormModal';
@@ -269,17 +270,9 @@ export default function ProjectsView({ data, userSession, currentUserRole,
   let countOverdue = 0;
 
   projContracts.forEach(c => {
-    const cEst = (c.settlement_amount_after_vat !== undefined && c.settlement_amount_after_vat !== null && c.settlement_amount_after_vat !== '')
-      ? cleanVND(c.settlement_amount_after_vat)
-      : cleanVND(c.value_after_vat || c.contractValueAfterVAT || 0);
-    const cPaid = projAllPayments.filter(p => p.contract_id === c.id).reduce((s, p) => s + cleanVND(p.amount_after_vat), 0);
+    const { cPaid, isOverdue, isSettled } = getContractFinancialsAndDeadline(c, projAllPayments, todayStr);
 
-    const signingDate = c.signing_date || '';
-    const executionDays = Number(c.execution_days || 0);
-    const exactEndDate = signingDate && executionDays > 0 ? calcEndDate(signingDate, executionDays) : (c.end_date || '');
-    const isOverdue = exactEndDate && todayStr > exactEndDate && c.status !== 'settled';
-
-    if (c.status === 'settled' || (cEst > 0 && cPaid >= cEst)) {
+    if (isSettled) {
       countSettled++;
     } else if (cPaid > 0) {
       countDisbursing++;

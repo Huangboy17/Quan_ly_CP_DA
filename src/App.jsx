@@ -57,6 +57,8 @@ export default function App() {
   const [globalSearch, setGlobalSearch] = useState('');
   const [selectedContractId, setSelectedContractId] = useState('');
   const [contractDrillDown, setContractDrillDown] = useState(null); // null | 'in_execution' | 'disbursing' | 'settled' | 'not_disbursed' | 'overdue'
+  const [memberAssigneeFilter, setMemberAssigneeFilter] = useState(''); // '' = all, memberId = specific member
+  const [drillDownSource, setDrillDownSource] = useState(null); // null | 'member_detail' | 'project' | 'dashboard'
 
   // Supabase Auth State
   const [userSession, setUserSession] = useState(null);
@@ -68,9 +70,13 @@ export default function App() {
   // Mobile Sidebar State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Auto-clear drill-down when navigating away from contracts tab
+  // Auto-clear drill-down and member assignee filter when navigating away from contracts tab
   useEffect(() => {
-    if (activeTab !== 'contracts') setContractDrillDown(null);
+    if (activeTab !== 'contracts') {
+      setContractDrillDown(null);
+      setMemberAssigneeFilter('');
+      setDrillDownSource(null);
+    }
   }, [activeTab]);
 
   // Check URL on initial mount for /reset-password
@@ -580,7 +586,14 @@ export default function App() {
             <MemberManagementView 
               currentUserId={userSession?.user?.id} 
               activeTab={activeTab} 
-              userProfile={userProfile} 
+              userProfile={userProfile}
+              data={data}
+              setSelectedProjectId={handleSetSelectedProjectId}
+              setActiveTab={setActiveTab}
+              setContractDrillDown={setContractDrillDown}
+              setMemberAssigneeFilter={setMemberAssigneeFilter}
+              drillDownSource={drillDownSource}
+              setDrillDownSource={setDrillDownSource}
             />
           )}
 
@@ -602,6 +615,10 @@ export default function App() {
               globalSearch={globalSearch}
               contractDrillDown={contractDrillDown}
               setContractDrillDown={setContractDrillDown}
+              memberAssigneeFilter={memberAssigneeFilter}
+              setMemberAssigneeFilter={setMemberAssigneeFilter}
+              drillDownSource={drillDownSource}
+              setDrillDownSource={setDrillDownSource}
             />
           )}
 

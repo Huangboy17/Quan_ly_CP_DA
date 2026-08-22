@@ -4,7 +4,18 @@ import { getMemberStats } from '../../services/storage';
 import MemberDetailModal from './MemberDetailModal';
 import CreateMemberModal from './CreateMemberModal';
 
-export default function MemberManagementView({ currentUserId, activeTab, userProfile }) {
+export default function MemberManagementView({ 
+  currentUserId, 
+  activeTab, 
+  userProfile,
+  data,
+  setSelectedProjectId,
+  setActiveTab,
+  setContractDrillDown,
+  setMemberAssigneeFilter,
+  drillDownSource,
+  setDrillDownSource
+}) {
   const [members, setMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -273,7 +284,15 @@ export default function MemberManagementView({ currentUserId, activeTab, userPro
       {selectedMember && (
         <MemberDetailModal 
           member={selectedMember} 
-          onClose={() => setSelectedMember(null)} 
+          onClose={() => setSelectedMember(null)}
+          userProfile={userProfile}
+          data={data}
+          setSelectedProjectId={setSelectedProjectId}
+          setActiveTab={setActiveTab}
+          setContractDrillDown={setContractDrillDown}
+          setMemberAssigneeFilter={setMemberAssigneeFilter}
+          drillDownSource={drillDownSource}
+          setDrillDownSource={setDrillDownSource}
         />
       )}
 

@@ -30,6 +30,7 @@ import {
   UserCircle
 } from 'lucide-react';
 import { formatVND, formatDisplayDate, formatCurrencyByUnit, cleanVND, calcEndDate } from '../../utils/formatters';
+import { matchesDrillDownCategory } from '../../utils/contractStatus';
 import { exportContractsExcel, exportContractsPdf } from '../../utils/export/contractExport';
 import PdfPreviewModal from '../common/PdfPreviewModal';
 import { COST_GROUP_OPTIONS } from './ContractModal';
@@ -56,12 +57,15 @@ export default function ContractsView({
   onOpenExcelImport,
   globalSearch,
   contractDrillDown,
-  setContractDrillDown
+  setContractDrillDown,
+  memberAssigneeFilter = '',
+  setMemberAssigneeFilter,
+  drillDownSource = null,
+  setDrillDownSource
 }) {
   const { contracts = [], filteredContracts: centralFilteredContracts = [], projects = [], periodLabel } = data;
 
-  const baseContracts = centralFilteredContracts || [];
-
+  // Local Filter States
   const [contractorFilter, setContractorFilter] = useState('');
   const [costGroupFilter, setCostGroupFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -84,7 +88,26 @@ export default function ContractsView({
   const [editingAssigneeId, setEditingAssigneeId] = useState(null);
   const [assigneeLoadingMap, setAssigneeLoadingMap] = useState({});
   const [assigneeOverrides, setAssigneeOverrides] = useState({});
-  const [assigneeFilter, setAssigneeFilter] = useState(''); // '' = all, 'unassigned' = chưa phân công, uuid = nhân sự cụ thể
+  const [assigneeFilter, setAssigneeFilter] = useState(memberAssigneeFilter || ''); // '' = all, 'unassigned' = chưa phân công, uuid = nhân sự cụ thể
+
+  // Auto-clear conflicting local filters when drill-down originates from MemberDetailModal
+  useEffect(() => {
+    if (drillDownSource === 'member_detail' || memberAssigneeFilter) {
+      setAssigneeFilter(memberAssigneeFilter);
+      setStatusFilter('');
+      setLocalSearch('');
+      setContractorFilter('');
+      setCostGroupFilter('');
+      setChartCostGroupFilter('');
+      setChartStatusFilter('');
+      setChartScheduleFilter('');
+    }
+  }, [memberAssigneeFilter, contractDrillDown, drillDownSource]);
+
+  // When drill-down originates from MemberDetailModal, use full contracts dataset (across all projects of Level 1)
+  const baseContracts = (drillDownSource === 'member_detail' && memberAssigneeFilter) 
+    ? (contracts || []) 
+    : (centralFilteredContracts || []);
 
   // Fetch danh sách Cấp 2 khi tài khoản Cấp 1 đăng nhập
   useEffect(() => {
@@ -137,7 +160,7 @@ export default function ContractsView({
     if (assigneeFilter) {
       if (assigneeFilter === 'unassigned') {
         if (c.assignee_id) return false;
-      } else if (c.assignee_id !== assigneeFilter) {
+      } else if (String(c.assignee_id) !== String(assigneeFilter)) {
         return false;
       }
     }
@@ -163,35 +186,9 @@ export default function ContractsView({
     overdue: 'Quá hạn chưa quyết toán',
   };
 
-  // Drill-down filter — uses EXACT same business logic as ProjectsView KPIs (lines 261-292)
+  // Drill-down filter — uses single source of truth helper matchesDrillDownCategory
   const drillDownSourceContracts = contractDrillDown
-    ? dashboardSourceContracts.filter(c => {
-        const allPayments = data.payments || [];
-        const cEst = (c.settlement_amount_after_vat !== undefined && c.settlement_amount_after_vat !== null && c.settlement_amount_after_vat !== '')
-          ? cleanVND(c.settlement_amount_after_vat)
-          : cleanVND(c.value_after_vat || c.contractValueAfterVAT || 0);
-        const cPaid = allPayments
-          .filter(p => p.contract_id === c.id)
-          .reduce((s, p) => s + cleanVND(p.amount_after_vat), 0);
-
-        const signingDate = c.signing_date || '';
-        const executionDays = Number(c.execution_days || 0);
-        const exactEndDate = signingDate && executionDays > 0
-          ? calcEndDate(signingDate, executionDays)
-          : (c.end_date || '');
-        const todayStr = new Date().toISOString().substring(0, 10);
-        const isOverdue = exactEndDate && todayStr > exactEndDate && c.status !== 'settled';
-        const isSettled = c.status === 'settled' || (cEst > 0 && cPaid >= cEst);
-
-        switch (contractDrillDown) {
-          case 'settled': return isSettled;
-          case 'disbursing': return !isSettled && cPaid > 0;
-          case 'not_disbursed': return !isSettled && cPaid === 0;
-          case 'in_execution': return !isSettled && !isOverdue;
-          case 'overdue': return !isSettled && isOverdue;
-          default: return true;
-        }
-      })
+    ? dashboardSourceContracts.filter(c => matchesDrillDownCategory(c, data.payments || [], contractDrillDown))
     : dashboardSourceContracts;
 
   // Function to determine schedule status
@@ -381,6 +378,26 @@ export default function ContractsView({
             className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-amber-500/40"
           >
             <X className="w-3.5 h-3.5" /> Xóa bộ lọc
+          </button>
+        </div>
+      )}
+
+      {/* Member filter badge */}
+      {assigneeFilter && assigneeFilter !== 'unassigned' && (
+        <div className="flex items-center justify-between bg-purple-500/10 border border-purple-500/30 rounded-xl p-3">
+          <div className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-2 font-semibold">
+            <UserCircle className="w-4 h-4" />
+            Đang lọc theo Nhân sự phụ trách: <span className="font-bold">{subordinates.find(s => String(s.id) === String(assigneeFilter))?.full_name || subordinates.find(s => String(s.id) === String(assigneeFilter))?.email || 'Nhân sự'}</span>
+            <span className="text-muted-foreground font-normal">({filteredContracts.length} hợp đồng)</span>
+          </div>
+          <button 
+            onClick={() => {
+              setAssigneeFilter('');
+              if (setMemberAssigneeFilter) setMemberAssigneeFilter('');
+            }} 
+            className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-purple-500/40"
+          >
+            <X className="w-3.5 h-3.5" /> Xóa lọc nhân sự
           </button>
         </div>
       )}
