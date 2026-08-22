@@ -30,7 +30,7 @@ import {
   UserCircle
 } from 'lucide-react';
 import { formatVND, formatDisplayDate, formatCurrencyByUnit, cleanVND, calcEndDate } from '../../utils/formatters';
-import { matchesDrillDownCategory } from '../../utils/contractStatus';
+import { getContractFinancialsAndDeadline, matchesDrillDownCategory } from '../../utils/contractStatus';
 import { exportContractsExcel, exportContractsPdf } from '../../utils/export/contractExport';
 import PdfPreviewModal from '../common/PdfPreviewModal';
 import { COST_GROUP_OPTIONS } from './ContractModal';
@@ -73,6 +73,7 @@ export default function ContractsView({
   const [chartCostGroupFilter, setChartCostGroupFilter] = useState('');
   const [chartStatusFilter, setChartStatusFilter] = useState('');
   const [chartScheduleFilter, setChartScheduleFilter] = useState('');
+  const [kpiDrillDown, setKpiDrillDown] = useState(null); // 'in_progress' | 'settled' | 'overdue' | null
   const [statusChartMetric, setStatusChartMetric] = useState('count'); // 'count' or 'value'
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
   const [displayUnit, setDisplayUnit] = useState(() => localStorage.getItem('contractListDisplayUnit') || 'vnd');
@@ -191,27 +192,46 @@ export default function ContractsView({
     ? dashboardSourceContracts.filter(c => matchesDrillDownCategory(c, data.payments || [], contractDrillDown))
     : dashboardSourceContracts;
 
-  // Function to determine schedule status
+  // Function to determine schedule status — uses canonical end date (signing_date + execution_days)
   const getScheduleStatus = (c) => {
     if (c.status === 'settled') return 'Đã hoàn thành';
-    if (!c.end_date) return 'Đúng tiến độ'; // No end date = no deadline
 
+    // Canonical end date: compute from signing_date + execution_days, fallback to c.end_date
+    const signingDate = c.signing_date || '';
+    const executionDays = Number(c.execution_days || 0);
+    const exactEndDate = signingDate && executionDays > 0
+      ? calcEndDate(signingDate, executionDays)
+      : (c.end_date || '');
+
+    if (!exactEndDate) return 'Đúng tiến độ'; // No end date = no deadline
+
+    const todayStr = new Date().toISOString().substring(0, 10);
+
+    if (todayStr > exactEndDate) return 'Quá hạn';
+
+    // Check if within 30 days of deadline
     const now = new Date();
-    // Reset time to start of day for accurate comparison
     now.setHours(0,0,0,0);
-    const endDate = new Date(c.end_date);
+    const endDate = new Date(exactEndDate);
     endDate.setHours(0,0,0,0);
-
-    if (now > endDate) return 'Quá hạn';
-    
     const diffTime = Math.abs(endDate - now);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays <= 30) return 'Sắp hết hạn';
     return 'Đúng tiến độ';
   };
 
   const filteredContracts = drillDownSourceContracts.filter(c => {
+    // KPI drill-down filter (local KPI card click)
+    if (kpiDrillDown) {
+      if (kpiDrillDown === 'in_progress' && c.status === 'settled') return false;
+      if (kpiDrillDown === 'settled' && c.status !== 'settled') return false;
+      if (kpiDrillDown === 'overdue') {
+        // Canonical: quá hạn AND chưa quyết toán
+        if (c.status === 'settled') return false;
+        if (getScheduleStatus(c) !== 'Quá hạn') return false;
+      }
+    }
     if (chartCostGroupFilter) {
       const cg = c.costGroup || 'Chưa phân loại';
       if (cg !== chartCostGroupFilter) return false;
@@ -228,6 +248,13 @@ export default function ContractsView({
 
   const isLocalFiltered = Boolean(contractorFilter || costGroupFilter || statusFilter || assigneeFilter || localSearch);
   const isChartFiltered = Boolean(chartCostGroupFilter || chartStatusFilter || chartScheduleFilter);
+  const isKpiFiltered = Boolean(kpiDrillDown);
+
+  const KPI_DRILL_DOWN_LABELS = {
+    in_progress: 'Đang thực hiện',
+    settled: 'Đã quyết toán',
+    overdue: 'Quá hạn chưa quyết toán',
+  };
 
   const clearChartFilters = () => {
     setChartCostGroupFilter('');
@@ -340,16 +367,25 @@ export default function ContractsView({
             {formatVND(kpiTotalValue)}
           </div>
         </div>
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-lg flex flex-col justify-center">
+        <div
+          onClick={() => setKpiDrillDown(kpiDrillDown === 'in_progress' ? null : 'in_progress')}
+          className={`bg-card border rounded-2xl p-4 shadow-lg flex flex-col justify-center cursor-pointer transition-all hover:border-success/60 ${kpiDrillDown === 'in_progress' ? 'border-success ring-2 ring-success/30' : 'border-border'}`}
+        >
           <div className="flex items-center gap-2 text-muted-foreground mb-1"><Activity className="w-4 h-4 text-success" /> <span className="text-xs font-semibold uppercase">Đang thực hiện</span></div>
           <div className="text-xl font-bold text-success">{kpiInProgress} <span className="text-xs text-muted-foreground font-normal">hợp đồng</span></div>
         </div>
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-lg flex flex-col justify-center">
+        <div
+          onClick={() => setKpiDrillDown(kpiDrillDown === 'settled' ? null : 'settled')}
+          className={`bg-card border rounded-2xl p-4 shadow-lg flex flex-col justify-center cursor-pointer transition-all hover:border-primary/60 ${kpiDrillDown === 'settled' ? 'border-primary ring-2 ring-primary/30' : 'border-border'}`}
+        >
           <div className="flex items-center gap-2 text-muted-foreground mb-1"><CheckCircle className="w-4 h-4 text-primary/80" /> <span className="text-xs font-semibold uppercase">Đã quyết toán</span></div>
           <div className="text-xl font-bold text-primary/80">{kpiSettled} <span className="text-xs text-muted-foreground font-normal">hợp đồng</span></div>
         </div>
-        <div className="bg-card border border-border rounded-2xl p-4 shadow-lg flex flex-col justify-center">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1"><AlertCircle className="w-4 h-4 text-destructive" /> <span className="text-xs font-semibold uppercase">Quá hạn</span></div>
+        <div
+          onClick={() => setKpiDrillDown(kpiDrillDown === 'overdue' ? null : 'overdue')}
+          className={`bg-card border rounded-2xl p-4 shadow-lg flex flex-col justify-center cursor-pointer transition-all hover:border-destructive/60 ${kpiDrillDown === 'overdue' ? 'border-destructive ring-2 ring-destructive/30' : 'border-border'}`}
+        >
+          <div className="flex items-center gap-2 text-muted-foreground mb-1"><AlertCircle className="w-4 h-4 text-destructive" /> <span className="text-xs font-semibold uppercase">Quá hạn chưa QT</span></div>
           <div className="text-xl font-bold text-destructive">{kpiOverdue} <span className="text-xs text-muted-foreground font-normal">hợp đồng</span></div>
         </div>
       </div>
@@ -361,6 +397,23 @@ export default function ContractsView({
           </div>
           <button onClick={clearChartFilters} className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
             <X className="w-3.5 h-3.5" /> Xóa bộ lọc biểu đồ
+          </button>
+        </div>
+      )}
+
+      {/* KPI drill-down filter badge */}
+      {isKpiFiltered && (
+        <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3">
+          <div className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-2 font-semibold">
+            <Activity className="w-4 h-4" />
+            Đang lọc theo KPI: <span className="font-bold">{KPI_DRILL_DOWN_LABELS[kpiDrillDown] || kpiDrillDown}</span>
+            <span className="text-muted-foreground font-normal">({filteredContracts.length} hợp đồng)</span>
+          </div>
+          <button
+            onClick={() => setKpiDrillDown(null)}
+            className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer border border-emerald-500/40"
+          >
+            <X className="w-3.5 h-3.5" /> Xóa bộ lọc KPI
           </button>
         </div>
       )}
