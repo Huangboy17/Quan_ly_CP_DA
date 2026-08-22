@@ -1885,20 +1885,32 @@ export function getAggregatedData(timeFilter = {}, isLoggedIn = false, userRole 
     const inPeriodPaidVAT = cleanVND(inPeriodContractPaidVAT[c.id] || 0);
     const inPeriodPaidAfterVAT = cleanVND(inPeriodContractPaidAfterVAT[c.id] || 0);
 
-    const remainingBeforeVAT = Math.max(0, cleanVND(currentContractValueBeforeVAT - paidBeforeVAT));
-    const remainingVAT = Math.max(0, cleanVND(currentContractValueVAT - paidVAT));
-    const remainingAfterVAT = Math.max(0, cleanVND(currentContractValueAfterVAT - paidAfterVAT));
+    const status = c.status || 'in_progress';
+
+    // 1. GIÁ TRỊ DỰ KIẾN QUYẾT TOÁN (ĐÃ CÓ):
+    // - Trường hợp chưa quyết toán: Giá trị HĐ + Giá trị các phụ lục điều chỉnh (currentContractValueAfterVAT)
+    // - Trường hợp đã quyết toán: Giá trị quyết toán thực tế (settlement_amount_after_vat / finalSettlementAmount / paidAfterVAT)
+    const actualSettledValue = (c.settlement_amount_after_vat !== undefined && c.settlement_amount_after_vat !== null && c.settlement_amount_after_vat !== '')
+      ? cleanVND(c.settlement_amount_after_vat)
+      : (c.finalSettlementAmount !== undefined && c.finalSettlementAmount !== null && c.finalSettlementAmount !== '')
+        ? cleanVND(c.finalSettlementAmount)
+        : paidAfterVAT;
+
+    const estimatedSettlement = status === 'settled'
+      ? actualSettledValue
+      : currentContractValueAfterVAT;
+
+    // 2. LOGIC MỚI CHO GIÁ TRỊ CÒN LẠI:
+    // Giá trị còn lại = Giá trị dự kiến quyết toán - Lũy kế thanh toán
+    const remainingAfterVAT = Math.max(0, cleanVND(estimatedSettlement - paidAfterVAT));
+    const remainingBeforeVAT = currentContractValueAfterVAT > 0 && remainingAfterVAT > 0
+      ? Math.max(0, cleanVND(currentContractValueBeforeVAT - paidBeforeVAT))
+      : 0;
+    const remainingVAT = Math.max(0, cleanVND(remainingAfterVAT - remainingBeforeVAT));
 
     const paidPercentage = currentContractValueAfterVAT > 0 ? (paidAfterVAT / currentContractValueAfterVAT) * 100 : 0;
     const latestPaymentDate = latestPaymentDateMap[c.id] || null;
     const paymentsCount = contractPaymentsCount[c.id] || 0;
-    const status = c.status || 'in_progress';
-    // Dự kiến quyết toán:
-    // - Chưa quyết toán → Giá trị HĐ hiện tại (đã bao gồm phụ lục)
-    // - Đã quyết toán → Tổng lũy kế thanh toán thực tế (bao gồm cả đợt quyết toán)
-    const estimatedSettlement = status === 'settled'
-      ? paidAfterVAT
-      : currentContractValueAfterVAT;
 
     const costGroup = c.costGroup || '';
     const costGroupNote = c.costGroupNote || '';
@@ -2019,10 +2031,11 @@ export function getAggregatedData(timeFilter = {}, isLoggedIn = false, userRole 
   const totalPaidVAT = filteredContractsList.reduce((sum, c) => sum + Number(c.totalPaidVAT || 0), 0);
   const totalPaidAfterVAT = filteredContractsList.reduce((sum, c) => sum + Number(c.totalPaidAfterVAT || 0), 0);
 
-  // Totals for Remaining (3-tier)
-  const totalRemainingBeforeVAT = totalContractValueBeforeVAT - totalPaidBeforeVAT;
-  const totalRemainingVAT = totalContractVAT - totalPaidVAT;
-  const totalRemainingAfterVAT = totalContractValueAfterVAT - totalPaidAfterVAT;
+  // Totals for Estimated Settlement and Remaining
+  const totalEstimatedSettlement = filteredContractsList.reduce((sum, c) => sum + Number(c.estimated_settlement_value || 0), 0);
+  const totalRemainingAfterVAT = filteredContractsList.reduce((sum, c) => sum + Number(c.remainingAfterVAT || 0), 0);
+  const totalRemainingBeforeVAT = filteredContractsList.reduce((sum, c) => sum + Number(c.remainingBeforeVAT || 0), 0);
+  const totalRemainingVAT = filteredContractsList.reduce((sum, c) => sum + Number(c.remainingVAT || 0), 0);
 
   // In-period payments (3-tier)
   const totalPaidInPeriodBeforeVAT = inPeriodPaymentsFiltered.reduce((sum, pm) => sum + Number(pm.amount_before_vat || 0), 0);

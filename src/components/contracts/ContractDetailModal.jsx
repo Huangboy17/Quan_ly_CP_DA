@@ -82,9 +82,11 @@ export default function ContractDetailModal({
     };
   });
 
-  const totalPaidAfterVat = runningSum;
-  const remainingValue = Math.max(0, cleanVND(currentContractValueAfterVat - totalPaidAfterVat));
   const isSettled = isContractFinalized(contract);
+  const estimatedSettlementValue = isSettled
+    ? (contract.settlement_amount_after_vat ? cleanVND(contract.settlement_amount_after_vat) : (contract.estimated_settlement_value || totalPaidAfterVat))
+    : currentContractValueAfterVat;
+  const remainingValue = Math.max(0, cleanVND(estimatedSettlementValue - totalPaidAfterVat));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-fade-in overflow-y-auto">

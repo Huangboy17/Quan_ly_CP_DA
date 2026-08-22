@@ -10,13 +10,23 @@ export function getContractFinancialsAndDeadline(c, payments = [], todayStr = ne
     return { cEst: 0, cPaid: 0, exactEndDate: '', isOverdue: false, isSettled: false };
   }
 
-  const cEst = (c.settlement_amount_after_vat !== undefined && c.settlement_amount_after_vat !== null && c.settlement_amount_after_vat !== '')
-    ? cleanVND(c.settlement_amount_after_vat)
-    : cleanVND(c.value_after_vat || c.contractValueAfterVAT || 0);
+  const isSettled = Boolean(c.status === 'settled');
 
-  const cPaid = (payments || [])
-    .filter(p => String(p.contract_id) === String(c.id))
-    .reduce((s, p) => s + cleanVND(p.amount_after_vat), 0);
+  const cPaid = (payments && payments.length > 0)
+    ? (payments
+        .filter(p => String(p.contract_id) === String(c.id))
+        .reduce((s, p) => s + cleanVND(p.amount_after_vat), 0))
+    : cleanVND(c.totalPaidAfterVAT || c.totalPaid || 0);
+
+  const cEst = isSettled
+    ? ((c.settlement_amount_after_vat !== undefined && c.settlement_amount_after_vat !== null && c.settlement_amount_after_vat !== '')
+        ? cleanVND(c.settlement_amount_after_vat)
+        : (c.estimated_settlement_value !== undefined && c.estimated_settlement_value !== null
+            ? cleanVND(c.estimated_settlement_value)
+            : cPaid))
+    : cleanVND(c.contractValueAfterVAT || c.contract_value || c.value_after_vat || 0);
+
+  const cRemaining = Math.max(0, cEst - cPaid);
 
   const signingDate = c.signing_date || '';
   const executionDays = Number(c.execution_days || 0);
@@ -24,12 +34,12 @@ export function getContractFinancialsAndDeadline(c, payments = [], todayStr = ne
     ? calcEndDate(signingDate, executionDays) 
     : (c.end_date || '');
 
-  const isOverdue = Boolean(exactEndDate && todayStr > exactEndDate && c.status !== 'settled');
-  const isSettled = Boolean(c.status === 'settled' || (cEst > 0 && cPaid >= cEst));
+  const isOverdue = Boolean(exactEndDate && todayStr > exactEndDate && !isSettled);
 
   return {
     cEst,
     cPaid,
+    cRemaining,
     exactEndDate,
     isOverdue,
     isSettled
